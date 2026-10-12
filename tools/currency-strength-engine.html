@@ -8,6 +8,10 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- PapaParse for CSV parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <!-- SheetJS for Excel parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;700;800&display=swap" rel="stylesheet">
@@ -75,6 +79,13 @@
                     <i class="fa-solid fa-upload mr-1"></i> Import Backup
                 </button>
                 <input type="file" id="jsonFileInput" accept=".json,application/json" class="hidden" onchange="importData(event)">
+                
+                <!-- Investing.com File Upload Button & Hidden Input -->
+                <button onclick="document.getElementById('investingFileInput').click()" class="px-3 py-1.5 text-[10px] uppercase tracking-wider bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-400 rounded-sm border border-emerald-900/60 transition cursor-pointer">
+                    <i class="fa-solid fa-file-import mr-1"></i> Import Investing.com Export
+                </button>
+                <input type="file" id="investingFileInput" accept=".csv, .xlsx, .xls" class="hidden" onchange="handleInvestingUpload(event)">
+
                 <button onclick="resetToDefaults()" class="px-3 py-1.5 text-[10px] uppercase tracking-wider bg-[#0c0c12] hover:bg-zinc-900 text-rose-400 rounded-sm border border-zinc-800 transition cursor-pointer">
                     <i class="fa-solid fa-rotate-left mr-1"></i> Reset
                 </button>
@@ -279,6 +290,18 @@
 
         const pairsList = ["EURUSD", "GBPUSD", "AUDUSD", "NZDUSD", "USDCAD", "USDCHF", "USDJPY", "EURGBP", "EURAUD", "EURNZD", "EURCAD", "EURCHF", "EURJPY", "GBPAUD", "GBPNZD", "GBPCAD", "GBPCHF", "GBPJPY", "AUDNZD", "AUDCAD", "AUDCHF", "AUDJPY", "NZDCAD", "NZDCHF", "NZDJPY", "CADCHF", "CADJPY", "CHFJPY"];
 
+        // Country Tag to Currency Mapping (Investing.com)
+        const countryToCurrency = {
+            "US": "USD", "USA": "USD", "UNITED STATES": "USD", "USD": "USD",
+            "DE": "EUR", "FR": "EUR", "IT": "EUR", "ES": "EUR", "EU": "EUR", "EMU": "EUR", "EURO ZONE": "EUR", "EUROZONE": "EUR", "GERMANY": "EUR", "FRANCE": "EUR", "ITALY": "EUR", "SPAIN": "EUR", "EUR": "EUR",
+            "UK": "GBP", "GB": "GBP", "GBR": "GBP", "UNITED KINGDOM": "GBP", "GBP": "GBP",
+            "JP": "JPY", "JPN": "JPY", "JAPAN": "JPY", "JPY": "JPY",
+            "AU": "AUD", "AUS": "AUD", "AUSTRALIA": "AUD", "AUD": "AUD",
+            "NZ": "NZD", "NZL": "NZD", "NEW ZEALAND": "NZD", "NZD": "NZD",
+            "CA": "CAD", "CAN": "CAD", "CANADA": "CAD", "CAD": "CAD",
+            "CH": "CHF", "CHE": "CHF", "SWITZERLAND": "CHF", "CHF": "CHF"
+        };
+
         let appData = JSON.parse(JSON.stringify(defaultData));
         let activeTab = 'dashboard';
         let currentSort = 'divergence';
@@ -307,11 +330,19 @@
 
         function parseInputValue(input, type) {
             if (input === null || input === undefined || input === '') return null;
-            let strVal = input.toString().trim().toUpperCase().replace('K', '');
+            let strVal = input.toString().trim().toUpperCase().replace(/,/g, '');
             if (strVal === '-' || strVal === 'N/A') return null;
             const isExplicitPercent = strVal.includes('%');
-            let num = parseFloat(strVal.replace('%', ''));
+            strVal = strVal.replace('%', '').trim();
+            if (strVal.endsWith('K')) strVal = strVal.slice(0, -1);
+            else if (strVal.endsWith('M')) strVal = strVal.slice(0, -1);
+            else if (strVal.endsWith('B')) strVal = strVal.slice(0, -1);
+            let num = parseFloat(strVal);
             if (isNaN(num)) return null;
+            const jobsInThousands = ["NFP", "JOBS_K", "CAD_JOBS", "GER_UNEMP_CHANGE", "CHF_UNEMP_CHANGE", "GBP_CLAIMANT"];
+            if (jobsInThousands.includes(type) && Math.abs(num) >= 1000) {
+                num = num / 1000;
+            }
             const percentTypes = ["CPI", "UNEMP_RATE", "PCT_GROWTH", "EUR_UNEMP_FIXED", "CARD_TRANS"];
             if (percentTypes.includes(type) && (isExplicitPercent || Math.abs(num) >= 0.08)) return num / 100.0;
             return num;
@@ -437,7 +468,7 @@
             else if (currentFilter === 'bullish') pairsData = pairsData.filter(p => p.diff > 0);
             else if (currentFilter === 'bearish') pairsData = pairsData.filter(p => p.diff < 0);
 
-            if (currentSort === 'divergence') pairsData.sort((a, b) => b.absDiff - a.absDiff);
+            if (currentSort === 'divergence') pairsData.sort((a, b) => b.absDiff - a.diff);
             else if (currentSort === 'bullish') pairsData.sort((a, b) => b.diff - a.diff);
             else if (currentSort === 'bearish') pairsData.sort((a, b) => a.diff - b.diff);
 
@@ -575,6 +606,314 @@
                 localStorage.removeItem(STORAGE_KEY);
                 refreshApp();
             }
+        }
+
+        // ==========================================
+        // INVESTING.COM EXPORT IMPORT ENGINE (.csv, .xlsx, .xls)
+        // ==========================================
+
+        function normalizeEventName(name) {
+            if (!name) return "";
+            let str = name.toString().toLowerCase();
+            // Remove period/month annotations like (Sep), (Aug), (YoY), (MoM), (QoQ), (Prelim), etc.
+            str = str.replace(/\([^)]*\)/g, ' ');
+            // Remove known publisher/source prefixes
+            str = str.replace(/\b(s&p global|s&p|hcob eurozone|hcob|jibun bank|judo bank|businessnz|busnz|procure\.ch|procure)\b/g, ' ');
+            // Standardize synonyms
+            str = str.replace(/\bmanufacturing\b/g, 'mfg');
+            str = str.replace(/\bnon-manufacturing\b/g, 'services');
+            str = str.replace(/\bunemployment\b/g, 'unemp');
+            str = str.replace(/\bnonfarm payrolls\b|\bnon-farm payrolls\b|\bnon farm payrolls\b/g, 'nfp');
+            // Clean non-alphanumeric except whitespace
+            str = str.replace(/[^a-z0-9\s]/g, ' ');
+            return str.replace(/\s+/g, ' ').trim();
+        }
+
+        function formatToYMD(dateVal) {
+            if (!dateVal) return new Date().toISOString().slice(0, 10);
+            if (typeof dateVal === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateVal.trim())) {
+                return dateVal.trim();
+            }
+            if (typeof dateVal === 'number' && dateVal > 25000) {
+                const d = new Date(Math.round((dateVal - 25569) * 86400 * 1000));
+                if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+            }
+            const d = new Date(dateVal);
+            if (!isNaN(d.getTime())) {
+                return d.toISOString().slice(0, 10);
+            }
+            return new Date().toISOString().slice(0, 10);
+        }
+
+        function findMatchingIndicator(curr, rawEventName) {
+            const indicators = appData[curr];
+            if (!indicators || !indicators.length) return null;
+
+            const clean = normalizeEventName(rawEventName);
+            const ev = rawEventName.toLowerCase();
+
+            // 1. Direct exact or normalized match
+            for (const ind of indicators) {
+                if (ind.name.toLowerCase() === ev) return ind;
+                if (normalizeEventName(ind.name) === clean) return ind;
+            }
+
+            // 2. High-precision domain keyword matching
+            for (const ind of indicators) {
+                const iname = ind.name.toLowerCase();
+
+                // PMIs
+                if (iname.includes('mfg pmi') || iname.includes('manufacturing pmi')) {
+                    if ((ev.includes('manufacturing') || ev.includes('mfg')) && ev.includes('pmi')) return ind;
+                }
+                if (iname.includes('services pmi') || iname.includes('non-mfg')) {
+                    if ((ev.includes('services') || ev.includes('non-manufacturing')) && ev.includes('pmi')) return ind;
+                }
+                if (iname === 'ivey pmi' && ev.includes('ivey')) return ind;
+
+                // NFP & Labor Market
+                if (iname === 'nfp' && (ev.includes('nonfarm payrolls') || ev.includes('non-farm') || ev.includes('nfp'))) return ind;
+                if (iname.includes('unemployment rate') || iname === 'unemp rate') {
+                    if (ev.includes('unemployment rate') || ev.includes('jobless rate')) return ind;
+                }
+                if (iname.includes('unemp change') || iname.includes('unemployment change')) {
+                    if (ev.includes('unemployment change') || ev.includes('jobless change')) return ind;
+                }
+                if (iname === 'claimant count' && ev.includes('claimant count')) return ind;
+                if ((iname.includes('employment change') || iname.includes('jobs change') || iname.includes('net employment')) && !iname.includes('unemployment')) {
+                    if ((ev.includes('employment change') || ev.includes('jobs change') || ev.includes('net change in employment')) && !ev.includes('unemployment')) return ind;
+                }
+
+                // Inflation / CPI
+                if (iname.includes('cpi')) {
+                    if (ev.includes('cpi') || ev.includes('consumer price')) {
+                        if (iname.includes('tokyo') && !ev.includes('tokyo')) continue;
+                        if (!iname.includes('tokyo') && ev.includes('tokyo')) continue;
+                        return ind;
+                    }
+                }
+
+                // Retail Sales
+                if (iname.includes('retail sales') && ev.includes('retail sales')) return ind;
+
+                // GDP
+                if (iname.includes('gdp') && (ev.includes('gdp') || ev.includes('gross domestic') || ev.includes('gdpnow'))) {
+                    if (iname.includes('atlanta') && !ev.includes('atlanta')) continue;
+                    return ind;
+                }
+
+                // Confidence / Business Surveys
+                if (iname.includes('consumer confidence') && ev.includes('consumer confidence')) return ind;
+                if (iname.includes('consumer sentiment') && ev.includes('consumer sentiment')) return ind;
+                if (iname.includes('business climate') && ev.includes('business climate')) return ind;
+                if (iname.includes('business confidence') && ev.includes('business confidence')) return ind;
+                if (iname.includes('tankan') && ev.includes('tankan')) return ind;
+                if (iname.includes('kof') && ev.includes('kof')) return ind;
+                if (iname.includes('westpac') && ev.includes('westpac')) return ind;
+                if (iname.includes('cbi') && ev.includes('cbi')) return ind;
+                if (iname.includes('nfib') && ev.includes('nfib')) return ind;
+                if (iname.includes('cfib') && ev.includes('cfib')) return ind;
+                if (iname.includes('gfk') && ev.includes('gfk')) return ind;
+                if (iname.includes('nab') && ev.includes('nab')) return ind;
+                if (iname.includes('aig') && ev.includes('aig')) return ind;
+                if (iname.includes('card transactions') && ev.includes('card transactions')) return ind;
+                if (iname.includes('cash earnings') && ev.includes('cash earnings')) return ind;
+                if (iname.includes('industrial production') && ev.includes('industrial production')) return ind;
+                if (iname.includes('food prices') && ev.includes('food prices')) return ind;
+            }
+
+            // 3. Normalized substring inclusion
+            for (const ind of indicators) {
+                const inameNorm = normalizeEventName(ind.name);
+                if (inameNorm.length >= 4 && (clean.includes(inameNorm) || inameNorm.includes(clean))) return ind;
+            }
+
+            // 4. Token overlap similarity
+            let bestMatch = null;
+            let bestScore = 0;
+            const cleanWords = clean.split(/\s+/).filter(w => w.length > 2);
+            for (const ind of indicators) {
+                const inameWords = normalizeEventName(ind.name).split(/\s+/).filter(w => w.length > 2);
+                if (!inameWords.length) continue;
+                const common = cleanWords.filter(w => inameWords.includes(w));
+                const score = common.length / Math.max(cleanWords.length, inameWords.length);
+                if (score > bestScore && score >= 0.4) {
+                    bestScore = score;
+                    bestMatch = ind;
+                }
+            }
+            return bestMatch;
+        }
+
+        function findRowKeys(row) {
+            const keys = Object.keys(row);
+            let currKey = null, eventKey = null, actualKey = null, forecastKey = null, prevKey = null, dateKey = null;
+
+            for (const k of keys) {
+                const cleanK = k.trim().toLowerCase();
+                if (!currKey && (cleanK === 'cur.' || cleanK === 'cur' || cleanK === 'currency' || cleanK === 'country' || cleanK === 'zone' || cleanK === 'ccy')) {
+                    currKey = k;
+                } else if (!eventKey && (cleanK === 'event' || cleanK === 'indicator' || cleanK === 'event name' || cleanK === 'title' || cleanK === 'release')) {
+                    eventKey = k;
+                } else if (!actualKey && (cleanK === 'actual' || cleanK === 'act' || cleanK === 'current')) {
+                    actualKey = k;
+                } else if (!forecastKey && (cleanK === 'forecast' || cleanK === 'fcst' || cleanK === 'consensus' || cleanK === 'expected')) {
+                    forecastKey = k;
+                } else if (!prevKey && (cleanK === 'previous' || cleanK === 'prev' || cleanK === 'prior')) {
+                    prevKey = k;
+                } else if (!dateKey && (cleanK === 'date' || cleanK === 'release date' || cleanK === 'day')) {
+                    dateKey = k;
+                }
+            }
+
+            return { currKey, eventKey, actualKey, forecastKey, prevKey, dateKey };
+        }
+
+        function processInvestingRows(rows) {
+            if (!rows || rows.length === 0) {
+                alert('No rows found in the uploaded file.');
+                return;
+            }
+
+            const { currKey, eventKey, actualKey, forecastKey, prevKey, dateKey } = findRowKeys(rows[0]);
+
+            if (!eventKey) {
+                alert('Could not identify an "Event" or "Indicator" column in the uploaded file. Please verify the spreadsheet format.');
+                return;
+            }
+
+            let updatedCount = 0;
+            const updatedCurrencies = new Set();
+            let currentDateHeader = new Date().toISOString().slice(0, 10);
+
+            rows.forEach(row => {
+                if (dateKey && row[dateKey]) {
+                    const parsedDate = formatToYMD(row[dateKey]);
+                    if (parsedDate) currentDateHeader = parsedDate;
+                }
+
+                const rawEvent = (row[eventKey] || '').toString().trim();
+                if (!rawEvent) return;
+
+                // Determine target currency from country code or currency string
+                let targetCurr = null;
+                if (currKey && row[currKey]) {
+                    const rawCurr = row[currKey].toString().trim().toUpperCase();
+                    targetCurr = countryToCurrency[rawCurr] || (appData[rawCurr] ? rawCurr : null);
+                }
+
+                // If not found, attempt to match currency from event name text
+                if (!targetCurr) {
+                    for (const [code, ccy] of Object.entries(countryToCurrency)) {
+                        if (code.length >= 2 && new RegExp(`\\b${code}\\b`, 'i').test(rawEvent)) {
+                            targetCurr = ccy;
+                            break;
+                        }
+                    }
+                }
+
+                const searchCurrencies = targetCurr ? [targetCurr] : Object.keys(appData);
+
+                for (const ccy of searchCurrencies) {
+                    const matchedInd = findMatchingIndicator(ccy, rawEvent);
+                    if (matchedInd) {
+                        let hasChanges = false;
+
+                        if (actualKey && row[actualKey] !== undefined && row[actualKey] !== '' && row[actualKey] !== '-' && row[actualKey] !== 'N/A') {
+                            const parsed = parseInputValue(row[actualKey], matchedInd.type);
+                            if (parsed !== null) {
+                                matchedInd.actual = parsed;
+                                hasChanges = true;
+                            }
+                        }
+
+                        if (forecastKey && row[forecastKey] !== undefined && row[forecastKey] !== '' && row[forecastKey] !== '-' && row[forecastKey] !== 'N/A') {
+                            const parsed = parseInputValue(row[forecastKey], matchedInd.type);
+                            if (parsed !== null) {
+                                matchedInd.forecast = parsed;
+                                hasChanges = true;
+                            }
+                        }
+
+                        if (prevKey && row[prevKey] !== undefined && row[prevKey] !== '' && row[prevKey] !== '-' && row[prevKey] !== 'N/A') {
+                            const parsed = parseInputValue(row[prevKey], matchedInd.type);
+                            if (parsed !== null) {
+                                matchedInd.previous = parsed;
+                                hasChanges = true;
+                            }
+                        }
+
+                        if (hasChanges) {
+                            matchedInd.date = (dateKey && row[dateKey]) ? formatToYMD(row[dateKey]) : currentDateHeader;
+                            updatedCount++;
+                            updatedCurrencies.add(ccy);
+                            break; // Stop currency search once matched
+                        }
+                    }
+                }
+            });
+
+            if (updatedCount > 0) {
+                saveToLocalStorage();
+                refreshApp();
+                const notice = document.getElementById('lastUpdatedNotice');
+                if (notice) {
+                    notice.innerText = `Updated: ${updatedCount} indicators (${Array.from(updatedCurrencies).join(', ')})`;
+                }
+                alert(`Successfully updated ${updatedCount} indicators from Investing.com export!`);
+            } else {
+                alert('Processed file, but no matching indicators could be identified. Please ensure the export contains G10 economic calendar events.');
+            }
+        }
+
+        function handleInvestingUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const fileName = file.name.toLowerCase();
+
+            if (fileName.endsWith('.csv')) {
+                // Parse CSV using PapaParse
+                Papa.parse(file, {
+                    header: true,
+                    skipEmptyLines: true,
+                    complete: function(results) {
+                        if (results.data && results.data.length > 0) {
+                            processInvestingRows(results.data);
+                        } else {
+                            alert('No data rows found in the CSV file.');
+                        }
+                    },
+                    error: function(err) {
+                        alert('Error parsing CSV file: ' + err.message);
+                    }
+                });
+            } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+                // Parse Excel using SheetJS
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const firstSheetName = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[firstSheetName];
+                        const rows = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+                        if (rows && rows.length > 0) {
+                            processInvestingRows(rows);
+                        } else {
+                            alert('No data rows found in the Excel sheet.');
+                        }
+                    } catch(err) {
+                        alert('Error reading Excel spreadsheet: ' + err.message);
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            } else {
+                alert('Unsupported file format. Please upload a .csv, .xlsx, or .xls file.');
+            }
+
+            // Reset file input so re-uploading the same file works
+            event.target.value = '';
         }
 
         window.addEventListener('DOMContentLoaded', loadFromLocalStorage);
