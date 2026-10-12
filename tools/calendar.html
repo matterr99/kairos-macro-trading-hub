@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Kairos Macro Hub // Motor Unificado de Riesgo y Divergencias</title>
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   
   <!-- External stylesheet link -->
@@ -110,15 +111,15 @@
         </div>
       </div>
 
-      <!-- Carga de Archivos Excel -->
+      <!-- Carga de Archivos Excel y CSV -->
       <div id="dropZone" class="bg-[#07080d] border border-dashed border-zinc-800 hover:border-cyan-500/60 rounded-2xl p-6 text-center transition cursor-pointer group">
-        <input type="file" id="excelInput" accept=".xlsx, .xls" class="hidden" onchange="handleFileSelect(event)" />
+        <input type="file" id="excelInput" accept=".csv, .xlsx, .xls, .tsv, text/csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" class="hidden" onchange="handleFileSelect(event)" />
         <div class="space-y-1.5">
           <svg class="mx-auto h-8 w-8 text-zinc-500 group-hover:text-cyan-400 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
           <div class="text-xs font-medium text-zinc-300">
-            Arrastra tu archivo <span class="text-cyan-400 font-semibold">Excel de Investing.com (.xlsx) aquí</span> o haz clic para explorar
+            Arrastra tu archivo <span class="text-cyan-400 font-semibold">Excel o CSV de Investing.com (.xlsx, .xls, .csv) aquí</span> o haz clic para explorar
           </div>
         </div>
       </div>
@@ -454,17 +455,34 @@
 
     if (dropZone && excelInput) {
       dropZone.addEventListener('click', () => excelInput.click());
-      dropZone.addEventListener('dragover', (e) => { e.preventDefault(); });
-      dropZone.addEventListener('dragenter', (e) => { e.preventDefault(); dropZone.classList.add('border-cyan-500'); });
+      dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      });
+      dropZone.addEventListener('dragenter', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.classList.add('border-cyan-500', 'bg-cyan-950/20');
+      });
       dropZone.addEventListener('dragleave', (e) => {
-        if (!dropZone.contains(e.relatedTarget)) dropZone.classList.remove('border-cyan-500');
+        e.preventDefault();
+        e.stopPropagation();
+        if (!dropZone.contains(e.relatedTarget)) {
+          dropZone.classList.remove('border-cyan-500', 'bg-cyan-950/20');
+        }
       });
       dropZone.addEventListener('drop', (e) => {
         e.preventDefault();
-        dropZone.classList.remove('border-cyan-500');
-        if (e.dataTransfer.files.length) processExcelFile(e.dataTransfer.files[0]);
+        e.stopPropagation();
+        dropZone.classList.remove('border-cyan-500', 'bg-cyan-950/20');
+        if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) {
+          processExcelFile(e.dataTransfer.files[0]);
+        }
       });
     }
+
+    window.addEventListener('dragover', (e) => e.preventDefault());
+    window.addEventListener('drop', (e) => e.preventDefault());
 
     window.addEventListener('DOMContentLoaded', () => {
       updateAdminUI();
@@ -768,7 +786,10 @@
     }
 
     function handleFileSelect(e) {
-      if (e.target.files.length) processExcelFile(e.target.files[0]);
+      if (e.target.files && e.target.files.length) {
+        processExcelFile(e.target.files[0]);
+        e.target.value = '';
+      }
     }
 
     function isWhitelisted(ccy, eventName) {
@@ -875,37 +896,119 @@
       return getCategorySentimentTitle(ccy, blockEvents[0].event);
     }
 
+    const COUNTRY_MAP = {
+      'US': 'USD', 'USA': 'USD', 'UNITED STATES': 'USD', 'ESTADOS UNIDOS': 'USD',
+      'DE': 'EUR', 'DEU': 'EUR', 'GERMANY': 'EUR', 'ALEMANIA': 'EUR',
+      'FR': 'EUR', 'FRA': 'EUR', 'FRANCE': 'EUR', 'FRANCIA': 'EUR',
+      'IT': 'EUR', 'ITA': 'EUR', 'ITALY': 'EUR', 'ITALIA': 'EUR',
+      'ES': 'EUR', 'ESP': 'EUR', 'SPAIN': 'EUR', 'ESPAÑA': 'EUR',
+      'EU': 'EUR', 'EMU': 'EUR', 'EURO ZONE': 'EUR', 'EUROZONE': 'EUR', 'ZONA EURO': 'EUR',
+      'UK': 'GBP', 'GB': 'GBP', 'GBR': 'GBP', 'UNITED KINGDOM': 'GBP', 'REINO UNIDO': 'GBP',
+      'JP': 'JPY', 'JPN': 'JPY', 'JAPAN': 'JPY', 'JAPON': 'JPY', 'JAPÓN': 'JPY',
+      'AU': 'AUD', 'AUS': 'AUD', 'AUSTRALIA': 'AUD',
+      'NZ': 'NZD', 'NZL': 'NZD', 'NEW ZEALAND': 'NZD', 'NUEVA ZELANDA': 'NZD',
+      'CA': 'CAD', 'CAN': 'CAD', 'CANADA': 'CAD', 'CANADÁ': 'CAD',
+      'CH': 'CHF', 'CHE': 'CHF', 'SWITZERLAND': 'CHF', 'SUIZA': 'CHF',
+      'CN': 'CNH', 'CHN': 'CNH', 'CNY': 'CNH', 'CHINA': 'CNH',
+      'USD': 'USD', 'EUR': 'EUR', 'GBP': 'GBP', 'JPY': 'JPY',
+      'AUD': 'AUD', 'NZD': 'NZD', 'CAD': 'CAD', 'CHF': 'CHF', 'CNH': 'CNH'
+    };
+
     function processExcelFile(file) {
+      if (!file) return;
+      const fileName = file.name.toLowerCase();
+
+      if (fileName.endsWith('.csv') || fileName.endsWith('.tsv') || fileName.endsWith('.txt')) {
+        if (typeof Papa !== 'undefined') {
+          Papa.parse(file, {
+            header: false,
+            skipEmptyLines: true,
+            complete: function(results) {
+              parseSpreadsheetData(results.data);
+            },
+            error: function(err) {
+              alert("Error al leer archivo CSV: " + err.message);
+            }
+          });
+          return;
+        }
+      }
+
       const reader = new FileReader();
       reader.onload = function(e) {
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: 'array' });
-        const sheetName = workbook.SheetNames[0];
-        const sheet = workbook.Sheets[sheetName];
-        const rawRows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "", raw: false, dateNF: "yyyy-mm-dd" });
-        parseSpreadsheetData(rawRows);
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+          const sheetName = workbook.SheetNames[0];
+          const sheet = workbook.Sheets[sheetName];
+          const rawRows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "", raw: false, dateNF: "yyyy-mm-dd" });
+          parseSpreadsheetData(rawRows);
+        } catch (err) {
+          console.error("Excel parse error:", err);
+          alert("Error al procesar el archivo Excel. Asegúrate de que sea un archivo válido (.xlsx o .xls).");
+        }
       };
       reader.readAsArrayBuffer(file);
     }
 
     function parseSpreadsheetData(rows) {
+      if (!rows || rows.length === 0) {
+        alert("El archivo no contiene filas legibles.");
+        return;
+      }
+
       const daysData = {};
       let currentDay = "LUNES";
 
-      rows.forEach(row => {
-        if (!row || row.length === 0) return;
+      // 1. Detect Header Column Indices if present
+      const colIdx = {
+        date: -1,
+        time: -1,
+        ccy: -1,
+        event: -1,
+        actual: -1,
+        forecast: -1,
+        previous: -1
+      };
+
+      let headerRowIdx = -1;
+      for (let r = 0; r < Math.min(rows.length, 5); r++) {
+        const row = (rows[r] || []).map(c => String(c || '').trim().toLowerCase());
+        const hasEventHeader = row.some(c => c === 'event' || c === 'indicator' || c === 'evento' || c === 'indicador');
+        const hasCcyHeader = row.some(c => c === 'cur.' || c === 'cur' || c === 'currency' || c === 'divisa' || c === 'moneda' || c === 'country' || c === 'pais');
+        if (hasEventHeader || hasCcyHeader) {
+          headerRowIdx = r;
+          row.forEach((cell, idx) => {
+            if (['date', 'fecha', 'day', 'dia'].includes(cell)) colIdx.date = idx;
+            if (['time', 'hora', 'time (et)', 'time (utc)'].includes(cell)) colIdx.time = idx;
+            if (['cur.', 'cur', 'currency', 'divisa', 'moneda', 'country', 'pais', 'zone'].includes(cell)) colIdx.ccy = idx;
+            if (['event', 'indicator', 'evento', 'indicador', 'economic calendar'].includes(cell)) colIdx.event = idx;
+            if (['actual', 'act', 'actual value'].includes(cell)) colIdx.actual = idx;
+            if (['forecast', 'consensus', 'fcst', 'prevision', 'previsión', 'expected'].includes(cell)) colIdx.forecast = idx;
+            if (['previous', 'prior', 'prev', 'anterior'].includes(cell)) colIdx.previous = idx;
+          });
+          break;
+        }
+      }
+
+      rows.forEach((row, rowIndex) => {
+        if (!row || row.length === 0 || rowIndex === headerRowIdx) return;
         const cleanRow = row.map(cell => cell === null || cell === undefined ? "" : String(cell).trim());
         const rowString = cleanRow.join(" ").trim();
         if (!rowString) return;
 
-        if (/Time/i.test(cleanRow[1] || "") && /Cur/i.test(cleanRow[2] || "") && /Event/i.test(cleanRow[3] || "")) return;
-
+        // 2. Date Detection
         let detectedDay = null;
         if (/^(SUNDAY|MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|DOMINGO|LUNES|MARTES|MIÉRCOLES|MIERCOLES|JUEVES|VIERNES|SÁBADO|SABADO)/i.test(rowString)) {
           detectedDay = rowString.toUpperCase();
         } else {
-          for (let cell of cleanRow) {
-            if (/^\d{4}-\d{2}-\d{2}/.test(cell) || /^\d{1,2}\/\d{1,2}\/\d{2,4}/.test(cell) || /^\d{5}(\.\d+)?$/.test(cell)) {
+          const dateCandidates = colIdx.date !== -1 && cleanRow[colIdx.date]
+            ? [cleanRow[colIdx.date]]
+            : cleanRow.slice(0, 3);
+
+          for (let cell of dateCandidates) {
+            if (!cell) continue;
+            if (/^\d{4}-\d{2}-\d{2}/.test(cell) || /^\d{1,2}\/\d{1,2}\/\d{2,4}/.test(cell) || /^\d{1,2}-\d{1,2}-\d{2,4}/.test(cell) || /^\d{5}(\.\d+)?$/.test(cell)) {
               let d;
               if (/^\d{5}(\.\d+)?$/.test(cell)) {
                 const serial = parseFloat(cell);
@@ -940,69 +1043,85 @@
         if (detectedDay) {
           currentDay = detectedDay;
           if (!daysData[currentDay]) daysData[currentDay] = [];
-          return;
         }
 
+        // Check if row is purely a date header
+        const hasAnyCcy = cleanRow.some(c => {
+          const u = c.toUpperCase();
+          return COUNTRY_MAP[u] !== undefined || CURRENCIES.includes(u);
+        });
+        const nonEmptyCells = cleanRow.filter(Boolean);
+        if (detectedDay && !hasAnyCcy && nonEmptyCells.length <= 2) {
+          return; // Skip date header row
+        }
+
+        // 3. Extract Event Fields
         let time = "", ccy = "", event = "", actual = "", forecast = "", previous = "";
-        let foundCcyIdx = -1;
 
-        for (let i = 0; i < Math.min(cleanRow.length, 5); i++) {
-          const cellVal = cleanRow[i].toUpperCase();
-          if (cellVal.length <= 3 && CURRENCIES.includes(cellVal)) {
-            foundCcyIdx = i;
-            ccy = cellVal;
-            break;
+        if (colIdx.event !== -1 && cleanRow[colIdx.event]) {
+          event = cleanRow[colIdx.event];
+          if (colIdx.time !== -1) time = cleanRow[colIdx.time] || '';
+          if (colIdx.ccy !== -1) {
+            const rawC = cleanRow[colIdx.ccy].toUpperCase();
+            ccy = COUNTRY_MAP[rawC] || (CURRENCIES.includes(rawC) ? rawC : '');
           }
+          if (colIdx.actual !== -1) actual = cleanRow[colIdx.actual] || '';
+          if (colIdx.forecast !== -1) forecast = cleanRow[colIdx.forecast] || '';
+          if (colIdx.previous !== -1) previous = cleanRow[colIdx.previous] || '';
         }
 
-        if (foundCcyIdx !== -1) {
-          for (let i = 0; i < foundCcyIdx; i++) {
-            if (/^\d{1,2}:\d{2}/.test(cleanRow[i]) || /^\d{1,2}\.\d{2}/.test(cleanRow[i])) {
-              time = cleanRow[i];
+        // Fallback: heuristic positional scanning
+        if (!event || !ccy) {
+          let foundCcyIdx = -1;
+          for (let i = 0; i < Math.min(cleanRow.length, 6); i++) {
+            const cellVal = cleanRow[i].toUpperCase();
+            if (COUNTRY_MAP[cellVal] || CURRENCIES.includes(cellVal)) {
+              foundCcyIdx = i;
+              ccy = COUNTRY_MAP[cellVal] || cellVal;
               break;
             }
           }
 
-          let eventIdx = -1;
-          for (let i = foundCcyIdx + 1; i < cleanRow.length; i++) {
-            const val = cleanRow[i].trim();
-            if (/^(high|medium|low|vol\.|bull|\d|★|\s*)$/i.test(val)) continue;
-            eventIdx = i;
-            event = val;
-            break;
-          }
+          if (foundCcyIdx !== -1) {
+            for (let i = 0; i < foundCcyIdx; i++) {
+              if (/^\d{1,2}:\d{2}/.test(cleanRow[i]) || /^\d{1,2}\.\d{2}/.test(cleanRow[i])) {
+                time = cleanRow[i];
+                break;
+              }
+            }
 
-          if (eventIdx !== -1) {
-            const postEvent = cleanRow.slice(eventIdx + 1).filter(cell => cell.trim() !== "");
-            if (postEvent.length >= 3) {
-              actual = postEvent[0]; forecast = postEvent[1]; previous = postEvent[2];
-            } else if (postEvent.length === 2) {
-              actual = postEvent[0]; forecast = postEvent[1];
-            } else if (postEvent.length === 1) {
-              actual = postEvent[0];
+            let eventIdx = -1;
+            for (let i = foundCcyIdx + 1; i < cleanRow.length; i++) {
+              const val = cleanRow[i].trim();
+              if (/^(high|medium|low|vol\.|bull|\d|★|\s*)$/i.test(val)) continue;
+              eventIdx = i;
+              event = val;
+              break;
+            }
+
+            if (eventIdx !== -1) {
+              const postEvent = cleanRow.slice(eventIdx + 1).filter(cell => cell.trim() !== "");
+              if (postEvent.length >= 3) {
+                actual = postEvent[0]; forecast = postEvent[1]; previous = postEvent[2];
+              } else if (postEvent.length === 2) {
+                actual = postEvent[0]; forecast = postEvent[1];
+              } else if (postEvent.length === 1) {
+                actual = postEvent[0];
+              }
             }
           }
         }
 
         if (!ccy || !event) return;
+        if (COUNTRY_MAP[ccy]) ccy = COUNTRY_MAP[ccy];
+        if (!CURRENCIES.includes(ccy)) return;
 
-        let mappedCCY = ccy;
-        if (['DE', 'DEU', 'FR', 'FRA', 'EU', 'EUR'].includes(ccy)) mappedCCY = 'EUR';
-        if (['UK', 'GB', 'GBR'].includes(ccy)) mappedCCY = 'GBP';
-        if (['CH', 'CHE'].includes(ccy)) mappedCCY = 'CHF';
-        if (['CA', 'CAN'].includes(ccy)) mappedCCY = 'CAD';
-        if (['US', 'USA'].includes(ccy)) mappedCCY = 'USD';
-        if (['JP', 'JPN'].includes(ccy)) mappedCCY = 'JPY';
-        if (['AU', 'AUS'].includes(ccy)) mappedCCY = 'AUD';
-        if (['NZ', 'NZL'].includes(ccy)) mappedCCY = 'NZD';
-        if (['CN', 'CHN', 'CNY'].includes(ccy)) mappedCCY = 'CNH';
-
-        if (isWhitelisted(mappedCCY, event)) {
+        if (isWhitelisted(ccy, event)) {
           if (!daysData[currentDay]) daysData[currentDay] = [];
-          const ruleId = getCoreRuleId(mappedCCY, event);
+          const ruleId = getCoreRuleId(ccy, event);
           daysData[currentDay].push({ 
             time, 
-            ccy: mappedCCY, 
+            ccy, 
             event, 
             actual, 
             forecast, 
@@ -1013,10 +1132,24 @@
         }
       });
 
-      globalState.daysData = daysData;
-      globalState.categoryScores = {};
-      saveToLocalStorage();
-      renderLiveInteractiveApp();
+      const totalEvents = Object.values(daysData).reduce((sum, evs) => sum + evs.length, 0);
+      const dayCount = Object.keys(daysData).filter(k => daysData[k].length > 0).length;
+
+      if (totalEvents > 0) {
+        // Clean up empty days
+        const filteredDaysData = {};
+        Object.keys(daysData).forEach(k => {
+          if (daysData[k].length > 0) filteredDaysData[k] = daysData[k];
+        });
+
+        globalState.daysData = filteredDaysData;
+        globalState.categoryScores = {};
+        saveToLocalStorage();
+        renderLiveInteractiveApp();
+        alert(`✅ ¡Carga exitosa! Se importaron ${totalEvents} eventos macroeconómicos en ${dayCount} jornadas.`);
+      } else {
+        alert("No se pudieron extraer eventos con formato macro. Verifica que el archivo provenga de Investing.com (.csv o .xlsx).");
+      }
     }
 
     function renderLiveInteractiveApp() {

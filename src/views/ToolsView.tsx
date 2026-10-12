@@ -466,9 +466,26 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
     return isNaN(parsed) ? null : parsed * multiplier;
   };
 
-  const handleCurrencyInvestingUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const processCurrencySpreadsheet = (file: File) => {
     if (!file) return;
+    const fileName = file.name.toLowerCase();
+
+    if (fileName.endsWith('.json')) {
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        try {
+          const imported = JSON.parse(evt.target?.result as string);
+          if (imported && typeof imported === 'object') {
+            setCurrencyIndicators(imported);
+            alert("Currency Indicators backup restored successfully!");
+          }
+        } catch {
+          alert("Invalid backup JSON file.");
+        }
+      };
+      reader.readAsText(file);
+      return;
+    }
 
     const processRows = (rows: any[]) => {
       if (!rows || rows.length === 0) {
@@ -541,11 +558,9 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
       });
 
       alert(`Successfully updated ${matchCount} macroeconomic indicator(s) from Investing.com export!`);
-      e.target.value = '';
     };
 
-    const fileName = file.name.toLowerCase();
-    if (fileName.endsWith('.csv')) {
+    if (fileName.endsWith('.csv') || fileName.endsWith('.tsv') || fileName.endsWith('.txt')) {
       Papa.parse(file, {
         header: true,
         skipEmptyLines: true,
@@ -569,6 +584,12 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
     } else {
       alert("Unsupported format. Please upload .csv, .xlsx, or .xls file.");
     }
+  };
+
+  const handleCurrencyInvestingUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) processCurrencySpreadsheet(file);
+    e.target.value = '';
   };
 
   // --- Central Bank Calculations & Trajectory ---
@@ -696,9 +717,26 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
     return null;
   };
 
-  const handleBankInvestingUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const processBankSpreadsheet = (file: File) => {
     if (!file) return;
+    const fileName = file.name.toLowerCase();
+
+    if (fileName.endsWith('.json')) {
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        try {
+          const imported = JSON.parse(evt.target?.result as string);
+          if (imported && typeof imported === 'object') {
+            setRatesData(imported);
+            alert("Central Bank rates backup restored successfully!");
+          }
+        } catch {
+          alert("Invalid backup JSON file.");
+        }
+      };
+      reader.readAsText(file);
+      return;
+    }
 
     const processBankRows = (rows: any[]) => {
       if (!rows || rows.length === 0) {
@@ -801,11 +839,9 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
       } else {
         alert("Processed export, but no matching G10 Central Bank interest rate decisions were found.");
       }
-      e.target.value = '';
     };
 
-    const fileName = file.name.toLowerCase();
-    if (fileName.endsWith('.csv')) {
+    if (fileName.endsWith('.csv') || fileName.endsWith('.tsv') || fileName.endsWith('.txt')) {
       Papa.parse(file, {
         header: true,
         skipEmptyLines: true,
@@ -830,6 +866,39 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
       alert("Unsupported format. Please upload .csv, .xlsx, or .xls file.");
     }
   };
+
+  const handleBankInvestingUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) processBankSpreadsheet(file);
+    e.target.value = '';
+  };
+
+  // Drag and drop file loading for active tool views
+  useEffect(() => {
+    const handleDragOver = (e: DragEvent) => {
+      if (activeTab === 'currency-strength' || activeTab === 'central-banks') {
+        e.preventDefault();
+      }
+    };
+    const handleDrop = (e: DragEvent) => {
+      if (activeTab === 'currency-strength' || activeTab === 'central-banks') {
+        e.preventDefault();
+        const file = e.dataTransfer?.files?.[0];
+        if (!file) return;
+        if (activeTab === 'currency-strength') {
+          processCurrencySpreadsheet(file);
+        } else if (activeTab === 'central-banks') {
+          processBankSpreadsheet(file);
+        }
+      }
+    };
+    window.addEventListener('dragover', handleDragOver);
+    window.addEventListener('drop', handleDrop);
+    return () => {
+      window.removeEventListener('dragover', handleDragOver);
+      window.removeEventListener('drop', handleDrop);
+    };
+  }, [activeTab]);
 
   const handleApplyBankOverride = (bankCode: string) => {
     const r = parseFloat(drillRate);

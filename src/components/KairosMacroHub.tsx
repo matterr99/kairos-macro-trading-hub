@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import * as XLSX from 'xlsx';
+import Papa from 'papaparse';
 import { Language } from '../types';
 
 interface MacroEvent {
@@ -626,178 +627,293 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
     reader.readAsText(file);
   };
 
-  // Process Excel File
-  const processExcelFile = (file: File) => {
-    const reader = new FileReader();
-    reader.onload = (e: any) => {
-      try {
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: 'array', cellDates: true });
-        const firstSheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[firstSheetName];
-        const json: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+  // Process Spreadsheet Files (CSV, XLSX, XLS)
+  const COUNTRY_MAP: Record<string, string> = {
+    'US': 'USD', 'USA': 'USD', 'UNITED STATES': 'USD', 'ESTADOS UNIDOS': 'USD',
+    'DE': 'EUR', 'DEU': 'EUR', 'GERMANY': 'EUR', 'ALEMANIA': 'EUR',
+    'FR': 'EUR', 'FRA': 'EUR', 'FRANCE': 'EUR', 'FRANCIA': 'EUR',
+    'IT': 'EUR', 'ITA': 'EUR', 'ITALY': 'EUR', 'ITALIA': 'EUR',
+    'ES': 'EUR', 'ESP': 'EUR', 'SPAIN': 'EUR', 'ESPAÑA': 'EUR',
+    'EU': 'EUR', 'EMU': 'EUR', 'EURO ZONE': 'EUR', 'EUROZONE': 'EUR', 'ZONA EURO': 'EUR',
+    'UK': 'GBP', 'GB': 'GBP', 'GBR': 'GBP', 'UNITED KINGDOM': 'GBP', 'REINO UNIDO': 'GBP',
+    'JP': 'JPY', 'JPN': 'JPY', 'JAPAN': 'JPY', 'JAPON': 'JPY', 'JAPÓN': 'JPY',
+    'AU': 'AUD', 'AUS': 'AUD', 'AUSTRALIA': 'AUD',
+    'NZ': 'NZD', 'NZL': 'NZD', 'NEW ZEALAND': 'NZD', 'NUEVA ZELANDA': 'NZD',
+    'CA': 'CAD', 'CAN': 'CAD', 'CANADA': 'CAD', 'CANADÁ': 'CAD',
+    'CH': 'CHF', 'CHE': 'CHF', 'SWITZERLAND': 'CHF', 'SUIZA': 'CHF',
+    'CN': 'CNH', 'CHN': 'CNH', 'CNY': 'CNH', 'CHINA': 'CNH',
+    'USD': 'USD', 'EUR': 'EUR', 'GBP': 'GBP', 'JPY': 'JPY',
+    'AUD': 'AUD', 'NZD': 'NZD', 'CAD': 'CAD', 'CHF': 'CHF', 'CNH': 'CNH'
+  };
 
-        const parsedDaysData: Record<string, MacroEvent[]> = {};
-        let currentDay = '';
+  const processSpreadsheetRows = (rawRows: any[][]) => {
+    if (!rawRows || rawRows.length === 0) {
+      alert(isEs ? 'El archivo no contiene filas legibles.' : 'No readable data rows found in the file.');
+      return;
+    }
 
-        json.forEach(row => {
-          if (!row || row.length === 0) return;
-          const cleanRow = row.map(c => String(c || '').trim());
-          const fullRowText = cleanRow.join(' ').toLowerCase();
+    const parsedDaysData: Record<string, MacroEvent[]> = {};
+    let currentDay = isEs ? 'LUNES (GENERAL)' : 'MONDAY (GENERAL)';
 
-          // Date detector
-          const dateMatch = fullRowText.match(/(monday|tuesday|wednesday|thursday|friday|saturday|sunday|lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)[,\s]+([a-z]+|\d{1,2})[,\s]+(\d{1,2}|\d{4})/i);
-          let detectedDay = '';
-
-          if (dateMatch) {
-            detectedDay = dateMatch[0].toUpperCase();
-          } else {
-            for (let i = 0; i < Math.min(cleanRow.length, 3); i++) {
-              const cell = cleanRow[i];
-              if (cell && (cell.includes('/') || cell.includes('-') || cell.includes('.'))) {
-                let d: Date | null = null;
-                const tryDate = new Date(cell);
-                if (!isNaN(tryDate.getTime()) && tryDate.getFullYear() > 2000 && tryDate.getFullYear() < 2100) {
-                  d = tryDate;
-                } else {
-                  const parts = cell.split(/[/.-]/);
-                  if (parts.length === 3) {
-                    const p0 = parseInt(parts[0], 10);
-                    const p1 = parseInt(parts[1], 10);
-                    const p2 = parseInt(parts[2], 10);
-                    const year = p2 < 100 ? p2 + 2000 : p2;
-                    let month = 0;
-                    let day = 1;
-                    if (p0 > 12) {
-                      day = p0;
-                      month = p1 - 1;
-                    } else {
-                      month = p0 - 1;
-                      day = p1;
-                    }
-                    d = new Date(Date.UTC(year, month, day));
-                  }
-                }
-
-                if (d && !isNaN(d.getTime())) {
-                  const dayNames = isEs
-                    ? ['DOMINGO', 'LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÁBADO']
-                    : ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
-                  const dayName = dayNames[d.getUTCDay()];
-                  const dateStr = d.toLocaleDateString(isEs ? 'es-ES' : 'en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' }).toUpperCase();
-                  detectedDay = `${dayName}, ${dateStr}`;
-                  break;
-                }
-              }
-            }
-          }
-
-          if (detectedDay) {
-            currentDay = detectedDay;
-            if (!parsedDaysData[currentDay]) parsedDaysData[currentDay] = [];
-            return;
-          }
-
-          let time = '';
-          let ccy = '';
-          let event = '';
-          let actual = '';
-          let forecast = '';
-          let previous = '';
-          let foundCcyIdx = -1;
-
-          for (let i = 0; i < Math.min(cleanRow.length, 5); i++) {
-            const cellVal = cleanRow[i].toUpperCase();
-            if (cellVal.length <= 3 && CURRENCIES.includes(cellVal)) {
-              foundCcyIdx = i;
-              ccy = cellVal;
-              break;
-            }
-          }
-
-          if (foundCcyIdx !== -1) {
-            for (let i = 0; i < foundCcyIdx; i++) {
-              if (/^\d{1,2}:\d{2}/.test(cleanRow[i]) || /^\d{1,2}\.\d{2}/.test(cleanRow[i])) {
-                time = cleanRow[i];
-                break;
-              }
-            }
-
-            let eventIdx = -1;
-            for (let i = foundCcyIdx + 1; i < cleanRow.length; i++) {
-              const val = cleanRow[i].trim();
-              if (/^(high|medium|low|vol\.|bull|\d|★|\s*)$/i.test(val)) continue;
-              eventIdx = i;
-              event = val;
-              break;
-            }
-
-            if (eventIdx !== -1) {
-              const postEvent = cleanRow.slice(eventIdx + 1).filter(c => c.trim() !== '');
-              if (postEvent.length >= 3) {
-                actual = postEvent[0];
-                forecast = postEvent[1];
-                previous = postEvent[2];
-              } else if (postEvent.length === 2) {
-                actual = postEvent[0];
-                forecast = postEvent[1];
-              } else if (postEvent.length === 1) {
-                actual = postEvent[0];
-              }
-            }
-          }
-
-          if (!ccy || !event) return;
-
-          let mappedCCY = ccy;
-          if (['DE', 'DEU', 'FR', 'FRA', 'EU', 'EUR'].includes(ccy)) mappedCCY = 'EUR';
-          if (['UK', 'GB', 'GBR'].includes(ccy)) mappedCCY = 'GBP';
-          if (['CH', 'CHE'].includes(ccy)) mappedCCY = 'CHF';
-          if (['CA', 'CAN'].includes(ccy)) mappedCCY = 'CAD';
-          if (['US', 'USA'].includes(ccy)) mappedCCY = 'USD';
-          if (['JP', 'JPN'].includes(ccy)) mappedCCY = 'JPY';
-          if (['AU', 'AUS'].includes(ccy)) mappedCCY = 'AUD';
-          if (['NZ', 'NZL'].includes(ccy)) mappedCCY = 'NZD';
-          if (['CN', 'CHN', 'CNY'].includes(ccy)) mappedCCY = 'CNH';
-
-          if (isWhitelisted(mappedCCY, event)) {
-            if (!parsedDaysData[currentDay]) parsedDaysData[currentDay] = [];
-            const ruleId = getCoreRuleId(mappedCCY, event);
-            parsedDaysData[currentDay].push({
-              time,
-              ccy: mappedCCY,
-              event,
-              actual,
-              forecast,
-              previous,
-              coreRuleId: ruleId,
-              isCore: Boolean(ruleId)
-            });
-          }
-        });
-
-        if (Object.keys(parsedDaysData).length > 0) {
-          setGlobalState(prev => ({
-            ...prev,
-            daysData: parsedDaysData,
-            categoryScores: {}
-          }));
-          alert(isEs
-            ? `✅ Archivo Excel cargado correctamente. Se identificaron ${Object.keys(parsedDaysData).length} jornadas de calendario.`
-            : `✅ Excel calendar parsed successfully. Identified ${Object.keys(parsedDaysData).length} trading sessions.`);
-        } else {
-          alert(isEs
-            ? 'No se pudieron extraer eventos con formato macro del archivo Excel. Asegúrate de usar el formato de Investing.com.'
-            : 'Could not extract macro event records. Ensure the file follows Investing.com export format.');
-        }
-      } catch (err) {
-        console.error('Excel parse error:', err);
-        alert(isEs
-          ? 'Error al procesar el archivo Excel. Verifica que sea un archivo .xlsx válido.'
-          : 'Error parsing Excel spreadsheet. Please ensure it is a valid .xlsx file.');
-      }
+    // 1. Detect Header Column Indices if present
+    const colIdx = {
+      date: -1,
+      time: -1,
+      ccy: -1,
+      event: -1,
+      actual: -1,
+      forecast: -1,
+      previous: -1
     };
-    reader.readAsArrayBuffer(file);
+
+    let headerRowIdx = -1;
+    for (let r = 0; r < Math.min(rawRows.length, 5); r++) {
+      const row = (rawRows[r] || []).map(c => String(c || '').trim().toLowerCase());
+      const hasEventHeader = row.some(c => c === 'event' || c === 'indicator' || c === 'evento' || c === 'indicador');
+      const hasCcyHeader = row.some(c => c === 'cur.' || c === 'cur' || c === 'currency' || c === 'divisa' || c === 'moneda' || c === 'country' || c === 'pais');
+      if (hasEventHeader || hasCcyHeader) {
+        headerRowIdx = r;
+        row.forEach((cell, idx) => {
+          if (['date', 'fecha', 'day', 'dia'].includes(cell)) colIdx.date = idx;
+          if (['time', 'hora', 'time (et)', 'time (utc)'].includes(cell)) colIdx.time = idx;
+          if (['cur.', 'cur', 'currency', 'divisa', 'moneda', 'country', 'pais', 'zone'].includes(cell)) colIdx.ccy = idx;
+          if (['event', 'indicator', 'evento', 'indicador', 'economic calendar'].includes(cell)) colIdx.event = idx;
+          if (['actual', 'act', 'actual value'].includes(cell)) colIdx.actual = idx;
+          if (['forecast', 'consensus', 'fcst', 'prevision', 'previsión', 'expected'].includes(cell)) colIdx.forecast = idx;
+          if (['previous', 'prior', 'prev', 'anterior'].includes(cell)) colIdx.previous = idx;
+        });
+        break;
+      }
+    }
+
+    // Helper to format a Date into standardized day header
+    const formatDayString = (d: Date): string => {
+      const dayNames = isEs
+        ? ['DOMINGO', 'LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÁBADO']
+        : ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+      const dayName = dayNames[d.getUTCDay()];
+      const dateStr = d.toLocaleDateString(isEs ? 'es-ES' : 'en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' }).toUpperCase();
+      return `${dayName}, ${dateStr}`;
+    };
+
+    rawRows.forEach((row, rowIndex) => {
+      if (!row || row.length === 0 || rowIndex === headerRowIdx) return;
+      const cleanRow = row.map(c => String(c !== null && c !== undefined ? c : '').trim());
+      const fullRowText = cleanRow.join(' ').toLowerCase();
+      if (!fullRowText) return;
+
+      // 2. Date Detection
+      let detectedDay = '';
+      const dayNameRegex = /(monday|tuesday|wednesday|thursday|friday|saturday|sunday|lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)[,\s]+([a-z]+|\d{1,2})[,\s]+(\d{1,2}|\d{4})/i;
+      const dateMatch = fullRowText.match(dayNameRegex);
+
+      if (dateMatch) {
+        detectedDay = dateMatch[0].toUpperCase();
+      } else {
+        const dateCandidates = colIdx.date !== -1 && cleanRow[colIdx.date]
+          ? [cleanRow[colIdx.date]]
+          : cleanRow.slice(0, 3);
+
+        for (const cell of dateCandidates) {
+          if (!cell) continue;
+          if (cell.includes('/') || cell.includes('-') || cell.includes('.') || /^\d{5}(\.\d+)?$/.test(cell)) {
+            let d: Date | null = null;
+            if (/^\d{5}(\.\d+)?$/.test(cell)) {
+              const serial = parseFloat(cell);
+              if (serial > 40000 && serial < 60000) {
+                d = new Date(Math.round((serial - 25569) * 86400 * 1000));
+              }
+            } else {
+              const tryDate = new Date(cell);
+              if (!isNaN(tryDate.getTime()) && tryDate.getFullYear() > 2000 && tryDate.getFullYear() < 2100) {
+                d = tryDate;
+              } else {
+                const parts = cell.split(/[/.-]/);
+                if (parts.length === 3) {
+                  const p0 = parseInt(parts[0], 10);
+                  const p1 = parseInt(parts[1], 10);
+                  const p2 = parseInt(parts[2], 10);
+                  const year = p2 < 100 ? p2 + 2000 : p2;
+                  let month = 0;
+                  let day = 1;
+                  if (p0 > 12) {
+                    day = p0;
+                    month = p1 - 1;
+                  } else {
+                    month = p0 - 1;
+                    day = p1;
+                  }
+                  d = new Date(Date.UTC(year, month, day));
+                }
+              }
+            }
+            if (d && !isNaN(d.getTime())) {
+              detectedDay = formatDayString(d);
+              break;
+            }
+          }
+        }
+      }
+
+      if (detectedDay) {
+        currentDay = detectedDay;
+        if (!parsedDaysData[currentDay]) parsedDaysData[currentDay] = [];
+      }
+
+      // Check if this row is ONLY a date header with no indicator data
+      const hasAnyCcy = cleanRow.some(c => {
+        const u = c.toUpperCase();
+        return COUNTRY_MAP[u] !== undefined || CURRENCIES.includes(u);
+      });
+      const nonEmptyCells = cleanRow.filter(Boolean);
+      if (detectedDay && !hasAnyCcy && nonEmptyCells.length <= 2) {
+        return; // Date header only
+      }
+
+      // 3. Extract Event Fields
+      let time = '';
+      let ccy = '';
+      let event = '';
+      let actual = '';
+      let forecast = '';
+      let previous = '';
+
+      if (colIdx.event !== -1 && cleanRow[colIdx.event]) {
+        event = cleanRow[colIdx.event];
+        if (colIdx.time !== -1) time = cleanRow[colIdx.time] || '';
+        if (colIdx.ccy !== -1) {
+          const rawC = cleanRow[colIdx.ccy].toUpperCase();
+          ccy = COUNTRY_MAP[rawC] || (CURRENCIES.includes(rawC) ? rawC : '');
+        }
+        if (colIdx.actual !== -1) actual = cleanRow[colIdx.actual] || '';
+        if (colIdx.forecast !== -1) forecast = cleanRow[colIdx.forecast] || '';
+        if (colIdx.previous !== -1) previous = cleanRow[colIdx.previous] || '';
+      }
+
+      // Fallback: heuristic positional scanning if column headers not matched or incomplete
+      if (!event || !ccy) {
+        let foundCcyIdx = -1;
+        for (let i = 0; i < Math.min(cleanRow.length, 6); i++) {
+          const cellVal = cleanRow[i].toUpperCase();
+          if (COUNTRY_MAP[cellVal] || CURRENCIES.includes(cellVal)) {
+            foundCcyIdx = i;
+            ccy = COUNTRY_MAP[cellVal] || cellVal;
+            break;
+          }
+        }
+
+        if (foundCcyIdx !== -1) {
+          for (let i = 0; i < foundCcyIdx; i++) {
+            if (/^\d{1,2}:\d{2}/.test(cleanRow[i]) || /^\d{1,2}\.\d{2}/.test(cleanRow[i])) {
+              time = cleanRow[i];
+              break;
+            }
+          }
+
+          let eventIdx = -1;
+          for (let i = foundCcyIdx + 1; i < cleanRow.length; i++) {
+            const val = cleanRow[i].trim();
+            if (/^(high|medium|low|vol\.|bull|\d|★|\s*)$/i.test(val)) continue;
+            eventIdx = i;
+            event = val;
+            break;
+          }
+
+          if (eventIdx !== -1) {
+            const postEvent = cleanRow.slice(eventIdx + 1).filter(c => c.trim() !== '');
+            if (postEvent.length >= 3) {
+              actual = postEvent[0];
+              forecast = postEvent[1];
+              previous = postEvent[2];
+            } else if (postEvent.length === 2) {
+              actual = postEvent[0];
+              forecast = postEvent[1];
+            } else if (postEvent.length === 1) {
+              actual = postEvent[0];
+            }
+          }
+        }
+      }
+
+      if (!ccy || !event) return;
+      if (COUNTRY_MAP[ccy]) ccy = COUNTRY_MAP[ccy];
+      if (!CURRENCIES.includes(ccy)) return;
+
+      if (isWhitelisted(ccy, event)) {
+        if (!parsedDaysData[currentDay]) parsedDaysData[currentDay] = [];
+        const ruleId = getCoreRuleId(ccy, event);
+        parsedDaysData[currentDay].push({
+          time,
+          ccy,
+          event,
+          actual,
+          forecast,
+          previous,
+          coreRuleId: ruleId,
+          isCore: Boolean(ruleId)
+        });
+      }
+    });
+
+    const totalEvents = Object.values(parsedDaysData).reduce((sum, evs) => sum + evs.length, 0);
+    const dayCount = Object.keys(parsedDaysData).filter(k => parsedDaysData[k].length > 0).length;
+
+    if (totalEvents > 0) {
+      // Clean up empty days
+      const filteredDaysData: Record<string, MacroEvent[]> = {};
+      Object.keys(parsedDaysData).forEach(k => {
+        if (parsedDaysData[k].length > 0) filteredDaysData[k] = parsedDaysData[k];
+      });
+
+      setGlobalState(prev => ({
+        ...prev,
+        daysData: filteredDaysData,
+        categoryScores: {}
+      }));
+      alert(isEs
+        ? `✅ ¡Carga exitosa! Se importaron ${totalEvents} eventos macroeconómicos distribuidos en ${dayCount} jornadas.`
+        : `✅ Upload successful! Imported ${totalEvents} macroeconomic events across ${dayCount} sessions.`);
+    } else {
+      alert(isEs
+        ? 'No se pudieron extraer eventos con formato macro. Verifica que el archivo provenga de Investing.com (.csv o .xlsx).'
+        : 'Could not extract macroeconomic events. Please ensure the file is from Investing.com (.csv or .xlsx).');
+    }
+  };
+
+  const processUploadedFile = (file: File) => {
+    if (!file) return;
+    const fileName = file.name.toLowerCase();
+
+    if (fileName.endsWith('.csv') || fileName.endsWith('.tsv') || fileName.endsWith('.txt')) {
+      Papa.parse(file, {
+        header: false,
+        skipEmptyLines: true,
+        complete: (results) => {
+          processSpreadsheetRows(results.data as any[][]);
+        },
+        error: (err) => {
+          alert((isEs ? 'Error al procesar archivo CSV: ' : 'Error parsing CSV file: ') + err.message);
+        }
+      });
+    } else {
+      const reader = new FileReader();
+      reader.onload = (e: any) => {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          const json: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+          processSpreadsheetRows(json);
+        } catch (err: any) {
+          console.error('Excel parse error:', err);
+          alert(isEs
+            ? 'Error al procesar el archivo Excel. Verifica que sea un archivo válido (.xlsx o .xls).'
+            : 'Error parsing Excel spreadsheet. Please ensure it is a valid .xlsx or .xls file.');
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
   };
 
   const getScoreScaleStyle = (score: number) => {
@@ -918,30 +1034,46 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
 
       <div className="max-w-7xl 2xl:max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 space-y-6">
 
-        {/* 2. DROP ZONE FOR EXCEL UPLOAD */}
+        {/* 2. DROP ZONE FOR EXCEL & CSV UPLOAD */}
         <div
           onClick={() => fileInputRef.current?.click()}
-          onDragOver={e => {
+          onDragEnter={e => {
             e.preventDefault();
+            e.stopPropagation();
             setIsDragOver(true);
           }}
-          onDragLeave={() => setIsDragOver(false)}
+          onDragOver={e => {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsDragOver(true);
+          }}
+          onDragLeave={e => {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsDragOver(false);
+          }}
           onDrop={e => {
             e.preventDefault();
+            e.stopPropagation();
             setIsDragOver(false);
-            if (e.dataTransfer.files.length) processExcelFile(e.dataTransfer.files[0]);
+            if (e.dataTransfer?.files?.length) {
+              processUploadedFile(e.dataTransfer.files[0]);
+            }
           }}
           className={`macro-panel border-2 border-dashed p-6 sm:p-8 text-center transition cursor-pointer group ${
-            isDragOver ? 'border-cyan-400 bg-cyan-950/20 shadow-[0_0_25px_rgba(6,182,212,0.3)]' : 'border-zinc-800 hover:border-cyan-500/60'
+            isDragOver ? 'border-cyan-400 bg-cyan-950/30 shadow-[0_0_25px_rgba(6,182,212,0.3)]' : 'border-zinc-800 hover:border-cyan-500/60'
           }`}
         >
           <input
             type="file"
             ref={fileInputRef}
-            accept=".xlsx, .xls"
+            accept=".csv, .xlsx, .xls, .tsv, text/csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
             className="hidden"
             onChange={e => {
-              if (e.target.files?.length) processExcelFile(e.target.files[0]);
+              if (e.target.files?.length) {
+                processUploadedFile(e.target.files[0]);
+                e.target.value = '';
+              }
             }}
           />
           <div className="space-y-2">
@@ -952,15 +1084,15 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
             </div>
             <div className="text-xs sm:text-sm font-medium text-zinc-200">
               {isEs ? (
-                <>Arrastra tu archivo <span className="text-cyan-400 font-bold">Excel de Investing.com (.xlsx) aquí</span> o haz clic para explorar</>
+                <>Arrastra tu archivo <span className="text-cyan-400 font-bold">Excel o CSV de Investing.com (.xlsx, .xls, .csv) aquí</span> o haz clic para explorar</>
               ) : (
-                <>Drop your <span className="text-cyan-400 font-bold">Investing.com Excel (.xlsx) file here</span> or click to browse</>
+                <>Drop your <span className="text-cyan-400 font-bold">Investing.com Excel or CSV (.xlsx, .xls, .csv) file here</span> or click to browse</>
               )}
             </div>
             <p className="text-[11px] text-zinc-500 font-mono">
               {isEs 
-                ? 'Filtrado automático de eventos Tier-1 para USD, EUR, GBP, JPY, CAD, AUD, NZD, CHF, CNH'
-                : 'Automated Tier-1 event parsing for USD, EUR, GBP, JPY, CAD, AUD, NZD, CHF, CNH'}
+                ? 'Filtrado cuantitativo automático de eventos Tier-1 para USD, EUR, GBP, JPY, CAD, AUD, NZD, CHF, CNH'
+                : 'Automated quantitative Tier-1 event parsing for USD, EUR, GBP, JPY, CAD, AUD, NZD, CHF, CNH'}
             </p>
           </div>
         </div>

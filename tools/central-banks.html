@@ -807,13 +807,30 @@
       }
     }
 
-    function handleInvestingUpload(event) {
-      const file = event.target.files[0];
+    function processInvestingFile(file) {
       if (!file) return;
-
       const fileName = file.name.toLowerCase();
 
-      if (fileName.endsWith('.csv')) {
+      if (fileName.endsWith('.json')) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          try {
+            const imported = JSON.parse(e.target.result);
+            if (imported && typeof imported === 'object') {
+              ratesData = imported;
+              saveToLocalStorage();
+              refreshUI();
+              alert("Central Bank rates backup restored successfully!");
+            }
+          } catch(err) {
+            alert("Invalid backup JSON file.");
+          }
+        };
+        reader.readAsText(file);
+        return;
+      }
+
+      if (fileName.endsWith('.csv') || fileName.endsWith('.tsv') || fileName.endsWith('.txt')) {
         Papa.parse(file, {
           header: true,
           skipEmptyLines: true,
@@ -849,9 +866,22 @@
       } else {
         alert('Unsupported file format. Please upload a .csv, .xlsx, or .xls file.');
       }
+    }
 
+    function handleInvestingUpload(event) {
+      const file = event.target.files[0];
+      if (file) processInvestingFile(file);
       event.target.value = '';
     }
+
+    window.addEventListener('dragover', (e) => { e.preventDefault(); e.stopPropagation(); });
+    window.addEventListener('drop', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) {
+        processInvestingFile(e.dataTransfer.files[0]);
+      }
+    });
 
     // INITIALIZATION
     document.addEventListener("DOMContentLoaded", () => {
