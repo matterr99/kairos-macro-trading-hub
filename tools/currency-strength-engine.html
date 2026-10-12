@@ -136,6 +136,17 @@
                         <i class="fa-solid fa-arrows-left-right-to-line text-cyan-500"></i> Directional Bias Engine
                     </h2>
                     <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto font-mono text-xs">
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <button onclick="exportData()" class="px-2 py-1 text-[10px] uppercase tracking-wider bg-cyan-950/40 hover:bg-cyan-900/60 text-cyan-400 rounded-sm border border-cyan-900/60 transition cursor-pointer">
+                                <i class="fa-solid fa-download mr-1"></i> Export
+                            </button>
+                            <button onclick="triggerImport()" class="px-2 py-1 text-[10px] uppercase tracking-wider bg-[#0c0c12] hover:bg-zinc-900 text-zinc-300 rounded-sm border border-zinc-800 transition cursor-pointer">
+                                <i class="fa-solid fa-upload mr-1"></i> Import
+                            </button>
+                            <button onclick="document.getElementById('investingFileInput').click()" class="px-2 py-1 text-[10px] uppercase tracking-wider bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-400 rounded-sm border border-emerald-900/60 transition cursor-pointer">
+                                <i class="fa-solid fa-file-import mr-1"></i> Import Investing.com
+                            </button>
+                        </div>
                         <div class="flex items-center gap-1 bg-[#0c0c12] border border-zinc-800 rounded-sm px-2.5 py-1 text-[10px] text-zinc-400 uppercase tracking-wider">
                             <span class="text-zinc-500 mr-1">Sort:</span>
                             <select id="sortSelect" onchange="setSort(this.value)" class="bg-transparent text-zinc-300 font-bold focus:outline-none cursor-pointer">

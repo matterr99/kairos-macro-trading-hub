@@ -12,11 +12,51 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+      // Global error shield to prevent third-party cross-origin scripts (e.g. TradingView embed) from triggering noisy Script error overlays
+      (function() {
+        function shouldSuppress(msg, source) {
+          if (!msg) msg = '';
+          var m = String(msg).toLowerCase();
+          var s = String(source || '').toLowerCase();
+          if (m.indexOf('script error') !== -1) return true;
+          if (m.indexOf('contentwindow') !== -1) return true;
+          if (m.indexOf('cannot listen to the event') !== -1) return true;
+          if (m.indexOf('tradingview') !== -1) return true;
+          if (s && s.indexOf(window.location.host) === -1 && s.indexOf('localhost') === -1) return true;
+          return false;
+        }
+
+        window.onerror = function(message, source, lineno, colno, error) {
+          if (shouldSuppress(message, source)) {
+            return true;
+          }
+        };
+
+        window.addEventListener('error', function(e) {
+          if (!e) return;
+          var msg = e.message || (e.error && e.error.message) || '';
+          var src = e.filename || '';
+          if (shouldSuppress(msg, src)) {
+            e.preventDefault && e.preventDefault();
+            e.stopPropagation && e.stopPropagation();
+            return true;
+          }
+        }, true);
+
+        window.addEventListener('unhandledrejection', function(e) {
+          if (!e) return;
+          var reasonStr = String((e.reason && (e.reason.message || e.reason)) || '');
+          if (shouldSuppress(reasonStr, '')) {
+            e.preventDefault && e.preventDefault();
+            e.stopPropagation && e.stopPropagation();
+          }
+        });
+      })();
+    </script>
   </head>
   <body class="bg-[#020203] text-zinc-300 antialiased selection:bg-cyan-900 selection:text-cyan-100 min-h-screen">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
-
-

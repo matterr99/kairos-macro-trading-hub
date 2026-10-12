@@ -1,4 +1,20 @@
 import { useState, useEffect, useRef } from 'react';
+import * as XLSX from 'xlsx';
+import Papa from 'papaparse';
+import {
+  Download,
+  Upload,
+  FileSpreadsheet,
+  RotateCcw,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  TrendingUp,
+  Landmark,
+  Calendar,
+  Clock,
+  ArrowLeft
+} from 'lucide-react';
 import { ToolSubTab, MacroIndicator, Language } from '../types';
 import {
   VOLATILITY_DATA,
@@ -12,6 +28,27 @@ import { KairosMacroHub } from '../components/KairosMacroHub';
 import { ValuationRankingChart } from '../components/ValuationRankingChart';
 import { CurrencyIndicatorChart } from '../components/CurrencyIndicatorChart';
 import { SectionDivider } from '../components/SectionDivider';
+
+export interface CentralBankTerminalItem {
+  code: string;
+  name: string;
+  rate: number;
+  implied: number;
+  nextMeeting: string;
+  step: number;
+  trajectory: number[];
+}
+
+const DEFAULT_RATES_DATA: Record<string, CentralBankTerminalItem> = {
+  FED: { code: "FED", name: "Federal Reserve (FED)", rate: 3.63, nextMeeting: "2026-10-14T14:00:00", step: 0.25, implied: 3.78, trajectory: [3.63, 3.78, 3.91, 4.03, 3.88] },
+  ECB: { code: "ECB", name: "European Central Bank (ECB)", rate: 2.40, nextMeeting: "2026-10-22T14:15:00", step: 0.25, implied: 2.63, trajectory: [2.40, 2.63, 2.85, 2.95, 2.80] },
+  BOE: { code: "BOE", name: "Bank of England (BOE)", rate: 3.75, nextMeeting: "2026-11-05T12:00:00", step: 0.25, implied: 3.87, trajectory: [3.75, 3.87, 4.00, 4.10, 3.95] },
+  RBA: { code: "RBA", name: "Reserve Bank of Australia (RBA)", rate: 4.35, nextMeeting: "2026-10-06T14:30:00", step: 0.25, implied: 4.53, trajectory: [4.35, 4.53, 4.70, 4.80, 4.65] },
+  BOC: { code: "BOC", name: "Bank of Canada (BOC)", rate: 2.25, nextMeeting: "2026-10-28T10:00:00", step: 0.25, implied: 2.33, trajectory: [2.25, 2.33, 2.40, 2.50, 2.35] },
+  RBNZ: { code: "RBNZ", name: "Reserve Bank of NZ (RBNZ)", rate: 2.50, nextMeeting: "2026-10-07T14:00:00", step: 0.25, implied: 2.64, trajectory: [2.50, 2.64, 2.78, 2.92, 2.75] },
+  BOJ: { code: "BOJ", name: "Bank of Japan (BOJ)", rate: 1.00, nextMeeting: "2026-10-30T12:00:00", step: 0.10, implied: 1.20, trajectory: [1.00, 1.20, 1.35, 1.50, 1.60] },
+  SNB: { code: "SNB", name: "Swiss National Bank (SNB)", rate: 0.00, nextMeeting: "2026-12-10T09:30:00", step: 0.25, implied: 0.05, trajectory: [0.00, 0.05, 0.10, 0.15, 0.05] }
+};
 
 interface ToolsViewProps {
   initialSubTab?: ToolSubTab;
@@ -42,7 +79,33 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
   const [calcStopPips, setCalcStopPips] = useState<number>(25);
 
   // Central Banks state
+  const [ratesData, setRatesData] = useState<Record<string, CentralBankTerminalItem>>(() => {
+    try {
+      const saved = localStorage.getItem('central_bank_terminal_v2');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object') return parsed;
+      }
+    } catch {}
+    return DEFAULT_RATES_DATA;
+  });
   const [selectedBankKey, setSelectedBankKey] = useState<string>('Overview');
+  const [bankSortColumn, setBankSortColumn] = useState<'nextMeeting' | 'name' | 'rate' | 'implied' | 'deltaBps' | 'prob' | 'tone'>('nextMeeting');
+  const [bankSortAsc, setBankSortAsc] = useState<boolean>(true);
+  const [drillRate, setDrillRate] = useState<string>('');
+  const [drillImplied, setDrillImplied] = useState<string>('');
+  const [drillMeeting, setDrillMeeting] = useState<string>('');
+
+  const bankJsonFileRef = useRef<HTMLInputElement>(null);
+  const bankInvestingFileRef = useRef<HTMLInputElement>(null);
+  const currencyInvestingFileRef = useRef<HTMLInputElement>(null);
+
+  // Save ratesData to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('central_bank_terminal_v2', JSON.stringify(ratesData));
+    } catch {}
+  }, [ratesData]);
 
   // Consensus state
   const [consensusEvents, setConsensusEvents] = useState(INITIAL_CONSENSUS_EVENTS);
@@ -364,6 +427,442 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
     }
   };
 
+  // --- Investing.com Country Mapping & Currency Helpers ---
+  const COUNTRY_MAP: Record<string, string> = {
+    US: 'USD', USA: 'USD', USD: 'USD',
+    DE: 'EUR', FR: 'EUR', IT: 'EUR', ES: 'EUR', EU: 'EUR', EMU: 'EUR', EUR: 'EUR',
+    UK: 'GBP', GB: 'GBP', GBP: 'GBP',
+    JP: 'JPY', JPN: 'JPY', JPY: 'JPY',
+    AU: 'AUD', AUS: 'AUD', AUD: 'AUD',
+    NZ: 'NZD', NZD: 'NZD',
+    CA: 'CAD', CAN: 'CAD', CAD: 'CAD',
+    CH: 'CHF', CHE: 'CHF', CHF: 'CHF',
+  };
+
+  const cleanIndicatorStr = (str: string): string => {
+    return (str || '')
+      .toLowerCase()
+      .replace(/\(.*?\)/g, '')
+      .replace(/\[.*?\]/g, '')
+      .replace(/s&p\s+global/g, '')
+      .replace(/hcob/g, '')
+      .replace(/mfg/g, 'manufacturing')
+      .replace(/non-farm|non\s+farm/g, 'nonfarm')
+      .replace(/[^a-z0-9]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  };
+
+  const cleanNum = (val: any): number | null => {
+    if (val === null || val === undefined || val === '') return null;
+    let s = String(val).trim().replace(/,/g, '');
+    if (s === '-' || s === 'N/A' || s === '') return null;
+    let multiplier = 1;
+    if (/k$/i.test(s)) { multiplier = 1000; s = s.slice(0, -1); }
+    else if (/m$/i.test(s)) { multiplier = 1000000; s = s.slice(0, -1); }
+    else if (/b$/i.test(s)) { multiplier = 1000000000; s = s.slice(0, -1); }
+    s = s.replace(/%/g, '').trim();
+    const parsed = parseFloat(s);
+    return isNaN(parsed) ? null : parsed * multiplier;
+  };
+
+  const handleCurrencyInvestingUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const processRows = (rows: any[]) => {
+      if (!rows || rows.length === 0) {
+        alert("No data rows found in uploaded file.");
+        return;
+      }
+
+      const first = rows[0];
+      const keys = Object.keys(first);
+      const findKey = (candidates: string[]) => keys.find(k => candidates.includes(k.trim().toLowerCase()));
+
+      const eventKey = findKey(['event', 'indicator', 'event name', 'title']);
+      const actualKey = findKey(['actual', 'act']);
+      const forecastKey = findKey(['forecast', 'consensus', 'fcst', 'expected']);
+      const prevKey = findKey(['previous', 'prev', 'prior']);
+      const dateKey = findKey(['date', 'day', 'release date']);
+      const currKey = findKey(['cur.', 'cur', 'currency', 'country', 'zone']);
+
+      if (!eventKey) {
+        alert("Could not find 'Event' column in uploaded spreadsheet.");
+        return;
+      }
+
+      let matchCount = 0;
+      setCurrencyIndicators((prev) => {
+        const nextState = { ...prev };
+        let currentDate = new Date().toISOString().split('T')[0];
+
+        rows.forEach((row) => {
+          if (dateKey && row[dateKey]) {
+            const rawD = String(row[dateKey]).trim();
+            if (rawD) currentDate = rawD;
+          }
+
+          const rawCurr = currKey && row[currKey] ? String(row[currKey]).trim().toUpperCase() : '';
+          const targetCurr = COUNTRY_MAP[rawCurr] || (['USD','EUR','GBP','JPY','AUD','NZD','CAD','CHF'].includes(rawCurr) ? rawCurr : null);
+          if (!targetCurr || !nextState[targetCurr]) return;
+
+          const rawEvent = cleanIndicatorStr(String(row[eventKey] || ''));
+          if (!rawEvent) return;
+
+          const indList = [...nextState[targetCurr]];
+          let matchedIdx = indList.findIndex(ind => {
+            const cleanInd = cleanIndicatorStr(ind.name);
+            return cleanInd === rawEvent || rawEvent.includes(cleanInd) || cleanInd.includes(rawEvent);
+          });
+
+          if (matchedIdx !== -1) {
+            const item = { ...indList[matchedIdx] };
+            if (actualKey && row[actualKey] !== undefined && row[actualKey] !== '' && row[actualKey] !== '-') {
+              const actVal = cleanNum(row[actualKey]);
+              if (actVal !== null) item.actual = actVal;
+            }
+            if (forecastKey && row[forecastKey] !== undefined && row[forecastKey] !== '' && row[forecastKey] !== '-') {
+              const fcVal = cleanNum(row[forecastKey]);
+              if (fcVal !== null) item.forecast = fcVal;
+            }
+            if (prevKey && row[prevKey] !== undefined && row[prevKey] !== '' && row[prevKey] !== '-') {
+              const pvVal = cleanNum(row[prevKey]);
+              if (pvVal !== null) item.previous = pvVal;
+            }
+            item.date = currentDate;
+            indList[matchedIdx] = item;
+            nextState[targetCurr] = indList;
+            matchCount++;
+          }
+        });
+
+        return nextState;
+      });
+
+      alert(`Successfully updated ${matchCount} macroeconomic indicator(s) from Investing.com export!`);
+      e.target.value = '';
+    };
+
+    const fileName = file.name.toLowerCase();
+    if (fileName.endsWith('.csv')) {
+      Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: (res) => processRows(res.data),
+        error: (err) => alert("CSV parse error: " + err.message)
+      });
+    } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        try {
+          const data = new Uint8Array(evt.target?.result as ArrayBuffer);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+          const rows = XLSX.utils.sheet_to_json(firstSheet, { defval: "" });
+          processRows(rows);
+        } catch (err: any) {
+          alert("Error reading Excel spreadsheet: " + err.message);
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    } else {
+      alert("Unsupported format. Please upload .csv, .xlsx, or .xls file.");
+    }
+  };
+
+  // --- Central Bank Calculations & Trajectory ---
+  const calculateBankTrajectory = (rate: number, implied: number, step: number = 0.25): number[] => {
+    const delta = implied - rate;
+    const p0 = rate;
+    const p1 = implied;
+    const p2 = Number((p1 + delta * 0.75).toFixed(2));
+    const p3 = Number((p2 + delta * 0.50).toFixed(2));
+    const p4 = Number((p3 + delta * 0.20).toFixed(2));
+    return [Number(p0.toFixed(2)), Number(p1.toFixed(2)), p2, p3, p4];
+  };
+
+  const getBankCountdown = (nextMeetingStr: string) => {
+    const target = new Date(nextMeetingStr);
+    const now = new Date();
+    if (isNaN(target.getTime())) return { text: "--", badgeClass: "bg-zinc-800 text-zinc-500" };
+    const diffMs = target.getTime() - now.getTime();
+    const diffHours = Math.round(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffHours < 0) {
+      return { text: "Passed", badgeClass: "bg-zinc-900 text-zinc-500 border border-zinc-800" };
+    } else if (diffHours <= 24) {
+      return { text: `<${diffHours}h left`, badgeClass: "bg-rose-950/80 text-rose-300 border border-rose-800 animate-pulse font-bold" };
+    } else if (diffDays <= 7) {
+      return { text: `${diffDays}d left`, badgeClass: "bg-amber-950/50 text-amber-300 border border-amber-700 font-bold" };
+    } else {
+      return { text: `${diffDays}d left`, badgeClass: "bg-cyan-950/40 text-cyan-300 border border-cyan-800 font-bold" };
+    }
+  };
+
+  const getBankDetailedCountdown = (nextMeetingStr: string): string => {
+    const target = new Date(nextMeetingStr);
+    const now = new Date();
+    if (isNaN(target.getTime())) return "--";
+    const diffMs = target.getTime() - now.getTime();
+    if (diffMs <= 0) return "Decision Concluded";
+    const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    return `${days}d ${hours}h remaining`;
+  };
+
+  const classifyPolicyTone = (deltaBps: number, outcome: string) => {
+    if (deltaBps >= 20) {
+      return { label: "Strongly Hawkish", class: "text-emerald-300 bg-emerald-950/80 border-emerald-500/50", weight: 4 };
+    } else if (deltaBps >= 10 && outcome === "HIKE") {
+      return { label: "Hawkish / Hike Bias", class: "text-emerald-400 bg-emerald-950/50 border-emerald-500/30", weight: 3 };
+    } else if (outcome === "HOLD" && deltaBps > 5) {
+      return { label: "Hawkish Hold", class: "text-teal-300 bg-teal-950/50 border-teal-500/30", weight: 2 };
+    } else if (Math.abs(deltaBps) <= 5) {
+      return { label: "Neutral / Data-Dependent", class: "text-zinc-300 bg-zinc-800/60 border-zinc-700", weight: 1 };
+    } else if (outcome === "HOLD" && deltaBps < -5) {
+      return { label: "Dovish Hold", class: "text-amber-300 bg-amber-950/50 border-amber-500/30", weight: -1 };
+    } else if (deltaBps <= -6 && deltaBps > -18) {
+      return { label: "Dovish Pivot", class: "text-rose-300 bg-rose-950/50 border-rose-500/30", weight: -2 };
+    } else {
+      return { label: "Strongly Dovish", class: "text-rose-400 bg-rose-950/80 border-rose-500/50", weight: -3 };
+    }
+  };
+
+  // --- Central Bank Export / Import ---
+  const handleExportBankBackup = () => {
+    const jsonStr = JSON.stringify(ratesData, null, 2);
+    const blob = new Blob([jsonStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `central_bank_rates_backup_${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
+  };
+
+  const handleImportBankBackup = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const imported = JSON.parse(evt.target?.result as string);
+        if (imported && typeof imported === 'object') {
+          setRatesData(imported);
+          alert("Central Bank rates backup restored successfully!");
+        }
+      } catch {
+        alert("Invalid backup JSON file.");
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
+  const handleResetBankDefaults = () => {
+    if (confirm("Reset Central Bank rates to baseline defaults?")) {
+      setRatesData(DEFAULT_RATES_DATA);
+      try { localStorage.removeItem('central_bank_terminal_v2'); } catch {}
+    }
+  };
+
+  // --- Central Bank Investing.com Upload Parser ---
+  const matchCentralBankEvent = (eventName: string, ccyOrCountry: string): string | null => {
+    const ev = (eventName || '').toLowerCase();
+    const ccy = (ccyOrCountry || '').toUpperCase();
+
+    if (ev.includes('fomc') || ev.includes('fed interest rate') || ev.includes('fed funds') || ev.includes('federal reserve')) return 'FED';
+    if (ev.includes('ecb interest rate') || ev.includes('ecb main refinancing') || ev.includes('deposit facility rate')) return 'ECB';
+    if (ev.includes('boe interest rate') || ev.includes('bank of england') || ev.includes('boe bank rate')) return 'BOE';
+    if (ev.includes('rba interest rate') || ev.includes('rba rate decision') || ev.includes('rba cash rate')) return 'RBA';
+    if (ev.includes('boc interest rate') || ev.includes('boc rate decision') || ev.includes('bank of canada')) return 'BOC';
+    if (ev.includes('rbnz interest rate') || ev.includes('rbnz rate decision') || ev.includes('reserve bank of nz')) return 'RBNZ';
+    if (ev.includes('boj interest rate') || ev.includes('boj policy rate') || ev.includes('bank of japan')) return 'BOJ';
+    if (ev.includes('snb interest rate') || ev.includes('snb policy rate') || ev.includes('swiss national bank')) return 'SNB';
+
+    if (ev.includes('interest rate') || ev.includes('rate decision') || ev.includes('policy rate')) {
+      if (ccy === 'USD' || ccy === 'US' || ev.includes('united states')) return 'FED';
+      if (ccy === 'EUR' || ccy === 'EU' || ccy === 'DE' || ev.includes('eurozone') || ev.includes('euro zone')) return 'ECB';
+      if (ccy === 'GBP' || ccy === 'UK' || ccy === 'GB' || ev.includes('united kingdom')) return 'BOE';
+      if (ccy === 'AUD' || ccy === 'AU' || ev.includes('australia')) return 'RBA';
+      if (ccy === 'CAD' || ccy === 'CA' || ev.includes('canada')) return 'BOC';
+      if (ccy === 'NZD' || ccy === 'NZ' || ev.includes('new zealand')) return 'RBNZ';
+      if (ccy === 'JPY' || ccy === 'JP' || ev.includes('japan')) return 'BOJ';
+      if (ccy === 'CHF' || ccy === 'CH' || ev.includes('switzerland')) return 'SNB';
+    }
+    return null;
+  };
+
+  const handleBankInvestingUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const processBankRows = (rows: any[]) => {
+      if (!rows || rows.length === 0) {
+        alert("No data rows found in uploaded file.");
+        return;
+      }
+
+      const first = rows[0];
+      const keys = Object.keys(first);
+      const findKey = (candidates: string[]) => keys.find(k => candidates.includes(k.trim().toLowerCase()));
+
+      const eventKey = findKey(['event', 'indicator', 'event name', 'title']);
+      const actualKey = findKey(['actual', 'act']);
+      const forecastKey = findKey(['forecast', 'consensus', 'fcst', 'expected']);
+      const prevKey = findKey(['previous', 'prev', 'prior']);
+      const dateKey = findKey(['date', 'day', 'release date']);
+      const timeKey = findKey(['time']);
+      const currKey = findKey(['cur.', 'cur', 'currency', 'country', 'zone']);
+
+      if (!eventKey) {
+        alert("Could not identify an 'Event' column in the uploaded file.");
+        return;
+      }
+
+      let updatedCount = 0;
+      const updatedNames = new Set<string>();
+
+      setRatesData((prev) => {
+        const next = { ...prev };
+        let currentDate: string | null = null;
+
+        rows.forEach((row) => {
+          if (dateKey && row[dateKey]) {
+            currentDate = String(row[dateKey]).trim();
+          }
+
+          const rawEvent = String(row[eventKey] || '').trim();
+          if (!rawEvent) return;
+
+          const rawCurr = currKey && row[currKey] ? String(row[currKey]).trim() : '';
+          const bankCode = matchCentralBankEvent(rawEvent, rawCurr);
+
+          if (bankCode && next[bankCode]) {
+            const bank = { ...next[bankCode] };
+            let hasUpdated = false;
+
+            if (prevKey && row[prevKey] !== undefined && row[prevKey] !== '' && row[prevKey] !== '-') {
+              const parsedRate = cleanNum(row[prevKey]);
+              if (parsedRate !== null) {
+                bank.rate = parsedRate;
+                hasUpdated = true;
+              }
+            }
+
+            if (forecastKey && row[forecastKey] !== undefined && row[forecastKey] !== '' && row[forecastKey] !== '-') {
+              const parsedForecast = cleanNum(row[forecastKey]);
+              if (parsedForecast !== null) {
+                bank.implied = parsedForecast;
+                hasUpdated = true;
+              }
+            } else if (actualKey && row[actualKey] !== undefined && row[actualKey] !== '' && row[actualKey] !== '-') {
+              const parsedAct = cleanNum(row[actualKey]);
+              if (parsedAct !== null) {
+                bank.implied = parsedAct;
+                hasUpdated = true;
+              }
+            }
+
+            const meetingDate = (dateKey && row[dateKey]) ? String(row[dateKey]).trim() : currentDate;
+            if (meetingDate) {
+              const d = new Date(meetingDate);
+              if (!isNaN(d.getTime())) {
+                const y = d.getFullYear();
+                const m = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                let timeStr = "12:00:00";
+                if (timeKey && row[timeKey] && /^\d{1,2}:\d{2}/.test(String(row[timeKey]).trim())) {
+                  const parts = String(row[timeKey]).trim().split(':');
+                  timeStr = `${parts[0].padStart(2, '0')}:${parts[1].padStart(2, '0')}:00`;
+                }
+                bank.nextMeeting = `${y}-${m}-${day}T${timeStr}`;
+                hasUpdated = true;
+              }
+            }
+
+            if (hasUpdated) {
+              bank.trajectory = calculateBankTrajectory(bank.rate, bank.implied, bank.step);
+              next[bankCode] = bank;
+              updatedCount++;
+              updatedNames.add(bank.name);
+            }
+          }
+        });
+
+        return next;
+      });
+
+      if (updatedCount > 0) {
+        alert(`Successfully updated ${updatedNames.size} central bank(s) from Investing.com export!\n(${Array.from(updatedNames).join(', ')})`);
+      } else {
+        alert("Processed export, but no matching G10 Central Bank interest rate decisions were found.");
+      }
+      e.target.value = '';
+    };
+
+    const fileName = file.name.toLowerCase();
+    if (fileName.endsWith('.csv')) {
+      Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: (res) => processBankRows(res.data),
+        error: (err) => alert("CSV parse error: " + err.message)
+      });
+    } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        try {
+          const data = new Uint8Array(evt.target?.result as ArrayBuffer);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+          const rows = XLSX.utils.sheet_to_json(firstSheet, { defval: "" });
+          processBankRows(rows);
+        } catch (err: any) {
+          alert("Error reading Excel spreadsheet: " + err.message);
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    } else {
+      alert("Unsupported format. Please upload .csv, .xlsx, or .xls file.");
+    }
+  };
+
+  const handleApplyBankOverride = (bankCode: string) => {
+    const r = parseFloat(drillRate);
+    const imp = parseFloat(drillImplied);
+    if (isNaN(r) || isNaN(imp)) {
+      alert("Please enter valid numeric rates.");
+      return;
+    }
+    setRatesData(prev => {
+      const current = prev[bankCode];
+      if (!current) return prev;
+      const updated: CentralBankTerminalItem = {
+        ...current,
+        rate: r,
+        implied: imp,
+        nextMeeting: drillMeeting ? (drillMeeting.length === 16 ? drillMeeting + ':00' : drillMeeting) : current.nextMeeting,
+        trajectory: calculateBankTrajectory(r, imp, current.step)
+      };
+      return { ...prev, [bankCode]: updated };
+    });
+    alert(`Applied rate override and recalculated trajectory for ${bankCode}.`);
+  };
+
+  // Sync drilldown inputs when selected bank changes
+  useEffect(() => {
+    if (selectedBankKey !== 'Overview' && ratesData[selectedBankKey]) {
+      const b = ratesData[selectedBankKey];
+      setDrillRate(b.rate.toString());
+      setDrillImplied(b.implied.toString());
+      setDrillMeeting(b.nextMeeting.slice(0, 16));
+    }
+  }, [selectedBankKey, ratesData]);
+
   return (
     <div className="w-full bg-[#020203] text-zinc-300 font-sans antialiased min-h-screen">
       
@@ -675,14 +1174,16 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
                 <div className="flex items-center gap-2 flex-wrap text-xs">
                   <button
                     onClick={handleExportData}
-                    className="px-3.5 py-1.5 text-[10px] uppercase tracking-wider bg-cyan-950/40 hover:bg-cyan-900/60 text-cyan-400 border border-cyan-800/60 transition cursor-pointer font-bold min-h-[36px]"
+                    className="px-3.5 py-1.5 text-[10px] uppercase tracking-wider bg-cyan-950/40 hover:bg-cyan-900/60 text-cyan-400 border border-cyan-800/60 transition cursor-pointer font-bold min-h-[36px] flex items-center gap-1.5"
                   >
+                    <Download className="w-3.5 h-3.5" />
                     Export Backup
                   </button>
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="px-3.5 py-1.5 text-[10px] uppercase tracking-wider bg-[#0c0c12] hover:bg-zinc-800 text-zinc-300 border border-zinc-800 transition cursor-pointer min-h-[36px]"
+                    className="px-3.5 py-1.5 text-[10px] uppercase tracking-wider bg-[#0c0c12] hover:bg-zinc-800 text-zinc-300 border border-zinc-800 transition cursor-pointer min-h-[36px] flex items-center gap-1.5"
                   >
+                    <Upload className="w-3.5 h-3.5" />
                     Import Backup
                   </button>
                   <input
@@ -693,9 +1194,24 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
                     className="hidden"
                   />
                   <button
-                    onClick={handleResetData}
-                    className="px-3.5 py-1.5 text-[10px] uppercase tracking-wider bg-[#0c0c12] hover:bg-zinc-800 text-rose-400 border border-zinc-800 transition cursor-pointer min-h-[36px]"
+                    onClick={() => currencyInvestingFileRef.current?.click()}
+                    className="px-3.5 py-1.5 text-[10px] uppercase tracking-wider bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-400 border border-emerald-800/60 transition cursor-pointer font-bold min-h-[36px] flex items-center gap-1.5"
                   >
+                    <FileSpreadsheet className="w-3.5 h-3.5" />
+                    Import Investing.com Export
+                  </button>
+                  <input
+                    type="file"
+                    ref={currencyInvestingFileRef}
+                    accept=".csv,.xlsx,.xls"
+                    onChange={handleCurrencyInvestingUpload}
+                    className="hidden"
+                  />
+                  <button
+                    onClick={handleResetData}
+                    className="px-3.5 py-1.5 text-[10px] uppercase tracking-wider bg-[#0c0c12] hover:bg-zinc-800 text-rose-400 border border-zinc-800 transition cursor-pointer min-h-[36px] flex items-center gap-1.5"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
                     Reset Defaults
                   </button>
                 </div>
@@ -1151,77 +1667,491 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
       )}
 
       {/* SUB-VIEW: CENTRAL BANK TERMINAL */}
-      {activeTab === 'central-banks' && (
-        <section className="w-full py-10 sm:py-16 border-b border-zinc-900 bg-[#020203]">
-          <div className="max-w-7xl 2xl:max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 space-y-6 font-mono">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-zinc-900">
-              <div>
-                <span className="text-cyan-500 text-[10px] font-bold uppercase tracking-widest block">
-                  // MONETARY POLICY MATRIX
-                </span>
-                <h2 className="text-xl sm:text-2xl font-bold text-white uppercase tracking-tight">
-                  G10 Central Bank Terminal
-                </h2>
-              </div>
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                <span className="text-xs text-zinc-400 uppercase">Filter:</span>
-                <select
-                  value={selectedBankKey}
-                  onChange={(e) => setSelectedBankKey(e.target.value)}
-                  className="w-full sm:w-auto bg-[#0c0c12] border border-zinc-800 text-white text-xs px-3 py-2 outline-none focus:border-cyan-500 font-mono min-h-[38px]"
-                >
-                  <option value="Overview">Overview (All Banks)</option>
-                  {Object.keys(CENTRAL_BANKS).map((k) => (
-                    <option key={k} value={k}>{CENTRAL_BANKS[k].name}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
+      {activeTab === 'central-banks' && (() => {
+        const toggleBankSort = (col: typeof bankSortColumn) => {
+          if (bankSortColumn === col) {
+            setBankSortAsc(!bankSortAsc);
+          } else {
+            setBankSortColumn(col);
+            setBankSortAsc(true);
+          }
+        };
 
-            <div className="macro-panel overflow-x-auto touch-scroll">
-              <table className="w-full text-left font-mono text-xs min-w-[680px]">
-                <thead>
-                  <tr className="text-zinc-500 text-[10px] border-b border-zinc-900 uppercase tracking-wider bg-[#07080d]">
-                    <th className="p-3.5 pl-4">Next Decision</th>
-                    <th className="p-3.5">Central Bank</th>
-                    <th className="p-3.5 text-center">Current Rate</th>
-                    <th className="p-3.5 text-center">Implied Rate</th>
-                    <th className="p-3.5 text-center">Delta (bps)</th>
-                    <th className="p-3.5 text-center">Probability</th>
-                    <th className="p-3.5 text-center">Automated Tone</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-zinc-900/60">
-                  {Object.values(CENTRAL_BANKS).map((b) => {
-                    const deltaBps = (b.impliedRate - b.currentRate) * 100;
-                    const prob = Math.min(Math.max(Math.abs(deltaBps) / (b.step * 100) * 100, 0), 100);
-                    const outcome = deltaBps > (b.step * 50) ? "HIKE" : deltaBps < -(b.step * 50) ? "CUT" : "HOLD";
-                    const tone = classifyTone(deltaBps, outcome);
+        const renderSortIcon = (col: typeof bankSortColumn) => {
+          if (bankSortColumn !== col) return <ArrowUpDown className="w-3 h-3 inline ml-1 text-zinc-600" />;
+          return bankSortAsc ? <ArrowUp className="w-3 h-3 inline ml-1 text-cyan-400" /> : <ArrowDown className="w-3 h-3 inline ml-1 text-cyan-400" />;
+        };
 
-                    return (
-                      <tr key={b.code} className="hover:bg-[#08080f] transition-colors">
-                        <td className="p-3.5 pl-4 text-zinc-400 font-bold">{b.nextMeeting.split('T')[0]}</td>
-                        <td className="p-3.5 font-bold text-white">{b.name}</td>
-                        <td className="p-3.5 text-center text-zinc-200 tabular-nums">{b.currentRate.toFixed(2)}%</td>
-                        <td className="p-3.5 text-center text-cyan-400 font-bold tabular-nums">{b.impliedRate.toFixed(2)}%</td>
-                        <td className="p-3.5 text-center tabular-nums text-zinc-300">
-                          {deltaBps > 0 ? '+' : ''}{deltaBps.toFixed(1)}
-                        </td>
-                        <td className="p-3.5 text-center tabular-nums text-zinc-400">{prob.toFixed(0)}%</td>
-                        <td className="p-3.5 text-center">
-                          <span className={`px-2.5 py-1 text-[10px] font-bold border tracking-wide inline-block ${tone.class}`}>
+        const currentBank = selectedBankKey !== 'Overview' ? ratesData[selectedBankKey] : null;
+
+        return (
+          <section className="w-full py-10 sm:py-16 border-b border-zinc-900 bg-[#020203]">
+            <div className="max-w-7xl 2xl:max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 space-y-6 font-mono">
+              
+              {/* Central Bank Hero Action Controls */}
+              <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 pb-4 border-b border-zinc-900">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-cyan-500 text-[10px] font-bold uppercase tracking-widest block">
+                      // POLICY RADAR_V2
+                    </span>
+                    <span className="text-zinc-700">|</span>
+                    <span className="text-emerald-400 text-[10px] font-bold uppercase tracking-wider">
+                      G10 TERMINAL
+                    </span>
+                  </div>
+                  <h2 className="text-xl sm:text-2xl font-bold text-white uppercase tracking-tight">
+                    G10 Central Bank Terminal
+                  </h2>
+                  <p className="text-xs text-zinc-400 font-sans max-w-xl font-light">
+                    Real-time monetary policy expectations, automated tone classification, decision countdowns, and implied trajectory curves.
+                  </p>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2.5 flex-wrap w-full lg:w-auto">
+                  <div className="flex items-center gap-2 flex-wrap text-xs">
+                    <button
+                      onClick={handleExportBankBackup}
+                      className="px-3.5 py-1.5 text-[10px] uppercase tracking-wider bg-cyan-950/40 hover:bg-cyan-900/60 text-cyan-400 border border-cyan-800/60 transition cursor-pointer font-bold min-h-[36px] flex items-center gap-1.5"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      Export Backup
+                    </button>
+                    <button
+                      onClick={() => bankJsonFileRef.current?.click()}
+                      className="px-3.5 py-1.5 text-[10px] uppercase tracking-wider bg-[#0c0c12] hover:bg-zinc-800 text-zinc-300 border border-zinc-800 transition cursor-pointer min-h-[36px] flex items-center gap-1.5"
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      Import Backup
+                    </button>
+                    <input
+                      type="file"
+                      ref={bankJsonFileRef}
+                      accept=".json,application/json"
+                      onChange={handleImportBankBackup}
+                      className="hidden"
+                    />
+
+                    <button
+                      onClick={() => bankInvestingFileRef.current?.click()}
+                      className="px-3.5 py-1.5 text-[10px] uppercase tracking-wider bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-400 border border-emerald-800/60 transition cursor-pointer font-bold min-h-[36px] flex items-center gap-1.5"
+                    >
+                      <FileSpreadsheet className="w-3.5 h-3.5" />
+                      Import Investing.com Export
+                    </button>
+                    <input
+                      type="file"
+                      ref={bankInvestingFileRef}
+                      accept=".csv,.xlsx,.xls"
+                      onChange={handleBankInvestingUpload}
+                      className="hidden"
+                    />
+
+                    <button
+                      onClick={handleResetBankDefaults}
+                      className="px-3.5 py-1.5 text-[10px] uppercase tracking-wider bg-[#0c0c12] hover:bg-zinc-800 text-rose-400 border border-zinc-800 transition cursor-pointer min-h-[36px] flex items-center gap-1.5"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      Reset Defaults
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <span className="text-xs text-zinc-500 uppercase">View:</span>
+                    <select
+                      value={selectedBankKey}
+                      onChange={(e) => setSelectedBankKey(e.target.value)}
+                      className="w-full sm:w-auto bg-[#0c0c12] border border-zinc-800 text-white text-xs px-3 py-2 outline-none focus:border-cyan-500 font-mono min-h-[38px] cursor-pointer"
+                    >
+                      <option value="Overview">Overview (All Banks)</option>
+                      {Object.values(ratesData).map((b) => (
+                        <option key={b.code} value={b.code}>{b.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* VIEW 1: OVERVIEW MATRIX TABLE */}
+              {selectedBankKey === 'Overview' && (
+                <div className="macro-panel p-5 sm:p-6 space-y-5">
+                  <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
+                    <div>
+                      <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                        <Landmark className="w-4 h-4 text-cyan-400" />
+                        G10 Policy Rate Expectations Matrix
+                      </h3>
+                      <p className="text-[11px] text-zinc-500 font-sans mt-0.5">
+                        Click any central bank row for detailed trajectory curve and scenario simulator.
+                      </p>
+                    </div>
+                    <span className="text-[10px] text-cyan-400 uppercase tracking-widest font-bold bg-cyan-950/40 px-2.5 py-1 border border-cyan-800/50 self-start sm:self-auto">
+                      Active Radar • 8 Central Banks
+                    </span>
+                  </div>
+
+                  <div className="overflow-x-auto touch-scroll">
+                    <table className="w-full text-left font-mono text-xs min-w-[760px]">
+                      <thead>
+                        <tr className="text-zinc-500 text-[10px] border-b border-zinc-900 uppercase tracking-wider bg-[#07080d]">
+                          <th onClick={() => toggleBankSort('nextMeeting')} className="p-3.5 pl-4 cursor-pointer hover:text-cyan-400 select-none">
+                            Next Decision {renderSortIcon('nextMeeting')}
+                          </th>
+                          <th onClick={() => toggleBankSort('name')} className="p-3.5 cursor-pointer hover:text-cyan-400 select-none">
+                            Central Bank {renderSortIcon('name')}
+                          </th>
+                          <th onClick={() => toggleBankSort('rate')} className="p-3.5 text-center cursor-pointer hover:text-cyan-400 select-none">
+                            Benchmark Rate {renderSortIcon('rate')}
+                          </th>
+                          <th onClick={() => toggleBankSort('implied')} className="p-3.5 text-center cursor-pointer hover:text-cyan-400 select-none">
+                            Implied Forward {renderSortIcon('implied')}
+                          </th>
+                          <th onClick={() => toggleBankSort('deltaBps')} className="p-3.5 text-center cursor-pointer hover:text-cyan-400 select-none">
+                            Delta (bps) {renderSortIcon('deltaBps')}
+                          </th>
+                          <th onClick={() => toggleBankSort('prob')} className="p-3.5 text-center cursor-pointer hover:text-cyan-400 select-none">
+                            Move Probability {renderSortIcon('prob')}
+                          </th>
+                          <th onClick={() => toggleBankSort('tone')} className="p-3.5 text-center cursor-pointer hover:text-cyan-400 select-none">
+                            Evaluated Policy Tone {renderSortIcon('tone')}
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-zinc-900/60">
+                        {Object.values(ratesData).map(b => {
+                          const deltaBps = Number(((b.implied - b.rate) * 100).toFixed(1));
+                          const step = b.step || 0.25;
+                          const prob = Math.min(100, Math.round(Math.abs(deltaBps) / (step * 100) * 100));
+                          const outcome = deltaBps > (step * 50) ? "HIKE" : (deltaBps < -(step * 50) ? "CUT" : "HOLD");
+                          const tone = classifyPolicyTone(deltaBps, outcome);
+                          const countdown = getBankCountdown(b.nextMeeting);
+                          return { ...b, deltaBps, prob, outcome, tone, countdown };
+                        }).sort((a, b) => {
+                          let valA: any, valB: any;
+                          if (bankSortColumn === 'name') { valA = a.name; valB = b.name; }
+                          else if (bankSortColumn === 'rate') { valA = a.rate; valB = b.rate; }
+                          else if (bankSortColumn === 'implied') { valA = a.implied; valB = b.implied; }
+                          else if (bankSortColumn === 'deltaBps') { valA = a.deltaBps; valB = b.deltaBps; }
+                          else if (bankSortColumn === 'prob') { valA = a.prob; valB = b.prob; }
+                          else if (bankSortColumn === 'tone') { valA = a.tone.weight; valB = b.tone.weight; }
+                          else { valA = new Date(a.nextMeeting).getTime(); valB = new Date(b.nextMeeting).getTime(); }
+                          if (valA < valB) return bankSortAsc ? -1 : 1;
+                          if (valA > valB) return bankSortAsc ? 1 : -1;
+                          return 0;
+                        }).map((b) => {
+                          const deltaColor = b.deltaBps > 0 ? 'text-emerald-400 font-bold' : (b.deltaBps < 0 ? 'text-rose-400 font-bold' : 'text-zinc-400');
+                          const probBarColor = b.outcome === 'HIKE' ? 'bg-emerald-500' : (b.outcome === 'CUT' ? 'bg-rose-500' : 'bg-cyan-500');
+
+                          return (
+                            <tr
+                              key={b.code}
+                              onClick={() => setSelectedBankKey(b.code)}
+                              className="hover:bg-[#0c0c16] transition-colors cursor-pointer group"
+                            >
+                              <td className="p-3.5 pl-4 text-zinc-300 font-bold">
+                                <div className="flex items-center gap-2">
+                                  <span>{b.nextMeeting.split('T')[0]}</span>
+                                  <span className={`px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider ${b.countdown.badgeClass}`}>
+                                    {b.countdown.text}
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="p-3.5 font-bold text-white group-hover:text-cyan-400 transition-colors">
+                                <div className="flex items-center gap-2">
+                                  <span className={`w-1.5 h-1.5 rounded-full ${b.deltaBps > 5 ? 'bg-emerald-500' : (b.deltaBps < -5 ? 'bg-rose-500' : 'bg-zinc-600')}`}></span>
+                                  <span>{b.name}</span>
+                                </div>
+                              </td>
+                              <td className="p-3.5 text-center text-zinc-200 tabular-nums">{b.rate.toFixed(2)}%</td>
+                              <td className="p-3.5 text-center text-cyan-400 font-bold tabular-nums">{b.implied.toFixed(2)}%</td>
+                              <td className={`p-3.5 text-center tabular-nums ${deltaColor}`}>
+                                {b.deltaBps > 0 ? '+' : ''}{b.deltaBps.toFixed(1)}
+                              </td>
+                              <td className="p-3.5 text-center tabular-nums">
+                                <div className="flex flex-col items-center gap-1 w-24 mx-auto">
+                                  <span className="font-bold text-zinc-200">{b.prob}% <span className="text-[9px] text-zinc-500">{b.outcome}</span></span>
+                                  <div className="w-full h-1 bg-zinc-800 rounded-full overflow-hidden">
+                                    <div className={`h-full ${probBarColor}`} style={{ width: `${b.prob}%` }}></div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="p-3.5 text-center">
+                                <span className={`px-2.5 py-1 text-[10px] font-bold border tracking-wide inline-block ${b.tone.class}`}>
+                                  {b.tone.label}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* VIEW 2: BANK DRILLDOWN VIEW */}
+              {selectedBankKey !== 'Overview' && currentBank && (() => {
+                const b = currentBank;
+                const deltaBps = Number(((b.implied - b.rate) * 100).toFixed(1));
+                const step = b.step || 0.25;
+                const prob = Math.min(100, Math.round(Math.abs(deltaBps) / (step * 100) * 100));
+                const outcome = deltaBps > (step * 50) ? "HIKE" : (deltaBps < -(step * 50) ? "CUT" : "HOLD");
+                const tone = classifyPolicyTone(deltaBps, outcome);
+                const detailedCountdown = getBankDetailedCountdown(b.nextMeeting);
+                const xLabels = ['Current Rate', 'Decision (M1)', 'Meeting +2', 'Meeting +3', 'Meeting +4'];
+
+                // Trajectory chart math
+                const yVals = b.trajectory && b.trajectory.length === 5 ? b.trajectory : calculateBankTrajectory(b.rate, b.implied, b.step);
+                const minY = Math.min(...yVals) - 0.25;
+                const maxY = Math.max(...yVals) + 0.25;
+                const rangeY = maxY - minY || 1;
+                const chartHeight = 180;
+                const chartWidth = 560;
+                const paddingX = 50;
+                const paddingY = 30;
+                const stepX = (chartWidth - paddingX * 2) / (yVals.length - 1);
+
+                const points = yVals.map((val, idx) => {
+                  const x = paddingX + idx * stepX;
+                  const y = chartHeight - paddingY - ((val - minY) / rangeY) * (chartHeight - paddingY * 2);
+                  return { x, y, val };
+                });
+
+                const polylinePoints = points.map(p => `${p.x},${p.y}`).join(' ');
+                const areaPoints = `${points[0].x},${chartHeight - paddingY} ${polylinePoints} ${points[points.length - 1].x},${chartHeight - paddingY}`;
+
+                return (
+                  <div className="space-y-6">
+                    {/* Header back button */}
+                    <div className="flex items-center justify-between">
+                      <button
+                        onClick={() => setSelectedBankKey('Overview')}
+                        className="px-3.5 py-1.5 bg-[#0c0c12] hover:bg-zinc-800 text-zinc-300 border border-zinc-800 text-xs uppercase tracking-wider flex items-center gap-2 transition cursor-pointer font-bold"
+                      >
+                        <ArrowLeft className="w-3.5 h-3.5" />
+                        &larr; Return to Overview Matrix
+                      </button>
+                      <span className="text-xs text-cyan-400 font-bold uppercase tracking-wider">
+                        {b.name}
+                      </span>
+                    </div>
+
+                    {/* 4 Primary Metric Cards */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                      {/* Metric 1: Next Meeting */}
+                      <div className="macro-panel p-5 space-y-2 border-l-2 border-l-cyan-500">
+                        <div className="flex items-center justify-between text-[10px] text-zinc-500 uppercase tracking-widest">
+                          <span>Next Meeting Decision</span>
+                          <Calendar className="w-3.5 h-3.5 text-cyan-400" />
+                        </div>
+                        <div className="text-xl font-bold text-white tracking-tight">
+                          {b.nextMeeting.split('T')[0]}
+                        </div>
+                        <div className="text-xs text-cyan-400 font-bold flex items-center gap-1.5">
+                          <Clock className="w-3 h-3 text-cyan-400" />
+                          <span>{detailedCountdown}</span>
+                        </div>
+                      </div>
+
+                      {/* Metric 2: Current Benchmark Rate */}
+                      <div className="macro-panel p-5 space-y-2 border-l-2 border-l-zinc-600">
+                        <div className="flex items-center justify-between text-[10px] text-zinc-500 uppercase tracking-widest">
+                          <span>Benchmark Rate</span>
+                          <Landmark className="w-3.5 h-3.5 text-zinc-400" />
+                        </div>
+                        <div className="text-2xl font-black text-white tracking-tight">
+                          {b.rate.toFixed(2)}%
+                        </div>
+                        <div className="text-xs text-zinc-400">
+                          Policy Step: {b.step.toFixed(2)}%
+                        </div>
+                      </div>
+
+                      {/* Metric 3: Implied Forward */}
+                      <div className="macro-panel p-5 space-y-2 border-l-2 border-l-cyan-400">
+                        <div className="flex items-center justify-between text-[10px] text-zinc-500 uppercase tracking-widest">
+                          <span>Market Implied Forward</span>
+                          <TrendingUp className="w-3.5 h-3.5 text-cyan-400" />
+                        </div>
+                        <div className="text-2xl font-black text-cyan-400 tracking-tight">
+                          {b.implied.toFixed(2)}%
+                        </div>
+                        <div className="text-xs text-zinc-300">
+                          Spread: <span className={deltaBps > 0 ? 'text-emerald-400 font-bold' : deltaBps < 0 ? 'text-rose-400 font-bold' : 'text-zinc-400'}>
+                            {deltaBps > 0 ? '+' : ''}{deltaBps.toFixed(1)} bps
+                          </span> ({prob}% {outcome})
+                        </div>
+                      </div>
+
+                      {/* Metric 4: Evaluated Policy Tone */}
+                      <div className="macro-panel p-5 space-y-2 border-l-2 border-l-emerald-500">
+                        <div className="flex items-center justify-between text-[10px] text-zinc-500 uppercase tracking-widest">
+                          <span>Evaluated Policy Tone</span>
+                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        </div>
+                        <div className="pt-1">
+                          <span className={`px-2.5 py-1.5 text-xs font-bold border tracking-wide inline-block ${tone.class}`}>
                             {tone.label}
                           </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                        </div>
+                        <div className="text-[11px] text-zinc-500 font-sans">
+                          Algorithmically weighted from yield curve & forecast delta
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Interactive Trajectory Curve & Override Form */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                      
+                      {/* Trajectory Curve Chart Card */}
+                      <div className="lg:col-span-2 macro-panel p-5 sm:p-6 space-y-4">
+                        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 border-b border-zinc-900 pb-3">
+                          <div>
+                            <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                              <TrendingUp className="w-4 h-4 text-cyan-400" />
+                              Implied Rate Path & Forward Trajectory Curve
+                            </h4>
+                            <p className="text-[11px] text-zinc-500 font-sans mt-0.5">
+                              5-Meeting forward rate expectation path derived from money market swaps & cash differentials.
+                            </p>
+                          </div>
+                          <span className="text-[10px] text-zinc-400 font-mono bg-zinc-900 px-2 py-0.5 border border-zinc-800 self-start sm:self-auto">
+                            Terminal: {yVals[yVals.length - 1].toFixed(2)}%
+                          </span>
+                        </div>
+
+                        {/* Interactive SVG Chart */}
+                        <div className="w-full overflow-x-auto touch-scroll">
+                          <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="w-full h-52 select-none min-w-[500px]">
+                            <defs>
+                              <linearGradient id={`grad-${b.code}`} x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.25" />
+                                <stop offset="100%" stopColor="#06b6d4" stopOpacity="0.0" />
+                              </linearGradient>
+                            </defs>
+
+                            {/* Horizontal guide lines */}
+                            {[0, 0.25, 0.5, 0.75, 1].map((pct, idx) => {
+                              const y = paddingY + pct * (chartHeight - paddingY * 2);
+                              const rateLabel = (maxY - pct * rangeY).toFixed(2);
+                              return (
+                                <g key={idx}>
+                                  <line x1={paddingX} y1={y} x2={chartWidth - paddingX} y2={y} stroke="#18181b" strokeDasharray="3 3" />
+                                  <text x={paddingX - 8} y={y + 3} fill="#71717a" fontSize="9" textAnchor="end" fontFamily="JetBrains Mono">
+                                    {rateLabel}%
+                                  </text>
+                                </g>
+                              );
+                            })}
+
+                            {/* Area fill */}
+                            <polygon points={areaPoints} fill={`url(#grad-${b.code})`} />
+
+                            {/* Path curve */}
+                            <polyline
+                              fill="none"
+                              stroke="#06b6d4"
+                              strokeWidth="2.5"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              points={polylinePoints}
+                            />
+
+                            {/* Data points & labels */}
+                            {points.map((p, idx) => (
+                              <g key={idx}>
+                                <circle cx={p.x} cy={p.y} r="5" fill="#22d3ee" stroke="#0891b2" strokeWidth="2" />
+                                <text
+                                  x={p.x}
+                                  y={p.y - 10}
+                                  fill="#38bdf8"
+                                  fontSize="10"
+                                  fontWeight="bold"
+                                  textAnchor="middle"
+                                  fontFamily="JetBrains Mono"
+                                >
+                                  {p.val.toFixed(2)}%
+                                </text>
+                                <text
+                                  x={p.x}
+                                  y={chartHeight - 8}
+                                  fill="#a1a1aa"
+                                  fontSize="9"
+                                  textAnchor="middle"
+                                  fontFamily="JetBrains Mono"
+                                >
+                                  {xLabels[idx]}
+                                </text>
+                              </g>
+                            ))}
+                          </svg>
+                        </div>
+                      </div>
+
+                      {/* Scenario Simulator & Override Card */}
+                      <div className="macro-panel p-5 sm:p-6 space-y-4">
+                        <div className="border-b border-zinc-900 pb-3">
+                          <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                            <RotateCcw className="w-3.5 h-3.5 text-cyan-400" />
+                            Rate Simulator & Overrides
+                          </h4>
+                          <p className="text-[11px] text-zinc-500 font-sans mt-0.5">
+                            Simulate adjustments and recalibrate forward curve.
+                          </p>
+                        </div>
+
+                        <div className="space-y-3.5 text-xs">
+                          <div className="space-y-1">
+                            <label className="text-zinc-400 uppercase text-[10px]">Benchmark Rate (%)</label>
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={drillRate}
+                              onChange={(e) => setDrillRate(e.target.value)}
+                              className="w-full bg-[#0c0c12] border border-zinc-800 text-white p-2.5 outline-none focus:border-cyan-400 font-mono"
+                            />
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="text-zinc-400 uppercase text-[10px]">Market Implied Forward (%)</label>
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={drillImplied}
+                              onChange={(e) => setDrillImplied(e.target.value)}
+                              className="w-full bg-[#0c0c12] border border-zinc-800 text-white p-2.5 outline-none focus:border-cyan-400 font-mono"
+                            />
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="text-zinc-400 uppercase text-[10px]">Next Decision Date / Time</label>
+                            <input
+                              type="datetime-local"
+                              value={drillMeeting}
+                              onChange={(e) => setDrillMeeting(e.target.value)}
+                              className="w-full bg-[#0c0c12] border border-zinc-800 text-white p-2.5 outline-none focus:border-cyan-400 font-mono"
+                            />
+                          </div>
+
+                          <button
+                            onClick={() => handleApplyBankOverride(b.code)}
+                            className="w-full mt-2 py-2.5 bg-cyan-500 hover:bg-cyan-400 text-black font-bold uppercase tracking-wider text-xs transition cursor-pointer flex items-center justify-center gap-2"
+                          >
+                            <TrendingUp className="w-3.5 h-3.5" />
+                            Apply & Recalculate Trajectory
+                          </button>
+                        </div>
+                      </div>
+
+                    </div>
+                  </div>
+                );
+              })()}
+
             </div>
-          </div>
-        </section>
-      )}
+          </section>
+        );
+      })()}
 
       {/* SUB-VIEW: CONSENSUS ENGINE */}
       {activeTab === 'consensus' && (
