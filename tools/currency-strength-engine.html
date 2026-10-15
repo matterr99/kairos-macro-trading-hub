@@ -8,7 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- PapaParse for CSV parsing -->
+    <!-- PapaParse for CSV & TSV parsing -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <!-- SheetJS for Excel parsing -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -66,7 +66,7 @@
                     Fundamental Valuation & Currency Strength
                 </h1>
                 <p class="text-xs sm:text-sm text-zinc-300 font-sans max-w-2xl font-light leading-relaxed">
-                    Calculates economic indicator net changes, relative valuation matrices, and cross-pair directional bias ratios.
+                    Calculates economic indicator net changes, relative valuation matrices, and cross-pair directional bias ratios. Supports automated ingestion of Investing.com tables.
                 </p>
             </div>
 
@@ -82,9 +82,14 @@
                 
                 <!-- Investing.com File Upload Button & Hidden Input -->
                 <button onclick="document.getElementById('investingFileInput').click()" class="px-3 py-1.5 text-[10px] uppercase tracking-wider bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-400 rounded-sm border border-emerald-900/60 transition cursor-pointer">
-                    <i class="fa-solid fa-file-import mr-1"></i> Import Investing.com Export
+                    <i class="fa-solid fa-file-import mr-1"></i> Import Investing.com
                 </button>
-                <input type="file" id="investingFileInput" accept=".csv, .xlsx, .xls" class="hidden" onchange="handleInvestingUpload(event)">
+                <input type="file" id="investingFileInput" accept=".csv, .xlsx, .xls, .tsv, .txt" class="hidden" onchange="handleInvestingUpload(event)">
+
+                <!-- Paste Raw Table Button -->
+                <button onclick="openPasteModal()" class="px-3 py-1.5 text-[10px] uppercase tracking-wider bg-purple-950/40 hover:bg-purple-900/60 text-purple-300 rounded-sm border border-purple-800/60 transition cursor-pointer">
+                    <i class="fa-solid fa-paste mr-1"></i> Paste Table
+                </button>
 
                 <button onclick="resetToDefaults()" class="px-3 py-1.5 text-[10px] uppercase tracking-wider bg-[#0c0c12] hover:bg-zinc-900 text-rose-400 rounded-sm border border-zinc-800 transition cursor-pointer">
                     <i class="fa-solid fa-rotate-left mr-1"></i> Reset
@@ -96,6 +101,35 @@
     <!-- 4. MAIN CONTENT WRAPPER -->
     <main class="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-6">
         
+        <!-- Dedicated Valuation Drop Zone -->
+        <div id="valuationDropZone" onclick="document.getElementById('investingFileInput').click()" class="bg-[#040406] border border-dashed border-zinc-800 hover:border-cyan-500/60 rounded-xl p-5 sm:p-6 text-center transition-all cursor-pointer group select-none">
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-4 max-w-4xl mx-auto">
+                <div class="flex items-center gap-3.5 text-left">
+                    <div class="w-10 h-10 rounded-lg bg-cyan-950/80 border border-cyan-500/40 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                        <i class="fa-solid fa-file-excel text-cyan-400 text-lg"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-white text-xs sm:text-sm font-bold uppercase tracking-wider">
+                                Load Indicators Excel / CSV Table
+                            </span>
+                            <span class="px-1.5 py-0.5 bg-emerald-950/80 text-emerald-400 border border-emerald-800/60 text-[9px] font-bold uppercase">
+                                Auto-Detect
+                            </span>
+                        </div>
+                        <p class="text-[11px] text-zinc-400 font-sans mt-0.5">
+                            Drag & drop or click to upload Investing.com export (.xlsx, .xls, .csv). You can also press Ctrl+V anywhere to paste.
+                        </p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 shrink-0 font-mono">
+                    <span class="px-2.5 py-1 bg-zinc-900 border border-zinc-700/80 text-[10px] text-zinc-300 font-bold uppercase">.XLSX</span>
+                    <span class="px-2.5 py-1 bg-zinc-900 border border-zinc-700/80 text-[10px] text-zinc-300 font-bold uppercase">.XLS</span>
+                    <span class="px-2.5 py-1 bg-zinc-900 border border-zinc-700/80 text-[10px] text-zinc-300 font-bold uppercase">.CSV</span>
+                </div>
+            </div>
+        </div>
+
         <!-- Currency Summary Score Cards -->
         <div id="currencySummary" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 font-mono"></div>
 
@@ -146,6 +180,9 @@
                             <button onclick="document.getElementById('investingFileInput').click()" class="px-2 py-1 text-[10px] uppercase tracking-wider bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-400 rounded-sm border border-emerald-900/60 transition cursor-pointer">
                                 <i class="fa-solid fa-file-import mr-1"></i> Import Investing.com
                             </button>
+                            <button onclick="openPasteModal()" class="px-2 py-1 text-[10px] uppercase tracking-wider bg-purple-950/40 hover:bg-purple-900/60 text-purple-300 rounded-sm border border-purple-800/60 transition cursor-pointer">
+                                <i class="fa-solid fa-paste mr-1"></i> Paste
+                            </button>
                         </div>
                         <div class="flex items-center gap-1 bg-[#0c0c12] border border-zinc-800 rounded-sm px-2.5 py-1 text-[10px] text-zinc-400 uppercase tracking-wider">
                             <span class="text-zinc-500 mr-1">Sort:</span>
@@ -168,7 +205,7 @@
                     </div>
                 </div>
 
-                <!-- 28 Pairs List rendered in a single column as requested -->
+                <!-- 28 Pairs List rendered in a single column -->
                 <div id="sentimentBarsContainer" class="grid grid-cols-1 gap-3.5 max-w-3xl mx-auto"></div>
             </div>
         </div>
@@ -201,6 +238,33 @@
         </div>
 
     </main>
+
+    <!-- Paste Table Modal -->
+    <div id="pasteModal" class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-[#0a0a0f] border border-zinc-800 rounded-lg max-w-2xl w-full p-6 space-y-4 shadow-2xl font-mono">
+            <div class="flex items-center justify-between border-b border-zinc-800 pb-3">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-paste text-cyan-400"></i>
+                    <h3 class="text-sm font-bold text-white uppercase tracking-wider">Paste Investing.com Table</h3>
+                </div>
+                <button onclick="closePasteModal()" class="text-zinc-500 hover:text-white transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <p class="text-xs text-zinc-400 font-sans">
+                Copy economic calendar rows directly from Investing.com (or Excel) and paste the raw text below.
+            </p>
+            <textarea id="pasteTextarea" rows="10" placeholder="Paste tab-separated or comma-separated table data here (e.g. Date, Time, Cur., Event, Actual, Forecast, Previous)..." class="w-full bg-[#040406] border border-zinc-800 rounded p-3 text-xs text-zinc-300 font-mono outline-none focus:border-cyan-500 resize-none"></textarea>
+            <div class="flex items-center justify-end gap-3 pt-2">
+                <button onclick="closePasteModal()" class="px-3 py-1.5 text-xs text-zinc-400 hover:text-white border border-zinc-800 rounded transition cursor-pointer">
+                    Cancel
+                </button>
+                <button onclick="processPastedText()" class="px-4 py-1.5 text-xs font-bold bg-cyan-600 hover:bg-cyan-500 text-white rounded transition cursor-pointer">
+                    Parse & Ingest Table
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- 5. DYNAMIC FOOTER CONTAINER -->
     <div id="global-footer"></div>
@@ -301,16 +365,21 @@
 
         const pairsList = ["EURUSD", "GBPUSD", "AUDUSD", "NZDUSD", "USDCAD", "USDCHF", "USDJPY", "EURGBP", "EURAUD", "EURNZD", "EURCAD", "EURCHF", "EURJPY", "GBPAUD", "GBPNZD", "GBPCAD", "GBPCHF", "GBPJPY", "AUDNZD", "AUDCAD", "AUDCHF", "AUDJPY", "NZDCAD", "NZDCHF", "NZDJPY", "CADCHF", "CADJPY", "CHFJPY"];
 
-        // Country Tag to Currency Mapping (Investing.com)
+        // Country Tag to Currency Mapping (Investing.com & Multilingual)
         const countryToCurrency = {
-            "US": "USD", "USA": "USD", "UNITED STATES": "USD", "USD": "USD",
-            "DE": "EUR", "FR": "EUR", "IT": "EUR", "ES": "EUR", "EU": "EUR", "EMU": "EUR", "EURO ZONE": "EUR", "EUROZONE": "EUR", "GERMANY": "EUR", "FRANCE": "EUR", "ITALY": "EUR", "SPAIN": "EUR", "EUR": "EUR",
-            "UK": "GBP", "GB": "GBP", "GBR": "GBP", "UNITED KINGDOM": "GBP", "GBP": "GBP",
-            "JP": "JPY", "JPN": "JPY", "JAPAN": "JPY", "JPY": "JPY",
+            "US": "USD", "USA": "USD", "UNITED STATES": "USD", "ESTADOS UNIDOS": "USD", "EEUU": "USD", "USD": "USD",
+            "DE": "EUR", "DEU": "EUR", "GERMANY": "EUR", "ALEMANIA": "EUR",
+            "FR": "EUR", "FRA": "EUR", "FRANCE": "EUR", "FRANCIA": "EUR",
+            "IT": "EUR", "ITA": "EUR", "ITALY": "EUR", "ITALIA": "EUR",
+            "ES": "EUR", "ESP": "EUR", "SPAIN": "EUR", "ESPAÑA": "EUR",
+            "EU": "EUR", "EMU": "EUR", "EURO ZONE": "EUR", "EUROZONE": "EUR", "ZONA EURO": "EUR", "EUR": "EUR",
+            "UK": "GBP", "GB": "GBP", "GBR": "GBP", "UNITED KINGDOM": "GBP", "REINO UNIDO": "GBP", "ENGLAND": "GBP", "INGLATERRA": "GBP", "GBP": "GBP",
+            "JP": "JPY", "JPN": "JPY", "JAPAN": "JPY", "JAPÓN": "JPY", "JAPON": "JPY", "NIPPON": "JPY", "JPY": "JPY",
             "AU": "AUD", "AUS": "AUD", "AUSTRALIA": "AUD", "AUD": "AUD",
-            "NZ": "NZD", "NZL": "NZD", "NEW ZEALAND": "NZD", "NZD": "NZD",
-            "CA": "CAD", "CAN": "CAD", "CANADA": "CAD", "CAD": "CAD",
-            "CH": "CHF", "CHE": "CHF", "SWITZERLAND": "CHF", "CHF": "CHF"
+            "NZ": "NZD", "NZL": "NZD", "NEW ZEALAND": "NZD", "NUEVA ZELANDA": "NZD", "NZD": "NZD",
+            "CA": "CAD", "CAN": "CAD", "CANADA": "CAD", "CANADÁ": "CAD", "CAD": "CAD",
+            "CH": "CHF", "CHE": "CHF", "SWITZERLAND": "CHF", "SUIZA": "CHF", "CONFEDERATION": "CHF", "CHF": "CHF",
+            "CN": "CNH", "CHN": "CNH", "CHINA": "CNH", "CNH": "CNH", "CNY": "CNH"
         };
 
         let appData = JSON.parse(JSON.stringify(defaultData));
@@ -339,24 +408,206 @@
             } catch(e) {}
         }
 
+        // ==========================================
+        // 1. DATE NORMALIZATION & SERIAL CONVERSION
+        // ==========================================
+        function formatToYMD(dateVal) {
+            if (dateVal === null || dateVal === undefined || dateVal === '') {
+                return new Date().toISOString().slice(0, 10);
+            }
+
+            // String sanitize
+            let str = String(dateVal).trim().replace(/[\u00A0\u200B\r\n]/g, '');
+
+            // 1. Excel Serial Date Conversion (Fix Year +046300 Bug)
+            // Handles numbers (e.g. 46297) AND stringified numbers (e.g. "46297" or "+046297")
+            const cleanNumStr = str.replace(/^\+0*/, '');
+            const parsedNum = typeof dateVal === 'number' ? dateVal : parseFloat(cleanNumStr);
+
+            // If the value is a number or numeric string between 25000 and 60000 (Excel serial range for 1968–2064):
+            if (!isNaN(parsedNum) && parsedNum >= 25000 && parsedNum <= 60000) {
+                const epochDate = new Date(Math.round((parsedNum - 25569) * 86400 * 1000));
+                if (!isNaN(epochDate.getTime())) {
+                    return epochDate.toISOString().slice(0, 10);
+                }
+            }
+
+            // Already clean valid ISO format YYYY-MM-DD (1970–2099)
+            if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+                const yr = parseInt(str.slice(0, 4), 10);
+                if (yr >= 1970 && yr <= 2099) {
+                    return str;
+                }
+            }
+
+            // Formats with slashes or dots: DD/MM/YYYY, DD.MM.YYYY, MM/DD/YYYY
+            if (/^\d{1,2}[\/\.]\d{1,2}[\/\.]\d{4}$/.test(str)) {
+                const parts = str.split(/[\/\.]/);
+                const p1 = parseInt(parts[0], 10);
+                const p2 = parseInt(parts[1], 10);
+                const yr = parseInt(parts[2], 10);
+                // Standard Investing.com DD.MM.YYYY
+                if (yr >= 1970 && yr <= 2099 && p2 <= 12 && p1 <= 31) {
+                    const mm = String(p2).padStart(2, '0');
+                    const dd = String(p1).padStart(2, '0');
+                    return `${yr}-${mm}-${dd}`;
+                }
+            }
+
+            // Fallback standard JavaScript Date parse with sanity check
+            // Prevent any output containing year +046xxx or invalid dates
+            const d = new Date(str);
+            if (!isNaN(d.getTime())) {
+                const yr = d.getUTCFullYear();
+                if (yr >= 1970 && yr <= 2099) {
+                    return d.toISOString().slice(0, 10);
+                }
+            }
+
+            return new Date().toISOString().slice(0, 10);
+        }
+
+        // ==========================================
+        // 2. INPUT SANITIZATION & VALUE PARSER
+        // ==========================================
         function parseInputValue(input, type) {
             if (input === null || input === undefined || input === '') return null;
-            let strVal = input.toString().trim().toUpperCase().replace(/,/g, '');
-            if (strVal === '-' || strVal === 'N/A') return null;
+
+            // Clean string, normalize whitespace and non-breaking spaces
+            let strVal = String(input).trim().replace(/[\u00A0\u200B\r\n]/g, '');
+            if (strVal === '-' || strVal === 'N/A' || strVal === 'n/a' || strVal === 'ND' || strVal === '') return null;
+
             const isExplicitPercent = strVal.includes('%');
-            strVal = strVal.replace('%', '').trim();
-            if (strVal.endsWith('K')) strVal = strVal.slice(0, -1);
-            else if (strVal.endsWith('M')) strVal = strVal.slice(0, -1);
-            else if (strVal.endsWith('B')) strVal = strVal.slice(0, -1);
-            let num = parseFloat(strVal);
-            if (isNaN(num)) return null;
-            const jobsInThousands = ["NFP", "JOBS_K", "CAD_JOBS", "GER_UNEMP_CHANGE", "CHF_UNEMP_CHANGE", "GBP_CLAIMANT"];
-            if (jobsInThousands.includes(type) && Math.abs(num) >= 1000) {
-                num = num / 1000;
+            const hasK = /k$/i.test(strVal) || /k\b/i.test(strVal);
+            const hasM = /m$/i.test(strVal) || /m\b/i.test(strVal);
+            const hasB = /b$/i.test(strVal) || /b\b/i.test(strVal);
+
+            // Thousand commas & European comma decimal sanitization
+            if (strVal.includes(',') && !strVal.includes('.')) {
+                const commaParts = strVal.split(',');
+                if (commaParts.length === 2 && commaParts[1].replace(/[^0-9]/g, '').length === 3 && parseInt(commaParts[0], 10) > 0 && !isExplicitPercent) {
+                    strVal = strVal.replace(/,/g, '');
+                } else {
+                    strVal = strVal.replace(',', '.');
+                }
+            } else if (strVal.includes(',') && strVal.includes('.')) {
+                if (strVal.indexOf('.') < strVal.indexOf(',')) {
+                    strVal = strVal.replace(/\./g, '').replace(',', '.');
+                } else {
+                    strVal = strVal.replace(/,/g, '');
+                }
             }
-            const percentTypes = ["CPI", "UNEMP_RATE", "PCT_GROWTH", "EUR_UNEMP_FIXED", "CARD_TRANS"];
-            if (percentTypes.includes(type) && (isExplicitPercent || Math.abs(num) >= 0.08)) return num / 100.0;
-            return num;
+
+            let cleanStr = strVal.replace(/[%+]/g, '').trim();
+
+            // A. Jobs in Thousands (NFP, Jobs changes)
+            const jobsInThousands = ["NFP", "JOBS_K", "CAD_JOBS", "GER_UNEMP_CHANGE", "CHF_UNEMP_CHANGE", "GBP_CLAIMANT"];
+            if (jobsInThousands.includes(type)) {
+                cleanStr = cleanStr.replace(/k/gi, '').trim();
+                let num = parseFloat(cleanStr);
+                if (isNaN(num)) return null;
+                // If user/file provided raw thousands (e.g. 145000 or -23000), scale down to thousands (145)
+                if (Math.abs(num) >= 1000 && !hasK) {
+                    num = num / 1000;
+                }
+                return num;
+            }
+
+            // B. Percentage Indicators (Unemployment Rate, CPI, Retail Sales, GDP)
+            const percentTypes = ["CPI", "UNEMP_RATE", "PCT_GROWTH", "EUR_UNEMP_FIXED", "CARD_TRANS", "GBP_RETAIL"];
+            if (percentTypes.includes(type)) {
+                cleanStr = cleanStr.replace(/k/gi, '').trim();
+                let num = parseFloat(cleanStr);
+                if (isNaN(num)) return null;
+
+                if (isExplicitPercent) {
+                    // If input is a percentage string (e.g., "4.1%" or "4.18%"), convert to decimal (0.041 or 0.0418)
+                    // If already a tiny decimal with accidental % (e.g. "0.041%" or "0.0618%"):
+                    if (Math.abs(num) > 0 && Math.abs(num) <= 0.20 && String(cleanStr).startsWith('0.')) {
+                        return num;
+                    }
+                    return num / 100.0;
+                } else {
+                    // If input is already in standard decimal form (between 0.01 and 0.20, e.g., 0.041 for 4.1%), DO NOT divide by 100 again (prevents 0.00618 bug).
+                    // Also handles small MoM decimal rates (e.g. 0.002 for 0.2%)
+                    if (Math.abs(num) <= 0.20) {
+                        return num;
+                    }
+                    // If input is a whole number above 0.20 (e.g., 4.1 or 6.3), divide by 100 to get decimal (0.041 / 0.063)
+                    return num / 100.0;
+                }
+            }
+
+            // C. Large suffix scales
+            if (hasK) {
+                let num = parseFloat(cleanStr.replace(/k/gi, ''));
+                return isNaN(num) ? null : num * 1000;
+            }
+            if (hasM) {
+                let num = parseFloat(cleanStr.replace(/m/gi, ''));
+                return isNaN(num) ? null : num * 1000000;
+            }
+            if (hasB) {
+                let num = parseFloat(cleanStr.replace(/b/gi, ''));
+                return isNaN(num) ? null : num * 1000000000;
+            }
+
+            // D. Index / Survey / PMI / General numbers
+            let num = parseFloat(cleanStr);
+            return isNaN(num) ? null : num;
+        }
+
+        // ==========================================
+        // 3. INDEX & SURVEY SCALE MATCHING
+        // ==========================================
+        function normalizeIndexIndicatorScales(ind) {
+            if (!ind) return;
+            const indexTypes = ["PMI", "CONFIDENCE", "INDEX_SMALL", "SURVEY_5", "ANZ_BIZ", "AUD_SERVICES"];
+            const isIndexIndicator = indexTypes.includes(ind.type) ||
+                /\b(index|sentiment|confidence|survey|climate|barometer|westpac|ifo|nfib|cfib|tankan|kof|seco|ivey|cbi|gfk|aig)\b/i.test(ind.name);
+            
+            if (!isIndexIndicator) return;
+
+            const fields = ['previous', 'forecast', 'actual'];
+            
+            // Determine if there is a known raw index level (>= 15, e.g. 89.1, 85.5, 93.1)
+            let rawIndexBaseline = null;
+            for (const f of fields) {
+                if (typeof ind[f] === 'number' && Math.abs(ind[f]) >= 15) {
+                    rawIndexBaseline = ind[f];
+                    break;
+                }
+            }
+
+            if (rawIndexBaseline !== null) {
+                // If one value is an index level (e.g. 89.1) and another is a decimal net change (e.g. -0.06),
+                // do not mix them in the same row. Normalize or ignore mismatched scale fields to prevent false -2 max scoring spikes.
+                for (const f of fields) {
+                    const val = ind[f];
+                    if (typeof val === 'number' && Math.abs(val) > 0 && Math.abs(val) < 1.0) {
+                        const normalized = parseFloat((rawIndexBaseline * (1 + val)).toFixed(1));
+                        if (Math.abs(normalized - rawIndexBaseline) < 15) {
+                            ind[f] = normalized;
+                        } else {
+                            ind[f] = null;
+                        }
+                    }
+                }
+
+                // Safety guard: ensure actual and previous are on the exact same scale
+                if (typeof ind.actual === 'number' && typeof ind.previous === 'number') {
+                    const isActualLevel = Math.abs(ind.actual) >= 15;
+                    const isPrevLevel = Math.abs(ind.previous) >= 15;
+                    if (isActualLevel !== isPrevLevel) {
+                        // Prevent mixing raw index total with decimal net change
+                        if (isActualLevel && !isPrevLevel) {
+                            ind.previous = ind.actual;
+                        } else if (!isActualLevel && isPrevLevel) {
+                            ind.actual = ind.previous;
+                        }
+                    }
+                }
+            }
         }
 
         function evaluateIndicator(ind) {
@@ -516,7 +767,7 @@
 
             appData[curr].forEach((ind, idx) => {
                 const scoreColor = ind.score > 0 ? 'text-cyan-400 font-bold' : ind.score < 0 ? 'text-rose-400 font-bold' : 'text-zinc-500';
-                const isPercentType = ["CPI", "UNEMP_RATE", "PCT_GROWTH", "EUR_UNEMP_FIXED", "CARD_TRANS"].includes(ind.type);
+                const isPercentType = ["CPI", "UNEMP_RATE", "PCT_GROWTH", "EUR_UNEMP_FIXED", "CARD_TRANS", "GBP_RETAIL"].includes(ind.type);
                 const formatDisplayVal = (val) => (val === null || val === undefined) ? '' : isPercentType ? (val * 100).toFixed(2) + '%' : val;
                 const formatNetChange = (val) => (val === null || val === undefined) ? '-' : isPercentType ? ((val > 0 ? '+' : '') + (val * 100).toFixed(2) + '%') : (val > 0 ? '+' + val : val);
 
@@ -541,6 +792,7 @@
                 appData[curr][index][field] = val;
             } else {
                 appData[curr][index][field] = parseInputValue(val, appData[curr][index].type);
+                normalizeIndexIndicatorScales(appData[curr][index]);
             }
             saveToLocalStorage();
             refreshApp();
@@ -612,48 +864,51 @@
         }
 
         function resetToDefaults() {
-            if (confirm("Reset to baseline? Any unsaved changes will be cleared.")) {
+            if (confirm("Reset to baseline defaults? Any unsaved changes will be cleared.")) {
                 appData = JSON.parse(JSON.stringify(defaultData));
-                localStorage.removeItem(STORAGE_KEY);
+                localStorage.removeItem('forex_dashboard_data_v2');
+                saveToLocalStorage();
                 refreshApp();
+                switchTab(activeTab);
+                alert("Dashboard reset to baseline defaults!");
             }
         }
 
         // ==========================================
-        // INVESTING.COM EXPORT IMPORT ENGINE (.csv, .xlsx, .xls)
+        // 4. EVENT NAME & COLUMN SANITIZATION
         // ==========================================
-
         function normalizeEventName(name) {
             if (!name) return "";
-            let str = name.toString().toLowerCase();
+            let str = String(name).toLowerCase().replace(/[\u00A0\u200B\r\n]/g, ' ');
             // Remove period/month annotations like (Sep), (Aug), (YoY), (MoM), (QoQ), (Prelim), etc.
             str = str.replace(/\([^)]*\)/g, ' ');
+            str = str.replace(/\[[^\]]*\]/g, ' ');
             // Remove known publisher/source prefixes
-            str = str.replace(/\b(s&p global|s&p|hcob eurozone|hcob|jibun bank|judo bank|businessnz|busnz|procure\.ch|procure)\b/g, ' ');
-            // Standardize synonyms
-            str = str.replace(/\bmanufacturing\b/g, 'mfg');
-            str = str.replace(/\bnon-manufacturing\b/g, 'services');
-            str = str.replace(/\bunemployment\b/g, 'unemp');
-            str = str.replace(/\bnonfarm payrolls\b|\bnon-farm payrolls\b|\bnon farm payrolls\b/g, 'nfp');
+            str = str.replace(/\b(s&p global|s&p|hcob eurozone|hcob|jibun bank|judo bank|businessnz|busnz|procure\.ch|procure|the conference board|conference board|cb|ism|reuters|zdf|ifo|gfk|cbi|nfib|cfib|nab|aig|seco|kof|anz|westpac|jcer|atlanta fed)\b/g, ' ');
+            // Standardize synonyms (English & Spanish)
+            str = str.replace(/\bmanufacturing\b|\bmanufacturero\b/g, 'mfg');
+            str = str.replace(/\bnon-manufacturing\b|\bno manufacturero\b|\bservicios\b/g, 'services');
+            str = str.replace(/\bunemployment\b|\bdesempleo\b|\bparo\b|\bjobless\b/g, 'unemp');
+            str = str.replace(/\bnonfarm payrolls\b|\bnon-farm payrolls\b|\bnon farm payrolls\b|\bnóminas no agrícolas\b|\bnominas no agricolas\b/g, 'nfp');
+            str = str.replace(/\bconsumer price\b|\bprecios al consumidor\b|\bindice de precios\b/g, 'cpi');
+            str = str.replace(/\bretail sales\b|\bventas minoristas\b/g, 'retail');
+            str = str.replace(/\bgdp\b|\bpib\b|\bgross domestic\b/g, 'gdp');
             // Clean non-alphanumeric except whitespace
             str = str.replace(/[^a-z0-9\s]/g, ' ');
             return str.replace(/\s+/g, ' ').trim();
         }
 
-        function formatToYMD(dateVal) {
-            if (!dateVal) return new Date().toISOString().slice(0, 10);
-            if (typeof dateVal === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateVal.trim())) {
-                return dateVal.trim();
-            }
-            if (typeof dateVal === 'number' && dateVal > 25000) {
-                const d = new Date(Math.round((dateVal - 25569) * 86400 * 1000));
-                if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
-            }
-            const d = new Date(dateVal);
-            if (!isNaN(d.getTime())) {
-                return d.toISOString().slice(0, 10);
-            }
-            return new Date().toISOString().slice(0, 10);
+        function inferCurrencyFromText(text) {
+            const s = (text || '').toLowerCase();
+            if (/\b(fed|fomc|ism|nfp|nonfarm|u\.s\.|united states|estados unidos|eeuu|atlanta fed|nfib)\b/.test(s)) return 'USD';
+            if (/\b(ecb|bce|hcob|german|alemania|eurozone|zona euro|ifo|france|francia|italy|italia|spain|españa)\b/.test(s)) return 'EUR';
+            if (/\b(boe|bank of england|banco de inglaterra|uk|u\.k\.|reino unido|claimant|gfk|cbi)\b/.test(s)) return 'GBP';
+            if (/\b(boj|bank of japan|banco de japón|japan|japón|japon|tokyo|tokio|tankan|jibun)\b/.test(s)) return 'JPY';
+            if (/\b(rba|australia|australian|judo|westpac|nab|aig)\b/.test(s)) return 'AUD';
+            if (/\b(rbnz|new zealand|nueva zelanda|businessnz|food price)\b/.test(s)) return 'NZD';
+            if (/\b(boc|bank of canada|banco de canadá|canada|canadá|ivey|cfib)\b/.test(s)) return 'CAD';
+            if (/\b(snb|swiss|suiza|procure|kof|seco)\b/.test(s)) return 'CHF';
+            return null;
         }
 
         function findMatchingIndicator(curr, rawEventName) {
@@ -661,7 +916,7 @@
             if (!indicators || !indicators.length) return null;
 
             const clean = normalizeEventName(rawEventName);
-            const ev = rawEventName.toLowerCase();
+            const ev = String(rawEventName).toLowerCase();
 
             // 1. Direct exact or normalized match
             for (const ind of indicators) {
@@ -675,62 +930,65 @@
 
                 // PMIs
                 if (iname.includes('mfg pmi') || iname.includes('manufacturing pmi')) {
-                    if ((ev.includes('manufacturing') || ev.includes('mfg')) && ev.includes('pmi')) return ind;
+                    if ((ev.includes('manufacturing') || ev.includes('manufactur') || clean.includes('mfg')) && (ev.includes('pmi') || clean.includes('pmi'))) return ind;
                 }
-                if (iname.includes('services pmi') || iname.includes('non-mfg')) {
-                    if ((ev.includes('services') || ev.includes('non-manufacturing')) && ev.includes('pmi')) return ind;
+                if (iname.includes('services pmi') || iname.includes('non-mfg') || iname.includes('aud_services')) {
+                    if ((ev.includes('services') || ev.includes('servicio') || ev.includes('non-manufacturing')) && (ev.includes('pmi') || clean.includes('pmi'))) return ind;
                 }
-                if (iname === 'ivey pmi' && ev.includes('ivey')) return ind;
+                if (iname.includes('ivey') && (ev.includes('ivey') || clean.includes('ivey'))) return ind;
 
                 // NFP & Labor Market
-                if (iname === 'nfp' && (ev.includes('nonfarm payrolls') || ev.includes('non-farm') || ev.includes('nfp'))) return ind;
-                if (iname.includes('unemployment rate') || iname === 'unemp rate') {
-                    if (ev.includes('unemployment rate') || ev.includes('jobless rate')) return ind;
+                if (iname === 'nfp' && (clean.includes('nfp') || ev.includes('nonfarm') || ev.includes('non-farm') || ev.includes('nóminas') || ev.includes('nominas'))) return ind;
+                if ((iname.includes('unemployment rate') || iname === 'unemp rate') && !iname.includes('change')) {
+                    if ((ev.includes('unemployment rate') || ev.includes('tasa de desempleo') || ev.includes('tasa de paro') || ev.includes('jobless rate')) && !ev.includes('change') && !ev.includes('cambio')) return ind;
                 }
                 if (iname.includes('unemp change') || iname.includes('unemployment change')) {
-                    if (ev.includes('unemployment change') || ev.includes('jobless change')) return ind;
+                    if (ev.includes('unemployment change') || ev.includes('cambio del desempleo') || ev.includes('jobless change')) return ind;
                 }
-                if (iname === 'claimant count' && ev.includes('claimant count')) return ind;
-                if ((iname.includes('employment change') || iname.includes('jobs change') || iname.includes('net employment')) && !iname.includes('unemployment')) {
-                    if ((ev.includes('employment change') || ev.includes('jobs change') || ev.includes('net change in employment')) && !ev.includes('unemployment')) return ind;
+                if (iname.includes('claimant') && (ev.includes('claimant') || ev.includes('subsidio por desempleo'))) return ind;
+                if ((iname.includes('employment change') || iname.includes('net employment') || iname.includes('jobs change')) && !iname.includes('unemployment')) {
+                    if ((ev.includes('employment change') || ev.includes('net employment') || ev.includes('cambio del empleo') || ev.includes('creación de empleo') || ev.includes('jobs change')) && !ev.includes('unemployment') && !ev.includes('desempleo')) return ind;
                 }
 
                 // Inflation / CPI
-                if (iname.includes('cpi')) {
-                    if (ev.includes('cpi') || ev.includes('consumer price')) {
-                        if (iname.includes('tokyo') && !ev.includes('tokyo')) continue;
-                        if (!iname.includes('tokyo') && ev.includes('tokyo')) continue;
-                        return ind;
+                if (iname.includes('cpi') || iname.includes('food prices')) {
+                    if (iname.includes('tokyo') && (ev.includes('tokyo') || ev.includes('tokio'))) return ind;
+                    if (iname.includes('food') && (ev.includes('food') || ev.includes('alimento'))) return ind;
+                    if (!iname.includes('tokyo') && !iname.includes('food')) {
+                        if (ev.includes('cpi') || ev.includes('ipc') || ev.includes('consumer price') || ev.includes('precios al consumidor') || ev.includes('inflation') || ev.includes('inflación')) return ind;
                     }
                 }
 
                 // Retail Sales
-                if (iname.includes('retail sales') && ev.includes('retail sales')) return ind;
+                if (iname.includes('retail sales') && (ev.includes('retail') || ev.includes('minorista') || ev.includes('ventas minoristas'))) return ind;
+                if (iname.includes('card transactions') && (ev.includes('card transaction') || ev.includes('tarjetas'))) return ind;
 
                 // GDP
-                if (iname.includes('gdp') && (ev.includes('gdp') || ev.includes('gross domestic') || ev.includes('gdpnow'))) {
-                    if (iname.includes('atlanta') && !ev.includes('atlanta')) continue;
-                    return ind;
+                if (iname.includes('gdpnow') && (ev.includes('gdpnow') || (ev.includes('atlanta') && ev.includes('gdp')))) return ind;
+                if (iname.includes('jcer') && ev.includes('jcer')) return ind;
+                if (iname.includes('gdp') && !iname.includes('gdpnow') && !iname.includes('jcer')) {
+                    if (ev.includes('gdp') || ev.includes('pib') || ev.includes('gross domestic') || ev.includes('producto interior')) return ind;
                 }
 
                 // Confidence / Business Surveys
-                if (iname.includes('consumer confidence') && ev.includes('consumer confidence')) return ind;
-                if (iname.includes('consumer sentiment') && ev.includes('consumer sentiment')) return ind;
-                if (iname.includes('business climate') && ev.includes('business climate')) return ind;
-                if (iname.includes('business confidence') && ev.includes('business confidence')) return ind;
-                if (iname.includes('tankan') && ev.includes('tankan')) return ind;
-                if (iname.includes('kof') && ev.includes('kof')) return ind;
-                if (iname.includes('westpac') && ev.includes('westpac')) return ind;
-                if (iname.includes('cbi') && ev.includes('cbi')) return ind;
-                if (iname.includes('nfib') && ev.includes('nfib')) return ind;
-                if (iname.includes('cfib') && ev.includes('cfib')) return ind;
-                if (iname.includes('gfk') && ev.includes('gfk')) return ind;
-                if (iname.includes('nab') && ev.includes('nab')) return ind;
-                if (iname.includes('aig') && ev.includes('aig')) return ind;
-                if (iname.includes('card transactions') && ev.includes('card transactions')) return ind;
-                if (iname.includes('cash earnings') && ev.includes('cash earnings')) return ind;
-                if (iname.includes('industrial production') && ev.includes('industrial production')) return ind;
-                if (iname.includes('food prices') && ev.includes('food prices')) return ind;
+                if (iname.includes('consumer confidence') || iname.includes('consumer sentiment') || iname.includes('consumer survey')) {
+                    if (ev.includes('consumer confidence') || ev.includes('confianza del consumidor') || ev.includes('consumer sentiment') || ev.includes('sentimiento del consumidor') || ev.includes('consumer survey')) return ind;
+                }
+                if (iname.includes('ifo') && (ev.includes('ifo') || ev.includes('business climate') || ev.includes('clima empresarial'))) return ind;
+                if (iname.includes('nfib') && (ev.includes('nfib') || ev.includes('small business'))) return ind;
+                if (iname.includes('cfib') && (ev.includes('cfib') || ev.includes('business barometer'))) return ind;
+                if (iname.includes('westpac') && (ev.includes('westpac') || ev.includes('sentiment'))) return ind;
+                if (iname.includes('nab') && (ev.includes('nab') || ev.includes('business confidence'))) return ind;
+                if (iname.includes('anz') && iname.includes('business') && (ev.includes('anz') && ev.includes('business'))) return ind;
+                if (iname.includes('tankan') && (ev.includes('tankan') || ev.includes('reuters'))) return ind;
+                if (iname.includes('cbi') && (ev.includes('cbi') || ev.includes('industrial trends'))) return ind;
+                if (iname.includes('gfk') && (ev.includes('gfk') || ev.includes('consumer confidence'))) return ind;
+                if (iname.includes('aig') && (ev.includes('aig') || ev.includes('industry index'))) return ind;
+                if (iname.includes('kof') && (ev.includes('kof') || ev.includes('leading indicator'))) return ind;
+                if (iname.includes('seco') && (ev.includes('seco') || ev.includes('economic indicators') || ev.includes('consumer climate'))) return ind;
+                if (iname.includes('industrial production') && (ev.includes('industrial production') || ev.includes('producción industrial') || ev.includes('produccion industrial'))) return ind;
+                if (iname.includes('cash earnings') && (ev.includes('cash earnings') || ev.includes('earnings') || ev.includes('salarios'))) return ind;
+                if (iname.includes('activity index') && (ev.includes('activity index') || ev.includes('busnz'))) return ind;
             }
 
             // 3. Normalized substring inclusion
@@ -748,7 +1006,7 @@
                 if (!inameWords.length) continue;
                 const common = cleanWords.filter(w => inameWords.includes(w));
                 const score = common.length / Math.max(cleanWords.length, inameWords.length);
-                if (score > bestScore && score >= 0.4) {
+                if (score > bestScore && score >= 0.35) {
                     bestScore = score;
                     bestMatch = ind;
                 }
@@ -756,40 +1014,70 @@
             return bestMatch;
         }
 
-        function findRowKeys(row) {
-            const keys = Object.keys(row);
-            let currKey = null, eventKey = null, actualKey = null, forecastKey = null, prevKey = null, dateKey = null;
-
-            for (const k of keys) {
-                const cleanK = k.trim().toLowerCase();
-                if (!currKey && (cleanK === 'cur.' || cleanK === 'cur' || cleanK === 'currency' || cleanK === 'country' || cleanK === 'zone' || cleanK === 'ccy')) {
-                    currKey = k;
-                } else if (!eventKey && (cleanK === 'event' || cleanK === 'indicator' || cleanK === 'event name' || cleanK === 'title' || cleanK === 'release')) {
-                    eventKey = k;
-                } else if (!actualKey && (cleanK === 'actual' || cleanK === 'act' || cleanK === 'current')) {
-                    actualKey = k;
-                } else if (!forecastKey && (cleanK === 'forecast' || cleanK === 'fcst' || cleanK === 'consensus' || cleanK === 'expected')) {
-                    forecastKey = k;
-                } else if (!prevKey && (cleanK === 'previous' || cleanK === 'prev' || cleanK === 'prior')) {
-                    prevKey = k;
-                } else if (!dateKey && (cleanK === 'date' || cleanK === 'release date' || cleanK === 'day')) {
-                    dateKey = k;
-                }
-            }
-
-            return { currKey, eventKey, actualKey, forecastKey, prevKey, dateKey };
-        }
-
-        function processInvestingRows(rows) {
-            if (!rows || rows.length === 0) {
-                alert('No rows found in the uploaded file.');
+        // ==========================================
+        // 5. CORE INGESTION & ROW PARSING ENGINE
+        // ==========================================
+        function processInvestingRows(rawRows) {
+            const cleanRows = (rawRows || []).filter(r => r && r.some(c => c !== null && c !== undefined && String(c).trim() !== ''));
+            if (cleanRows.length === 0) {
+                alert('No readable data rows found.');
                 return;
             }
 
-            const { currKey, eventKey, actualKey, forecastKey, prevKey, dateKey } = findRowKeys(rows[0]);
+            // Detect Header Row across first 25 rows
+            let headerRowIdx = -1;
+            let eventCol = -1;
+            let currCol = -1;
+            let actualCol = -1;
+            let forecastCol = -1;
+            let prevCol = -1;
+            let dateCol = -1;
 
-            if (!eventKey) {
-                alert('Could not identify an "Event" or "Indicator" column in the uploaded file. Please verify the spreadsheet format.');
+            for (let r = 0; r < Math.min(cleanRows.length, 25); r++) {
+                const row = cleanRows[r].map(c => String(c || '').trim().toLowerCase().replace(/[\u00A0\u200B\r\n]/g, ''));
+                const hasEventHeader = row.some(c => c === 'event' || c === 'indicator' || c === 'evento' || c === 'indicador' || c === 'acontecimiento' || c.includes('event'));
+                const hasCcyHeader = row.some(c => c === 'cur.' || c === 'cur' || c === 'currency' || c === 'divisa' || c === 'moneda' || c === 'country' || c === 'pais' || c === 'país' || c === 'zone');
+                const hasNumbersHeader = row.some(c => c === 'actual' || c === 'dato actual' || c === 'real' || c === 'forecast' || c === 'previsión' || c === 'prevision' || c === 'previous' || c === 'previo');
+
+                if (hasEventHeader || (hasCcyHeader && hasNumbersHeader)) {
+                    headerRowIdx = r;
+                    row.forEach((cell, idx) => {
+                        if (['date', 'fecha', 'day', 'dia', 'día', 'release date'].some(h => cell === h || cell.includes(h))) {
+                            if (dateCol === -1) dateCol = idx;
+                        }
+                        if (['cur.', 'cur', 'currency', 'div.', 'div', 'divisa', 'moneda', 'country', 'pais', 'país', 'zone', 'zona', 'ccy'].some(h => cell === h || cell.startsWith(h))) {
+                            if (currCol === -1) currCol = idx;
+                        }
+                        if (['event', 'indicator', 'evento', 'indicador', 'acontecimiento', 'title', 'nombre', 'release'].some(h => cell === h || cell.includes(h))) {
+                            if (eventCol === -1) eventCol = idx;
+                        }
+                        if (['actual', 'act', 'dato actual', 'real', 'current'].some(h => cell === h || cell.includes(h))) {
+                            if (actualCol === -1) actualCol = idx;
+                        }
+                        if (['forecast', 'consensus', 'fcst', 'previsión', 'prevision', 'previsto', 'pronóstico', 'pronostico', 'consenso', 'expected', 'estimado'].some(h => cell === h || cell.includes(h))) {
+                            if (forecastCol === -1) forecastCol = idx;
+                        }
+                        if (['previous', 'prev', 'prior', 'previo', 'anterior', 'prev.'].some(h => cell === h || cell.includes(h))) {
+                            if (prevCol === -1) prevCol = idx;
+                        }
+                    });
+                    break;
+                }
+            }
+
+            // Fallback heuristics if no explicit header row was identified
+            if (headerRowIdx === -1) {
+                headerRowIdx = 0;
+                cleanRows[0].forEach((c, idx) => {
+                    const s = String(c || '').trim();
+                    if (s.length >= 3 && /^[A-Z]{2,3}$/.test(s) && currCol === -1) currCol = idx;
+                    else if (s.length > 5 && isNaN(Number(s)) && !s.includes(':') && eventCol === -1) eventCol = idx;
+                });
+            }
+
+            const dataRows = cleanRows.slice(headerRowIdx + 1);
+            if (dataRows.length === 0) {
+                alert('No data rows found below headers.');
                 return;
             }
 
@@ -797,30 +1085,41 @@
             const updatedCurrencies = new Set();
             let currentDateHeader = new Date().toISOString().slice(0, 10);
 
-            rows.forEach(row => {
-                if (dateKey && row[dateKey]) {
-                    const parsedDate = formatToYMD(row[dateKey]);
+            dataRows.forEach(row => {
+                // Check if row is a date separator
+                const fullText = row.map(c => String(c || '')).join(' ').trim();
+                if (fullText.length > 0 && row.filter(c => String(c || '').trim() !== '').length <= 2) {
+                    const rawDate = row[0] || row[1] || '';
+                    const parsedD = formatToYMD(rawDate);
+                    if (parsedD) {
+                        currentDateHeader = parsedD;
+                        return;
+                    }
+                }
+
+                if (dateCol !== -1 && row[dateCol]) {
+                    const parsedDate = formatToYMD(row[dateCol]);
                     if (parsedDate) currentDateHeader = parsedDate;
                 }
 
-                const rawEvent = (row[eventKey] || '').toString().trim();
-                if (!rawEvent) return;
-
-                // Determine target currency from country code or currency string
-                let targetCurr = null;
-                if (currKey && row[currKey]) {
-                    const rawCurr = row[currKey].toString().trim().toUpperCase();
-                    targetCurr = countryToCurrency[rawCurr] || (appData[rawCurr] ? rawCurr : null);
+                let rawEvent = '';
+                if (eventCol !== -1 && row[eventCol] !== undefined) {
+                    rawEvent = String(row[eventCol] || '').trim();
+                } else {
+                    const textCells = row.map(c => String(c || '').trim()).filter(s => s.length > 4 && isNaN(Number(s)) && !s.includes(':'));
+                    if (textCells.length > 0) rawEvent = textCells[0];
                 }
 
-                // If not found, attempt to match currency from event name text
+                if (!rawEvent || rawEvent.length < 3) return;
+
+                // Determine target currency
+                let targetCurr = null;
+                if (currCol !== -1 && row[currCol]) {
+                    const cleanCcy = String(row[currCol]).trim().toUpperCase().replace(/[^A-Z]/g, '');
+                    targetCurr = countryToCurrency[cleanCcy] || (appData[cleanCcy] ? cleanCcy : null);
+                }
                 if (!targetCurr) {
-                    for (const [code, ccy] of Object.entries(countryToCurrency)) {
-                        if (code.length >= 2 && new RegExp(`\\b${code}\\b`, 'i').test(rawEvent)) {
-                            targetCurr = ccy;
-                            break;
-                        }
-                    }
+                    targetCurr = inferCurrencyFromText(rawEvent);
                 }
 
                 const searchCurrencies = targetCurr ? [targetCurr] : Object.keys(appData);
@@ -830,24 +1129,24 @@
                     if (matchedInd) {
                         let hasChanges = false;
 
-                        if (actualKey && row[actualKey] !== undefined && row[actualKey] !== '' && row[actualKey] !== '-' && row[actualKey] !== 'N/A') {
-                            const parsed = parseInputValue(row[actualKey], matchedInd.type);
+                        if (actualCol !== -1 && row[actualCol] !== undefined && row[actualCol] !== '' && row[actualCol] !== '-' && row[actualCol] !== 'N/A') {
+                            const parsed = parseInputValue(row[actualCol], matchedInd.type);
                             if (parsed !== null) {
                                 matchedInd.actual = parsed;
                                 hasChanges = true;
                             }
                         }
 
-                        if (forecastKey && row[forecastKey] !== undefined && row[forecastKey] !== '' && row[forecastKey] !== '-' && row[forecastKey] !== 'N/A') {
-                            const parsed = parseInputValue(row[forecastKey], matchedInd.type);
+                        if (forecastCol !== -1 && row[forecastCol] !== undefined && row[forecastCol] !== '' && row[forecastCol] !== '-' && row[forecastCol] !== 'N/A') {
+                            const parsed = parseInputValue(row[forecastCol], matchedInd.type);
                             if (parsed !== null) {
                                 matchedInd.forecast = parsed;
                                 hasChanges = true;
                             }
                         }
 
-                        if (prevKey && row[prevKey] !== undefined && row[prevKey] !== '' && row[prevKey] !== '-' && row[prevKey] !== 'N/A') {
-                            const parsed = parseInputValue(row[prevKey], matchedInd.type);
+                        if (prevCol !== -1 && row[prevCol] !== undefined && row[prevCol] !== '' && row[prevCol] !== '-' && row[prevCol] !== 'N/A') {
+                            const parsed = parseInputValue(row[prevCol], matchedInd.type);
                             if (parsed !== null) {
                                 matchedInd.previous = parsed;
                                 hasChanges = true;
@@ -855,10 +1154,14 @@
                         }
 
                         if (hasChanges) {
-                            matchedInd.date = (dateKey && row[dateKey]) ? formatToYMD(row[dateKey]) : currentDateHeader;
+                            // 3. Enforce Index & Survey Scale Matching (Westpac, IFO, NFIB, Sentiment)
+                            normalizeIndexIndicatorScales(matchedInd);
+
+                            // Format release date with serial number converter
+                            matchedInd.date = (dateCol !== -1 && row[dateCol]) ? formatToYMD(row[dateCol]) : currentDateHeader;
                             updatedCount++;
                             updatedCurrencies.add(ccy);
-                            break; // Stop currency search once matched
+                            break;
                         }
                     }
                 }
@@ -871,12 +1174,20 @@
                 if (notice) {
                     notice.innerText = `Updated: ${updatedCount} indicators (${Array.from(updatedCurrencies).join(', ')})`;
                 }
-                alert(`Successfully updated ${updatedCount} indicators from Investing.com export!`);
+                alert(`Successfully updated ${updatedCount} indicators from Investing.com export!\n(${Array.from(updatedCurrencies).join(', ')})`);
             } else {
-                alert('Processed file, but no matching indicators could be identified. Please ensure the export contains G10 economic calendar events.');
+                alert('Processed data, but no matching indicators could be identified. Please ensure the table contains G10 economic calendar events.');
             }
         }
 
+        // Alias for compatibility
+        function processMatrix(rawRows) {
+            processInvestingRows(rawRows);
+        }
+
+        // ==========================================
+        // 6. FILE UPLOAD & PASTE EVENT HANDLERS
+        // ==========================================
         function processInvestingFile(file) {
             if (!file) return;
             const fileName = file.name.toLowerCase();
@@ -901,15 +1212,14 @@
             }
 
             if (fileName.endsWith('.csv') || fileName.endsWith('.tsv') || fileName.endsWith('.txt')) {
-                // Parse CSV using PapaParse
                 Papa.parse(file, {
-                    header: true,
-                    skipEmptyLines: true,
+                    header: false,
+                    skipEmptyLines: 'greedy',
                     complete: function(results) {
                         if (results.data && results.data.length > 0) {
                             processInvestingRows(results.data);
                         } else {
-                            alert('No data rows found in the CSV file.');
+                            alert('No data rows found in the CSV/TSV file.');
                         }
                     },
                     error: function(err) {
@@ -917,7 +1227,6 @@
                     }
                 });
             } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
-                // Parse Excel using SheetJS
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     try {
@@ -925,9 +1234,10 @@
                         const workbook = XLSX.read(data, { type: 'array' });
                         const firstSheetName = workbook.SheetNames[0];
                         const worksheet = workbook.Sheets[firstSheetName];
-                        const rows = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
-                        if (rows && rows.length > 0) {
-                            processInvestingRows(rows);
+                        // Using raw header:1 to extract 2D matrix
+                        const rawMatrix = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
+                        if (rawMatrix && rawMatrix.length > 0) {
+                            processInvestingRows(rawMatrix);
                         } else {
                             alert('No data rows found in the Excel sheet.');
                         }
@@ -947,12 +1257,90 @@
             event.target.value = '';
         }
 
+        // Paste Modal Functions
+        function openPasteModal() {
+            document.getElementById('pasteModal').classList.remove('hidden');
+            setTimeout(() => document.getElementById('pasteTextarea').focus(), 50);
+        }
+
+        function closePasteModal() {
+            document.getElementById('pasteModal').classList.add('hidden');
+            document.getElementById('pasteTextarea').value = '';
+        }
+
+        function processPastedText() {
+            const text = document.getElementById('pasteTextarea').value.trim();
+            if (!text) {
+                alert('Please paste table content first.');
+                return;
+            }
+            closePasteModal();
+            Papa.parse(text, {
+                header: false,
+                skipEmptyLines: 'greedy',
+                complete: function(results) {
+                    if (results.data && results.data.length > 0) {
+                        processInvestingRows(results.data);
+                    } else {
+                        alert('Could not parse any table rows from the pasted text.');
+                    }
+                },
+                error: function(err) {
+                    alert('Error parsing pasted table: ' + err.message);
+                }
+            });
+        }
+
+        // Setup drop zone drag listeners
+        const dropZoneEl = document.getElementById('valuationDropZone');
+        if (dropZoneEl) {
+            dropZoneEl.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZoneEl.classList.add('border-cyan-400', 'bg-cyan-950/40');
+            });
+            dropZoneEl.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZoneEl.classList.remove('border-cyan-400', 'bg-cyan-950/40');
+            });
+            dropZoneEl.addEventListener('drop', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZoneEl.classList.remove('border-cyan-400', 'bg-cyan-950/40');
+                if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) {
+                    processInvestingFile(e.dataTransfer.files[0]);
+                }
+            });
+        }
+
         window.addEventListener('dragover', (e) => { e.preventDefault(); e.stopPropagation(); });
         window.addEventListener('drop', (e) => {
             e.preventDefault();
             e.stopPropagation();
             if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) {
                 processInvestingFile(e.dataTransfer.files[0]);
+            }
+        });
+
+        // Window-level Paste Listener for direct copy-pasting tables from Investing.com
+        window.addEventListener('paste', (e) => {
+            // Ignore if active element is an input or textarea
+            const tag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+            if (tag === 'input' || tag === 'textarea') return;
+
+            const clipboardText = (e.clipboardData || window.clipboardData)?.getData('text');
+            if (clipboardText && clipboardText.length > 10 && (clipboardText.includes('\t') || clipboardText.includes('\n'))) {
+                e.preventDefault();
+                Papa.parse(clipboardText, {
+                    header: false,
+                    skipEmptyLines: 'greedy',
+                    complete: function(results) {
+                        if (results.data && results.data.length > 0) {
+                            processInvestingRows(results.data);
+                        }
+                    }
+                });
             }
         });
 

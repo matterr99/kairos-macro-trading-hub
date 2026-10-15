@@ -125,6 +125,7 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
   const [currencyActiveTab, setCurrencyActiveTab] = useState<string>('dashboard');
   const [currencySort, setCurrencySort] = useState<'divergence' | 'bullish' | 'bearish' | 'default'>('divergence');
   const [currencyFilter, setCurrencyFilter] = useState<'all' | 'strong' | 'bullish' | 'bearish'>('all');
+  const [isValuationDragOver, setIsValuationDragOver] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Save currencyIndicators to localStorage
@@ -429,47 +430,309 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
 
   // --- Investing.com Country Mapping & Currency Helpers ---
   const COUNTRY_MAP: Record<string, string> = {
-    US: 'USD', USA: 'USD', USD: 'USD',
-    DE: 'EUR', FR: 'EUR', IT: 'EUR', ES: 'EUR', EU: 'EUR', EMU: 'EUR', EUR: 'EUR',
-    UK: 'GBP', GB: 'GBP', GBP: 'GBP',
-    JP: 'JPY', JPN: 'JPY', JPY: 'JPY',
-    AU: 'AUD', AUS: 'AUD', AUD: 'AUD',
-    NZ: 'NZD', NZD: 'NZD',
-    CA: 'CAD', CAN: 'CAD', CAD: 'CAD',
-    CH: 'CHF', CHE: 'CHF', CHF: 'CHF',
+    'US': 'USD', 'USA': 'USD', 'UNITED STATES': 'USD', 'ESTADOS UNIDOS': 'USD', 'EEUU': 'USD', 'USD': 'USD',
+    'DE': 'EUR', 'DEU': 'EUR', 'GERMANY': 'EUR', 'ALEMANIA': 'EUR',
+    'FR': 'EUR', 'FRA': 'EUR', 'FRANCE': 'EUR', 'FRANCIA': 'EUR',
+    'IT': 'EUR', 'ITA': 'EUR', 'ITALY': 'EUR', 'ITALIA': 'EUR',
+    'ES': 'EUR', 'ESP': 'EUR', 'SPAIN': 'EUR', 'ESPAÑA': 'EUR',
+    'EU': 'EUR', 'EMU': 'EUR', 'EURO ZONE': 'EUR', 'EUROZONE': 'EUR', 'ZONA EURO': 'EUR', 'EUR': 'EUR',
+    'UK': 'GBP', 'GB': 'GBP', 'GBR': 'GBP', 'UNITED KINGDOM': 'GBP', 'REINO UNIDO': 'GBP', 'ENGLAND': 'GBP', 'INGLATERRA': 'GBP', 'GBP': 'GBP',
+    'JP': 'JPY', 'JPN': 'JPY', 'JAPAN': 'JPY', 'JAPÓN': 'JPY', 'JAPON': 'JPY', 'NIPPON': 'JPY', 'JPY': 'JPY',
+    'AU': 'AUD', 'AUS': 'AUD', 'AUSTRALIA': 'AUD', 'AUD': 'AUD',
+    'NZ': 'NZD', 'NZL': 'NZD', 'NEW ZEALAND': 'NZD', 'NUEVA ZELANDA': 'NZD', 'NZD': 'NZD',
+    'CA': 'CAD', 'CAN': 'CAD', 'CANADA': 'CAD', 'CANADÁ': 'CAD', 'CAD': 'CAD',
+    'CH': 'CHF', 'CHE': 'CHF', 'SWITZERLAND': 'CHF', 'SUIZA': 'CHF', 'CONFEDERATION': 'CHF', 'CHF': 'CHF',
+    'CN': 'CNH', 'CHN': 'CNH', 'CHINA': 'CNH', 'CNH': 'CNH', 'CNY': 'CNH'
   };
 
-  const cleanIndicatorStr = (str: string): string => {
+  const normalizeEventText = (str: string): string => {
     return (str || '')
       .toLowerCase()
-      .replace(/\(.*?\)/g, '')
-      .replace(/\[.*?\]/g, '')
-      .replace(/s&p\s+global/g, '')
-      .replace(/hcob/g, '')
-      .replace(/mfg/g, 'manufacturing')
-      .replace(/non-farm|non\s+farm/g, 'nonfarm')
+      .replace(/\(.*?\)/g, ' ')
+      .replace(/\[.*?\]/g, ' ')
+      .replace(/\b(s&p global|s&p|hcob eurozone|hcob|jibun bank|judo bank|businessnz|busnz|procure\.ch|procure|the conference board|conference board|cb|ism|reuters|zdf|ifo|gfk|cbi|nfib|cfib|nab|aig|seco|kof|anz|westpac|jcer|atlanta fed)\b/g, ' ')
+      .replace(/\bmanufacturing\b|\bmanufacturero\b/g, 'mfg')
+      .replace(/\bnon-manufacturing\b|\bno manufacturero\b|\bservicios\b/g, 'services')
+      .replace(/\bunemployment\b|\bdesempleo\b|\bparo\b|\bjobless\b/g, 'unemp')
+      .replace(/\bnonfarm payrolls\b|\bnon-farm payrolls\b|\bnon farm payrolls\b|\bnóminas no agrícolas\b|\bnominas no agricolas\b/g, 'nfp')
+      .replace(/\bconsumer price\b|\bprecios al consumidor\b|\bindice de precios\b/g, 'cpi')
+      .replace(/\bretail sales\b|\bventas minoristas\b/g, 'retail')
+      .replace(/\bgdp\b|\bpib\b|\bgross domestic\b/g, 'gdp')
       .replace(/[^a-z0-9]/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
   };
 
-  const cleanNum = (val: any): number | null => {
-    if (val === null || val === undefined || val === '') return null;
-    let s = String(val).trim().replace(/,/g, '');
-    if (s === '-' || s === 'N/A' || s === '') return null;
-    let multiplier = 1;
-    if (/k$/i.test(s)) { multiplier = 1000; s = s.slice(0, -1); }
-    else if (/m$/i.test(s)) { multiplier = 1000000; s = s.slice(0, -1); }
-    else if (/b$/i.test(s)) { multiplier = 1000000000; s = s.slice(0, -1); }
-    s = s.replace(/%/g, '').trim();
-    const parsed = parseFloat(s);
-    return isNaN(parsed) ? null : parsed * multiplier;
+  const inferCurrencyFromText = (text: string): string | null => {
+    const s = (text || '').toLowerCase();
+    if (/\b(fed|fomc|ism|nfp|nonfarm|u\.s\.|united states|estados unidos|eeuu|atlanta fed|nfib)\b/.test(s)) return 'USD';
+    if (/\b(ecb|bce|hcob|german|alemania|eurozone|zona euro|ifo|france|francia|italy|italia|spain|españa)\b/.test(s)) return 'EUR';
+    if (/\b(boe|bank of england|banco de inglaterra|uk|u\.k\.|reino unido|claimant|gfk|cbi)\b/.test(s)) return 'GBP';
+    if (/\b(boj|bank of japan|banco de japón|japan|japón|japon|tokyo|tokio|tankan|jibun)\b/.test(s)) return 'JPY';
+    if (/\b(rba|australia|australian|judo|westpac|nab|aig)\b/.test(s)) return 'AUD';
+    if (/\b(rbnz|new zealand|nueva zelanda|businessnz|food price)\b/.test(s)) return 'NZD';
+    if (/\b(boc|bank of canada|banco de canadá|canada|canadá|ivey|cfib)\b/.test(s)) return 'CAD';
+    if (/\b(snb|swiss|suiza|procure|kof|seco)\b/.test(s)) return 'CHF';
+    return null;
+  };
+
+  const findIndicatorIndex = (targetCurr: string, rawEvent: string, indList: MacroIndicator[]): number => {
+    if (!indList || !indList.length) return -1;
+    const clean = normalizeEventText(rawEvent);
+    const ev = rawEvent.toLowerCase();
+
+    // 1. Direct match on name or normalized string
+    for (let i = 0; i < indList.length; i++) {
+      const ind = indList[i];
+      if (ind.name.toLowerCase() === ev) return i;
+      if (normalizeEventText(ind.name) === clean) return i;
+    }
+
+    // 2. High-precision domain keyword matching per currency
+    for (let i = 0; i < indList.length; i++) {
+      const ind = indList[i];
+      const iname = ind.name.toLowerCase();
+
+      // PMIs
+      if (iname.includes('mfg pmi') || iname.includes('manufacturing pmi')) {
+        if ((ev.includes('manufacturing') || ev.includes('manufactur') || clean.includes('mfg')) && (ev.includes('pmi') || clean.includes('pmi'))) {
+          return i;
+        }
+      }
+      if (iname.includes('services pmi') || iname.includes('non-mfg') || iname.includes('aud_services')) {
+        if ((ev.includes('services') || ev.includes('servicio') || ev.includes('non-manufacturing')) && (ev.includes('pmi') || clean.includes('pmi'))) {
+          return i;
+        }
+      }
+      if (iname.includes('ivey') && (ev.includes('ivey') || clean.includes('ivey'))) return i;
+
+      // NFP & Labor Market
+      if (iname === 'nfp' && (clean.includes('nfp') || ev.includes('nonfarm') || ev.includes('non-farm') || ev.includes('nóminas') || ev.includes('nominas'))) {
+        return i;
+      }
+      if ((iname.includes('unemployment rate') || iname === 'unemp rate') && !iname.includes('change')) {
+        if ((ev.includes('unemployment rate') || ev.includes('tasa de desempleo') || ev.includes('tasa de paro') || ev.includes('jobless rate')) && !ev.includes('change') && !ev.includes('cambio')) {
+          return i;
+        }
+      }
+      if (iname.includes('unemp change') || iname.includes('unemployment change')) {
+        if (ev.includes('unemployment change') || ev.includes('cambio del desempleo') || ev.includes('jobless change')) {
+          return i;
+        }
+      }
+      if (iname.includes('claimant') && (ev.includes('claimant') || ev.includes('subsidio por desempleo'))) {
+        return i;
+      }
+      if ((iname.includes('employment change') || iname.includes('net employment') || iname.includes('jobs change')) && !iname.includes('unemployment')) {
+        if ((ev.includes('employment change') || ev.includes('net employment') || ev.includes('cambio del empleo') || ev.includes('creación de empleo') || ev.includes('jobs change')) && !ev.includes('unemployment') && !ev.includes('desempleo')) {
+          return i;
+        }
+      }
+
+      // Inflation / CPI
+      if (iname.includes('cpi') || iname.includes('food prices')) {
+        if (iname.includes('tokyo') && (ev.includes('tokyo') || ev.includes('tokio'))) return i;
+        if (iname.includes('food') && (ev.includes('food') || ev.includes('alimento'))) return i;
+        if (!iname.includes('tokyo') && !iname.includes('food')) {
+          if (ev.includes('cpi') || ev.includes('ipc') || ev.includes('consumer price') || ev.includes('precios al consumidor') || ev.includes('inflation') || ev.includes('inflación')) {
+            return i;
+          }
+        }
+      }
+
+      // Retail Sales
+      if (iname.includes('retail sales') && (ev.includes('retail') || ev.includes('minorista') || ev.includes('ventas minoristas'))) {
+        return i;
+      }
+      if (iname.includes('card transactions') && (ev.includes('card transaction') || ev.includes('tarjetas'))) {
+        return i;
+      }
+
+      // GDP & Output
+      if (iname.includes('gdpnow') && (ev.includes('gdpnow') || (ev.includes('atlanta') && ev.includes('gdp')))) {
+        return i;
+      }
+      if (iname.includes('jcer') && ev.includes('jcer')) return i;
+      if (iname.includes('gdp') && !iname.includes('gdpnow') && !iname.includes('jcer')) {
+        if (ev.includes('gdp') || ev.includes('pib') || ev.includes('gross domestic') || ev.includes('producto interior')) {
+          return i;
+        }
+      }
+
+      // Business & Consumer Confidence Surveys
+      if (iname.includes('consumer confidence') || iname.includes('consumer sentiment') || iname.includes('consumer survey')) {
+        if (ev.includes('consumer confidence') || ev.includes('confianza del consumidor') || ev.includes('consumer sentiment') || ev.includes('sentimiento del consumidor') || ev.includes('consumer survey')) {
+          return i;
+        }
+      }
+      if (iname.includes('ifo') && (ev.includes('ifo') || ev.includes('business climate') || ev.includes('clima empresarial'))) return i;
+      if (iname.includes('nfib') && (ev.includes('nfib') || ev.includes('small business'))) return i;
+      if (iname.includes('cfib') && (ev.includes('cfib') || ev.includes('business barometer'))) return i;
+      if (iname.includes('westpac') && (ev.includes('westpac') || ev.includes('sentiment'))) return i;
+      if (iname.includes('nab') && (ev.includes('nab') || ev.includes('business confidence'))) return i;
+      if (iname.includes('anz') && iname.includes('business') && (ev.includes('anz') && ev.includes('business'))) return i;
+      if (iname.includes('tankan') && (ev.includes('tankan') || ev.includes('reuters'))) return i;
+      if (iname.includes('cbi') && (ev.includes('cbi') || ev.includes('industrial trends'))) return i;
+      if (iname.includes('gfk') && (ev.includes('gfk') || ev.includes('consumer confidence'))) return i;
+      if (iname.includes('aig') && (ev.includes('aig') || ev.includes('industry index'))) return i;
+      if (iname.includes('kof') && (ev.includes('kof') || ev.includes('leading indicator'))) return i;
+      if (iname.includes('seco') && (ev.includes('seco') || ev.includes('economic indicators') || ev.includes('consumer climate'))) return i;
+      if (iname.includes('industrial production') && (ev.includes('industrial production') || ev.includes('producción industrial') || ev.includes('produccion industrial'))) return i;
+      if (iname.includes('cash earnings') && (ev.includes('cash earnings') || ev.includes('earnings') || ev.includes('salarios'))) return i;
+      if (iname.includes('activity index') && (ev.includes('activity index') || ev.includes('busnz'))) return i;
+    }
+
+    // 3. Normalized substring inclusion
+    for (let i = 0; i < indList.length; i++) {
+      const inameNorm = normalizeEventText(indList[i].name);
+      if (inameNorm.length >= 4 && (clean.includes(inameNorm) || inameNorm.includes(clean))) {
+        return i;
+      }
+    }
+
+    // 4. Token overlap matching
+    let bestIdx = -1;
+    let bestScore = 0;
+    const cleanWords = clean.split(/\s+/).filter(w => w.length > 2);
+    for (let i = 0; i < indList.length; i++) {
+      const inameWords = normalizeEventText(indList[i].name).split(/\s+/).filter(w => w.length > 2);
+      if (!inameWords.length) continue;
+      const common = cleanWords.filter(w => inameWords.includes(w));
+      const score = common.length / Math.max(cleanWords.length, inameWords.length);
+      if (score > bestScore && score >= 0.35) {
+        bestScore = score;
+        bestIdx = i;
+      }
+    }
+
+    return bestIdx;
+  };
+
+  // Excel Serial Date Converter (Fix Year +046300 Bug)
+  const formatSpreadsheetDate = (dateVal: any): string => {
+    if (dateVal === null || dateVal === undefined || dateVal === '') {
+      return new Date().toISOString().slice(0, 10);
+    }
+    const str = String(dateVal).trim().replace(/[\u00A0\u200B\r\n]/g, '');
+    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+      return str;
+    }
+    // Serial date numbers (e.g. 46300 or "46300")
+    const num = typeof dateVal === 'number' ? dateVal : parseFloat(str);
+    if (!isNaN(num) && num >= 25000 && num <= 60000) {
+      const epochDate = new Date(Math.round((num - 25569) * 86400 * 1000));
+      if (!isNaN(epochDate.getTime())) {
+        return epochDate.toISOString().slice(0, 10);
+      }
+    }
+    // Formats with slashes or dots: DD/MM/YYYY, DD.MM.YYYY, MM/DD/YYYY
+    if (/^\d{1,2}[\/\.]\d{1,2}[\/\.]\d{4}$/.test(str)) {
+      const parts = str.split(/[\/\.]/);
+      const p1 = parseInt(parts[0], 10);
+      const p2 = parseInt(parts[1], 10);
+      const yr = parseInt(parts[2], 10);
+      if (p2 <= 12 && p1 <= 31) {
+        const mm = String(p2).padStart(2, '0');
+        const dd = String(p1).padStart(2, '0');
+        return `${yr}-${mm}-${dd}`;
+      }
+    }
+    const d = new Date(str);
+    if (!isNaN(d.getTime())) {
+      const yr = d.getUTCFullYear();
+      if (yr >= 1990 && yr <= 2050) {
+        return d.toISOString().slice(0, 10);
+      }
+    }
+    return new Date().toISOString().slice(0, 10);
+  };
+
+  const parseSpreadsheetValue = (input: any, type: string): number | null => {
+    if (input === null || input === undefined || input === '') return null;
+    let strVal = String(input).trim().replace(/[\u00A0\u200B\r\n]/g, '');
+    if (strVal === '-' || strVal === 'N/A' || strVal === 'n/a' || strVal === 'ND' || strVal === '') return null;
+
+    const isExplicitPercent = strVal.includes('%');
+    const hasK = /k$/i.test(strVal) || /k\b/i.test(strVal);
+    const hasM = /m$/i.test(strVal) || /m\b/i.test(strVal);
+    const hasB = /b$/i.test(strVal) || /b\b/i.test(strVal);
+
+    // Thousand commas & European comma decimal sanitization
+    if (strVal.includes(',') && !strVal.includes('.')) {
+      const commaParts = strVal.split(',');
+      if (commaParts.length === 2 && commaParts[1].replace(/[^0-9]/g, '').length === 3 && parseInt(commaParts[0], 10) > 0 && !isExplicitPercent) {
+        strVal = strVal.replace(/,/g, '');
+      } else {
+        strVal = strVal.replace(',', '.');
+      }
+    } else if (strVal.includes(',') && strVal.includes('.')) {
+      if (strVal.indexOf('.') < strVal.indexOf(',')) {
+        strVal = strVal.replace(/\./g, '').replace(',', '.');
+      } else {
+        strVal = strVal.replace(/,/g, '');
+      }
+    }
+
+    let cleanStr = strVal.replace(/[%+]/g, '').trim();
+
+    // Thousands types stored in thousands (NFP, Jobs)
+    const thousandsTypes = ["NFP", "JOBS_K", "CAD_JOBS", "GBP_CLAIMANT", "GER_UNEMP_CHANGE", "CHF_UNEMP_CHANGE"];
+    if (thousandsTypes.includes(type)) {
+      cleanStr = cleanStr.replace(/k/gi, '').trim();
+      const num = parseFloat(cleanStr);
+      if (isNaN(num)) return null;
+      if (Math.abs(num) >= 1000 && !hasK) {
+        return num / 1000;
+      }
+      return num;
+    }
+
+    // Percentage types stored as decimals (e.g. 0.041 for 4.1%, 0.002 for 0.2%)
+    const percentTypes = ["CPI", "UNEMP_RATE", "PCT_GROWTH", "EUR_UNEMP_FIXED", "CARD_TRANS", "GBP_RETAIL"];
+    if (percentTypes.includes(type)) {
+      cleanStr = cleanStr.replace(/k/gi, '').trim();
+      const num = parseFloat(cleanStr);
+      if (isNaN(num)) return null;
+
+      // Unit and Scale Normalization (Fix Decimal Shift Bug):
+      if (isExplicitPercent) {
+        // If already a tiny decimal with an accidental % attached, don't divide again
+        if (Math.abs(num) < 0.08) {
+          return num;
+        }
+        return num / 100.0;
+      } else {
+        // No % sign: if already a small decimal (0.041, 0.063, 0.002), don't divide by 100 again
+        if (Math.abs(num) < 0.08) {
+          return num;
+        }
+        return num / 100.0;
+      }
+    }
+
+    // General index / survey / pmi / large suffix
+    if (hasK) {
+      const num = parseFloat(cleanStr.replace(/k/gi, ''));
+      return isNaN(num) ? null : num * 1000;
+    }
+    if (hasM) {
+      const num = parseFloat(cleanStr.replace(/m/gi, ''));
+      return isNaN(num) ? null : num * 1000000;
+    }
+    if (hasB) {
+      const num = parseFloat(cleanStr.replace(/b/gi, ''));
+      return isNaN(num) ? null : num * 1000000000;
+    }
+
+    const num = parseFloat(cleanStr);
+    return isNaN(num) ? null : num;
   };
 
   const processCurrencySpreadsheet = (file: File) => {
     if (!file) return;
     const fileName = file.name.toLowerCase();
 
+    // 1. JSON Backup Restore
     if (fileName.endsWith('.json')) {
       const reader = new FileReader();
       reader.onload = (evt) => {
@@ -477,112 +740,242 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
           const imported = JSON.parse(evt.target?.result as string);
           if (imported && typeof imported === 'object') {
             setCurrencyIndicators(imported);
-            alert("Currency Indicators backup restored successfully!");
+            alert(language === 'es' ? "¡Copia de seguridad de Valoración restaurada con éxito!" : "Currency Indicators backup restored successfully!");
           }
         } catch {
-          alert("Invalid backup JSON file.");
+          alert(language === 'es' ? "Archivo JSON de copia de seguridad inválido." : "Invalid backup JSON file.");
         }
       };
       reader.readAsText(file);
       return;
     }
 
-    const processRows = (rows: any[]) => {
-      if (!rows || rows.length === 0) {
-        alert("No data rows found in uploaded file.");
+    // 2. Core Matrix Processor for CSV / XLSX / XLS
+    const processMatrix = (rawRows: any[][]) => {
+      const cleanRows = (rawRows || []).filter(r => r && r.some((c: any) => c !== null && c !== undefined && String(c).trim() !== ''));
+      if (cleanRows.length === 0) {
+        alert(language === 'es' ? "El archivo no contiene filas legibles." : "No readable data rows found in uploaded file.");
         return;
       }
 
-      const first = rows[0];
-      const keys = Object.keys(first);
-      const findKey = (candidates: string[]) => keys.find(k => candidates.includes(k.trim().toLowerCase()));
+      // Column detection indices
+      let headerRowIdx = -1;
+      let eventCol = -1;
+      let currCol = -1;
+      let actualCol = -1;
+      let forecastCol = -1;
+      let prevCol = -1;
+      let dateCol = -1;
 
-      const eventKey = findKey(['event', 'indicator', 'event name', 'title']);
-      const actualKey = findKey(['actual', 'act']);
-      const forecastKey = findKey(['forecast', 'consensus', 'fcst', 'expected']);
-      const prevKey = findKey(['previous', 'prev', 'prior']);
-      const dateKey = findKey(['date', 'day', 'release date']);
-      const currKey = findKey(['cur.', 'cur', 'currency', 'country', 'zone']);
+      // Scan first 25 rows to detect actual header row
+      for (let r = 0; r < Math.min(cleanRows.length, 25); r++) {
+        const row = cleanRows[r].map(c => String(c || '').trim().toLowerCase());
+        const hasEventHeader = row.some(c => c === 'event' || c === 'indicator' || c === 'evento' || c === 'indicador' || c === 'acontecimiento' || c.includes('event'));
+        const hasCcyHeader = row.some(c => c === 'cur.' || c === 'cur' || c === 'currency' || c === 'divisa' || c === 'moneda' || c === 'country' || c === 'pais' || c === 'país' || c === 'zone');
+        const hasNumbersHeader = row.some(c => c === 'actual' || c === 'dato actual' || c === 'real' || c === 'forecast' || c === 'previsión' || c === 'prevision' || c === 'previous' || c === 'previo');
 
-      if (!eventKey) {
-        alert("Could not find 'Event' column in uploaded spreadsheet.");
+        if (hasEventHeader || (hasCcyHeader && hasNumbersHeader)) {
+          headerRowIdx = r;
+          row.forEach((cell, idx) => {
+            if (['date', 'fecha', 'day', 'dia', 'día', 'release date'].some(h => cell === h || cell.includes(h))) {
+              if (dateCol === -1) dateCol = idx;
+            }
+            if (['cur.', 'cur', 'currency', 'div.', 'div', 'divisa', 'moneda', 'country', 'pais', 'país', 'zone', 'zona', 'ccy'].some(h => cell === h || cell.startsWith(h))) {
+              if (currCol === -1) currCol = idx;
+            }
+            if (['event', 'indicator', 'evento', 'indicador', 'acontecimiento', 'title', 'nombre', 'release'].some(h => cell === h || cell.includes(h))) {
+              if (eventCol === -1) eventCol = idx;
+            }
+            if (['actual', 'act', 'dato actual', 'real', 'current'].some(h => cell === h || cell.includes(h))) {
+              if (actualCol === -1) actualCol = idx;
+            }
+            if (['forecast', 'consensus', 'fcst', 'previsión', 'prevision', 'previsto', 'pronóstico', 'pronostico', 'consenso', 'expected', 'estimado'].some(h => cell === h || cell.includes(h))) {
+              if (forecastCol === -1) forecastCol = idx;
+            }
+            if (['previous', 'prev', 'prior', 'previo', 'anterior', 'prev.'].some(h => cell === h || cell.includes(h))) {
+              if (prevCol === -1) prevCol = idx;
+            }
+          });
+          break;
+        }
+      }
+
+      // Fallback heuristics if no explicit header row was identified
+      if (headerRowIdx === -1) {
+        headerRowIdx = 0;
+        // Try to identify from first data row
+        const sampleRow = cleanRows[0];
+        sampleRow.forEach((c: any, idx: number) => {
+          const s = String(c || '').trim();
+          if (s.length >= 3 && /^[A-Z]{2,3}$/.test(s)) {
+            if (currCol === -1) currCol = idx;
+          } else if (s.length > 5 && isNaN(Number(s)) && !s.includes(':')) {
+            if (eventCol === -1) eventCol = idx;
+          }
+        });
+      }
+
+      const dataRows = cleanRows.slice(headerRowIdx + 1);
+      if (dataRows.length === 0) {
+        alert(language === 'es' ? "No se encontraron filas de datos posteriores a los encabezados." : "No data rows found below headers.");
         return;
       }
 
-      let matchCount = 0;
+      let updatedCount = 0;
+      const updatedCurrencies = new Set<string>();
+      let currentDate = new Date().toISOString().split('T')[0];
+
       setCurrencyIndicators((prev) => {
         const nextState = { ...prev };
-        let currentDate = new Date().toISOString().split('T')[0];
 
-        rows.forEach((row) => {
-          if (dateKey && row[dateKey]) {
-            const rawD = String(row[dateKey]).trim();
-            if (rawD) currentDate = rawD;
+        dataRows.forEach((row) => {
+          // Check for date row separator (e.g. "Monday, Oct 12, 2026" or "2026-10-12" or Excel serial 46300)
+          const fullRowText = row.map(c => String(c || '')).join(' ').trim();
+          if (fullRowText.length > 0 && row.filter(c => String(c || '').trim() !== '').length <= 2) {
+            const rawDateStr = row[0] || row[1] || '';
+            const parsedD = formatSpreadsheetDate(rawDateStr);
+            if (parsedD) {
+              currentDate = parsedD;
+              return;
+            }
           }
 
-          const rawCurr = currKey && row[currKey] ? String(row[currKey]).trim().toUpperCase() : '';
-          const targetCurr = COUNTRY_MAP[rawCurr] || (['USD','EUR','GBP','JPY','AUD','NZD','CAD','CHF'].includes(rawCurr) ? rawCurr : null);
+          if (dateCol !== -1 && row[dateCol]) {
+            const parsedDate = formatSpreadsheetDate(row[dateCol]);
+            if (parsedDate) currentDate = parsedDate;
+          }
+
+          // Extract raw event text
+          let rawEvent = '';
+          if (eventCol !== -1 && row[eventCol] !== undefined) {
+            rawEvent = String(row[eventCol] || '').trim();
+          } else {
+            // Find longest text cell in row
+            const textCells = row.map(c => String(c || '').trim()).filter(s => s.length > 4 && isNaN(Number(s)) && !s.includes(':'));
+            if (textCells.length > 0) rawEvent = textCells[0];
+          }
+
+          if (!rawEvent || rawEvent.length < 3) return;
+
+          // Determine target currency from column or infer from event text
+          let targetCurr: string | null = null;
+          if (currCol !== -1 && row[currCol]) {
+            const cleanCcy = String(row[currCol]).trim().toUpperCase().replace(/[^A-Z]/g, '');
+            targetCurr = COUNTRY_MAP[cleanCcy] || (nextState[cleanCcy] ? cleanCcy : null);
+          }
+          if (!targetCurr) {
+            targetCurr = inferCurrencyFromText(rawEvent);
+          }
+
           if (!targetCurr || !nextState[targetCurr]) return;
 
-          const rawEvent = cleanIndicatorStr(String(row[eventKey] || ''));
-          if (!rawEvent) return;
-
           const indList = [...nextState[targetCurr]];
-          let matchedIdx = indList.findIndex(ind => {
-            const cleanInd = cleanIndicatorStr(ind.name);
-            return cleanInd === rawEvent || rawEvent.includes(cleanInd) || cleanInd.includes(rawEvent);
-          });
+          const matchedIdx = findIndicatorIndex(targetCurr, rawEvent, indList);
 
           if (matchedIdx !== -1) {
             const item = { ...indList[matchedIdx] };
-            if (actualKey && row[actualKey] !== undefined && row[actualKey] !== '' && row[actualKey] !== '-') {
-              const actVal = cleanNum(row[actualKey]);
-              if (actVal !== null) item.actual = actVal;
+            let hasChange = false;
+
+            if (actualCol !== -1 && row[actualCol] !== undefined && row[actualCol] !== '' && row[actualCol] !== '-') {
+              const actVal = parseSpreadsheetValue(row[actualCol], item.type);
+              if (actVal !== null) {
+                item.actual = actVal;
+                hasChange = true;
+              }
             }
-            if (forecastKey && row[forecastKey] !== undefined && row[forecastKey] !== '' && row[forecastKey] !== '-') {
-              const fcVal = cleanNum(row[forecastKey]);
-              if (fcVal !== null) item.forecast = fcVal;
+            if (forecastCol !== -1 && row[forecastCol] !== undefined && row[forecastCol] !== '' && row[forecastCol] !== '-') {
+              const fcVal = parseSpreadsheetValue(row[forecastCol], item.type);
+              if (fcVal !== null) {
+                item.forecast = fcVal;
+                hasChange = true;
+              }
             }
-            if (prevKey && row[prevKey] !== undefined && row[prevKey] !== '' && row[prevKey] !== '-') {
-              const pvVal = cleanNum(row[prevKey]);
-              if (pvVal !== null) item.previous = pvVal;
+            if (prevCol !== -1 && row[prevCol] !== undefined && row[prevCol] !== '' && row[prevCol] !== '-') {
+              const pvVal = parseSpreadsheetValue(row[prevCol], item.type);
+              if (pvVal !== null) {
+                item.previous = pvVal;
+                hasChange = true;
+              }
             }
-            item.date = currentDate;
-            indList[matchedIdx] = item;
-            nextState[targetCurr] = indList;
-            matchCount++;
+
+            if (hasChange) {
+              // Index & Survey Scale Matching (Westpac, IFO, NFIB, Sentiment)
+              const indexTypes = ["PMI", "CONFIDENCE", "INDEX_SMALL", "SURVEY_5", "ANZ_BIZ", "AUD_SERVICES"];
+              const isIndexIndicator = indexTypes.includes(item.type) ||
+                /\b(index|sentiment|confidence|survey|climate|barometer|westpac|ifo|nfib|cfib|tankan|kof|seco|ivey|cbi|gfk|aig)\b/i.test(item.name);
+              if (isIndexIndicator) {
+                const fields: Array<'previous' | 'forecast' | 'actual'> = ['previous', 'forecast', 'actual'];
+                let rawIndexBaseline: number | null = null;
+                for (const f of fields) {
+                  if (typeof item[f] === 'number' && Math.abs(item[f] as number) >= 15) {
+                    rawIndexBaseline = item[f] as number;
+                    break;
+                  }
+                }
+                if (rawIndexBaseline !== null) {
+                  for (const f of fields) {
+                    const val = item[f];
+                    if (typeof val === 'number' && Math.abs(val) > 0 && Math.abs(val) < 1.0) {
+                      item[f] = parseFloat((rawIndexBaseline * (1 + val)).toFixed(1));
+                    }
+                  }
+                }
+              }
+
+              item.date = (dateCol !== -1 && row[dateCol]) ? formatSpreadsheetDate(row[dateCol]) : currentDate;
+              indList[matchedIdx] = item;
+              nextState[targetCurr] = indList;
+              updatedCount++;
+              updatedCurrencies.add(targetCurr);
+            }
           }
         });
 
         return nextState;
       });
 
-      alert(`Successfully updated ${matchCount} macroeconomic indicator(s) from Investing.com export!`);
+      if (updatedCount > 0) {
+        alert(
+          language === 'es'
+            ? `¡Se actualizaron con éxito ${updatedCount} indicador(es) macroeconómico(s) en ${updatedCurrencies.size} divisa(s) (${Array.from(updatedCurrencies).join(', ')})!`
+            : `Successfully updated ${updatedCount} macroeconomic indicator(s) across ${updatedCurrencies.size} currency/currencies (${Array.from(updatedCurrencies).join(', ')})!`
+        );
+      } else {
+        alert(
+          language === 'es'
+            ? "Se procesó el archivo, pero no se encontraron indicadores compatibles con las 8 divisas G10 (USD, EUR, GBP, JPY, AUD, NZD, CAD, CHF). Asegúrese de que el archivo contenga eventos del calendario económico."
+            : "Processed file, but no matching indicators were identified for G10 currencies (USD, EUR, GBP, JPY, AUD, NZD, CAD, CHF). Please ensure the export contains economic calendar events."
+        );
+      }
     };
 
+    // Parse CSV / TSV / TXT
     if (fileName.endsWith('.csv') || fileName.endsWith('.tsv') || fileName.endsWith('.txt')) {
       Papa.parse(file, {
-        header: true,
-        skipEmptyLines: true,
-        complete: (res) => processRows(res.data),
-        error: (err) => alert("CSV parse error: " + err.message)
+        header: false,
+        skipEmptyLines: 'greedy',
+        complete: (res) => processMatrix(res.data as any[][]),
+        error: (err) => alert((language === 'es' ? "Error al procesar CSV: " : "CSV parse error: ") + err.message)
       });
-    } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+    }
+    // Parse XLSX / XLS
+    else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
       const reader = new FileReader();
       reader.onload = (evt) => {
         try {
           const data = new Uint8Array(evt.target?.result as ArrayBuffer);
           const workbook = XLSX.read(data, { type: 'array' });
-          const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-          const rows = XLSX.utils.sheet_to_json(firstSheet, { defval: "" });
-          processRows(rows);
+          const firstSheetName = workbook.SheetNames[0];
+          const firstSheet = workbook.Sheets[firstSheetName];
+          const rawMatrix: any[][] = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: "" });
+          processMatrix(rawMatrix);
         } catch (err: any) {
-          alert("Error reading Excel spreadsheet: " + err.message);
+          alert((language === 'es' ? "Error al leer hoja de cálculo Excel: " : "Error reading Excel spreadsheet: ") + err.message);
         }
       };
       reader.readAsArrayBuffer(file);
     } else {
-      alert("Unsupported format. Please upload .csv, .xlsx, or .xls file.");
+      alert(language === 'es' ? "Formato no compatible. Por favor suba un archivo .xlsx, .xls o .csv." : "Unsupported format. Please upload .xlsx, .xls, or .csv file.");
     }
   };
 
@@ -691,6 +1084,16 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
   };
 
   // --- Central Bank Investing.com Upload Parser ---
+  const cleanNum = (val: any): number | null => {
+    if (val === null || val === undefined || val === '') return null;
+    let s = String(val).trim();
+    if (s === '-' || s === 'N/A' || s === '') return null;
+    if (s.includes(',') && !s.includes('.')) s = s.replace(',', '.');
+    else if (s.includes(',') && s.includes('.')) s = s.replace(/,/g, '');
+    s = s.replace(/[%+]/g, '').trim();
+    const parsed = parseFloat(s);
+    return isNaN(parsed) ? null : parsed;
+  };
   const matchCentralBankEvent = (eventName: string, ccyOrCountry: string): string | null => {
     const ev = (eventName || '').toLowerCase();
     const ccy = (ccyOrCountry || '').toUpperCase();
@@ -1283,6 +1686,60 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
                     <RotateCcw className="w-3.5 h-3.5" />
                     Reset Defaults
                   </button>
+                </div>
+              </div>
+
+              {/* Dedicated Valuation Spreadsheet Drop Zone */}
+              <div
+                onClick={() => currencyInvestingFileRef.current?.click()}
+                onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); setIsValuationDragOver(true); }}
+                onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setIsValuationDragOver(true); }}
+                onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setIsValuationDragOver(false); }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setIsValuationDragOver(false);
+                  const file = e.dataTransfer?.files?.[0];
+                  if (file) processCurrencySpreadsheet(file);
+                }}
+                className={`border border-dashed rounded-xl p-5 sm:p-6 text-center transition-all cursor-pointer group select-none ${
+                  isValuationDragOver
+                    ? 'bg-cyan-950/70 border-cyan-400 shadow-[0_0_25px_rgba(6,182,212,0.4)] scale-[1.008]'
+                    : 'bg-[#07080e] border-zinc-800 hover:border-cyan-500/60 hover:bg-[#0b0c14]'
+                }`}
+              >
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 max-w-4xl mx-auto">
+                  <div className="flex items-center gap-3.5 text-left">
+                    <div className="w-10 h-10 rounded-lg bg-cyan-950/80 border border-cyan-500/40 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                      <FileSpreadsheet className="w-5 h-5 text-cyan-400" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-white text-xs sm:text-sm font-bold uppercase tracking-wider">
+                          {language === 'es' ? 'Cargar Tabla de Indicadores Excel / CSV' : 'Load Indicators Excel / CSV Table'}
+                        </span>
+                        <span className="px-1.5 py-0.5 bg-emerald-950/80 text-emerald-400 border border-emerald-800/60 text-[9px] font-bold uppercase">
+                          Auto-Detect
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-zinc-400 font-sans mt-0.5">
+                        {language === 'es'
+                          ? 'Arrastre o haga clic para subir archivo de Investing.com (.xlsx, .xls, .csv). Se recalculará la matriz de valoración.'
+                          : 'Drag & drop or click to upload Investing.com export (.xlsx, .xls, .csv). Valuation matrix will recalibrate automatically.'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="px-2.5 py-1 bg-zinc-900 border border-zinc-700/80 text-[10px] text-zinc-300 font-mono font-bold uppercase">
+                      .XLSX
+                    </span>
+                    <span className="px-2.5 py-1 bg-zinc-900 border border-zinc-700/80 text-[10px] text-zinc-300 font-mono font-bold uppercase">
+                      .XLS
+                    </span>
+                    <span className="px-2.5 py-1 bg-zinc-900 border border-zinc-700/80 text-[10px] text-zinc-300 font-mono font-bold uppercase">
+                      .CSV
+                    </span>
+                  </div>
                 </div>
               </div>
 
