@@ -40,6 +40,7 @@
           if (shouldSuppress(msg, src)) {
             e.preventDefault && e.preventDefault();
             e.stopPropagation && e.stopPropagation();
+            e.stopImmediatePropagation && e.stopImmediatePropagation();
             return true;
           }
         }, true);
@@ -50,8 +51,39 @@
           if (shouldSuppress(reasonStr, '')) {
             e.preventDefault && e.preventDefault();
             e.stopPropagation && e.stopPropagation();
+            e.stopImmediatePropagation && e.stopImmediatePropagation();
           }
-        });
+        }, true);
+
+        // Shim HTMLIFrameElement.prototype.contentWindow to prevent TradingView embed widget from throwing when browsing context is in transition
+        try {
+          var desc = Object.getOwnPropertyDescriptor(HTMLIFrameElement.prototype, 'contentWindow');
+          if (desc && desc.get) {
+            var origGet = desc.get;
+            Object.defineProperty(HTMLIFrameElement.prototype, 'contentWindow', {
+              get: function() {
+                var win = origGet.call(this);
+                if (win) return win;
+                try {
+                  var src = this.getAttribute('src') || '';
+                  var id = this.getAttribute('id') || '';
+                  var cls = this.className || '';
+                  if (src.indexOf('tradingview') !== -1 || id.indexOf('tradingview') !== -1 || cls.indexOf('tradingview') !== -1 || (this.closest && this.closest('.tradingview-widget-container'))) {
+                    return {
+                      addEventListener: function() {},
+                      removeEventListener: function() {},
+                      postMessage: function() {},
+                      location: { href: '' }
+                    };
+                  }
+                } catch (_) {}
+                return win;
+              },
+              configurable: true,
+              enumerable: true
+            });
+          }
+        } catch (_) {}
       })();
     </script>
   </head>

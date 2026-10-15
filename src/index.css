@@ -279,42 +279,33 @@ body {
   background: #94a3b8;
 }
 
-/* Live Ticker Tape Marquee */
-@keyframes ticker-marquee {
-  0% {
-    transform: translateX(0%);
-  }
-  100% {
-    transform: translateX(-50%);
-  }
+/* TradingView Widget Mobile & Desktop Responsive Sizing */
+.tradingview-widget-container {
+  width: 100% !important;
+  height: 46px !important;
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+  overflow: hidden !important;
 }
 
-.animate-marquee {
-  display: flex;
-  width: max-content;
-  animation: ticker-marquee 45s linear infinite;
+.tradingview-widget-container__widget {
+  width: 100% !important;
+  height: 46px !important;
 }
 
-.animate-marquee:hover {
-  animation-play-state: paused;
+.tradingview-widget-container iframe {
+  width: 100% !important;
+  height: 46px !important;
+  min-height: 46px !important;
+  max-height: 46px !important;
+  border: 0 !important;
+  display: block !important;
 }
 
-@keyframes flash-green {
-  0%, 100% { background-color: transparent; }
-  50% { background-color: rgba(16, 185, 129, 0.25); }
+.tradingview-widget-copyright {
+  display: none !important;
 }
 
-@keyframes flash-red {
-  0%, 100% { background-color: transparent; }
-  50% { background-color: rgba(244, 63, 94, 0.25); }
-}
-
-.ticker-flash-up {
-  animation: flash-green 1s ease-out;
-}
-
-.ticker-flash-down {
-  animation: flash-red 1s ease-out;
-}
 
 
