@@ -25,7 +25,16 @@
   
   <link rel="stylesheet" href="../css/styles.css">
   <style>
-    body { background-color: #020203; color: #d4d4d8; font-family: 'Inter', system-ui, sans-serif; }
+    html, body {
+      background-color: #020203;
+      color: #d4d4d8;
+      font-family: 'Inter', system-ui, sans-serif;
+      overflow-y: auto !important;
+      height: auto !important;
+      min-height: 100vh;
+      -webkit-overflow-scrolling: touch !important;
+      touch-action: pan-y !important;
+    }
     th.sortable { cursor: pointer; user-select: none; }
     th.sortable:hover { color: #22d3ee; }
     .bg-card { background-color: #040406; }
@@ -152,7 +161,7 @@
         try {
           const parsed = JSON.parse(saved);
           if (parsed && typeof parsed === 'object') {
-            ratesData = parsed;
+            ratesData = JSON.parse(JSON.stringify(parsed));
           }
         } catch(e) {}
       }
@@ -599,44 +608,92 @@
 
     // EXPORT & IMPORT BACKUP (JSON)
     function exportBackupData() {
-      const jsonStr = JSON.stringify(ratesData, null, 2);
-      const blob = new Blob([jsonStr], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `central_bank_rates_backup_${new Date().toISOString().slice(0, 10)}.json`;
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
+      try {
+        const cleanData = JSON.parse(JSON.stringify(ratesData));
+        const jsonStr = JSON.stringify(cleanData, null, 2);
+        const fileName = `central_bank_rates_backup_${new Date().toISOString().slice(0, 10)}.json`;
+        const blob = new Blob([jsonStr], { type: "application/json;charset=utf-8;" });
+
+        if (window.navigator && window.navigator.msSaveOrOpenBlob) {
+          window.navigator.msSaveOrOpenBlob(blob, fileName);
+          return;
+        }
+
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = fileName;
+        a.setAttribute('download', fileName);
+
+        if (typeof a.download === 'undefined') {
+          a.target = '_blank';
+        }
+
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+          if (document.body.contains(a)) document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }, 1500);
+      } catch (err) {
+        console.error("Export error:", err);
+        alert("Failed to export backup data.");
+      }
     }
 
     function importBackupData(event) {
-      const file = event.target.files[0];
+      const file = event.target && event.target.files && event.target.files[0];
       if (!file) return;
       const reader = new FileReader();
       reader.onload = function(e) {
         try {
           const imported = JSON.parse(e.target.result);
-          if (imported && typeof imported === 'object') {
-            ratesData = imported;
+          if (imported && typeof imported === 'object' && Object.keys(imported).length > 0) {
+            ratesData = JSON.parse(JSON.stringify(imported));
+            // Recalculate trajectories
+            Object.keys(ratesData).forEach(code => {
+              if (ratesData[code].rate !== undefined && ratesData[code].implied !== undefined) {
+                ratesData[code].trajectory = calculateTrajectory(ratesData[code].rate, ratesData[code].implied, ratesData[code].step || 0.25);
+              }
+            });
             saveToLocalStorage();
+            updateOverviewCards();
+            renderTrajectoryChart();
+            renderRateRankingTable();
+            renderUpcomingCalendar();
             switchBankView(currentView);
             alert('Central Bank rates backup restored successfully!');
+          } else {
+            throw new Error("Invalid backup structure");
           }
         } catch(err) {
+          console.error("Import error:", err);
           alert('Invalid backup JSON file.');
         }
+      };
+      reader.onerror = function() {
+        alert('Failed to read file.');
       };
       reader.readAsText(file);
       event.target.value = '';
     }
 
     function resetToDefaults() {
-      if (confirm("Reset Central Bank rates to baseline defaults?")) {
-        ratesData = JSON.parse(JSON.stringify(defaultRatesData));
-        localStorage.removeItem(STORAGE_KEY);
-        switchBankView(currentView);
-      }
+      if (!confirm("Reset Central Bank rates to baseline defaults?")) return;
+      ratesData = JSON.parse(JSON.stringify(defaultRatesData));
+      localStorage.removeItem(STORAGE_KEY);
+      saveToLocalStorage();
+      // Recalculate trajectories
+      Object.keys(ratesData).forEach(code => {
+        ratesData[code].trajectory = calculateTrajectory(ratesData[code].rate, ratesData[code].implied, ratesData[code].step || 0.25);
+      });
+      updateOverviewCards();
+      renderTrajectoryChart();
+      renderRateRankingTable();
+      renderUpcomingCalendar();
+      switchBankView(currentView);
+      alert("Central Bank rates reset to baseline defaults!");
     }
 
     // ==========================================
@@ -675,26 +732,42 @@
     function parseRateNumber(val) {
       if (val === null || val === undefined || val === '') return null;
       let s = val.toString().trim().replace(/,/g, '');
-      if (s === '-' || s === 'N/A') return null;
+      if (s === '-' || s === 'N/A' || s === 'n/a' || s === '') return null;
       const isBps = s.toLowerCase().includes('bps');
       s = s.replace(/%/g, '').replace(/bps/i, '').trim();
       let num = parseFloat(s);
       if (isNaN(num)) return null;
-      if (isBps) num = num / 100;
+      if (isBps) {
+        num = num / 100.0;
+      }
+      // Preserve standard percentage rates (e.g. 3.63 for 3.63%), do NOT divide by 100 again
       return num;
     }
 
     function parseMeetingDateTime(dateVal, timeVal) {
-      if (!dateVal) return null;
+      if (dateVal === null || dateVal === undefined || dateVal === '') return null;
       let d = null;
-      if (typeof dateVal === 'number' && dateVal > 25000) {
-        d = new Date(Math.round((dateVal - 25569) * 86400 * 1000));
+      const str = String(dateVal).trim().replace(/^\+0*/, '');
+      const parsedNum = typeof dateVal === 'number' ? dateVal : parseFloat(str);
+
+      // Convert Excel serial dates (25000 to 60000 range) using Excel epoch offset
+      if (!isNaN(parsedNum) && parsedNum >= 25000 && parsedNum <= 60000) {
+        d = new Date(Math.round((parsedNum - 25569) * 86400 * 1000));
       } else {
-        d = new Date(dateVal);
+        if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
+          d = new Date(str.slice(0, 10));
+        } else {
+          d = new Date(str);
+        }
       }
+
       if (!d || isNaN(d.getTime())) return null;
 
-      const y = d.getFullYear();
+      let y = d.getFullYear();
+      // Eliminate +046xxx years or pre-2020 artifacts
+      if (y < 2020 || y > 2060) {
+        y = 2026;
+      }
       const m = String(d.getMonth() + 1).padStart(2, '0');
       const day = String(d.getDate()).padStart(2, '0');
       

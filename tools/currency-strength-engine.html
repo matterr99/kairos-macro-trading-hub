@@ -17,7 +17,16 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../css/styles.css">
     <style>
-        body { background-color: #020203; color: #d4d4d8; font-family: 'Inter', system-ui, sans-serif; }
+        html, body {
+            background-color: #020203;
+            color: #d4d4d8;
+            font-family: 'Inter', system-ui, sans-serif;
+            overflow-y: auto !important;
+            height: auto !important;
+            min-height: 100vh;
+            -webkit-overflow-scrolling: touch !important;
+            touch-action: pan-y !important;
+        }
         .bg-card { background-color: #040406; }
         .bg-card-hover:hover { background-color: #09090e; }
         .border-dark { border-color: #18181b; }
@@ -395,7 +404,7 @@
                 try {
                     const parsed = JSON.parse(saved);
                     if (parsed && typeof parsed === 'object') {
-                        appData = parsed;
+                        appData = JSON.parse(JSON.stringify(parsed));
                     }
                 } catch(e) {}
             }
@@ -788,6 +797,9 @@
         }
 
         function updateValue(curr, index, field, val) {
+            if (!appData[curr] || !appData[curr][index]) return;
+            // Independent cloned instance so editing never bleeds into other indicators
+            appData[curr][index] = { ...appData[curr][index] };
             if (field === 'date' || field === 'name') {
                 appData[curr][index][field] = val;
             } else {
@@ -829,35 +841,69 @@
         }
 
         function exportData() {
-            const jsonStr = JSON.stringify(appData, null, 2);
-            const blob = new Blob([jsonStr], { type: "application/json" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `kairos_valuation_backup_${new Date().toISOString().slice(0, 10)}.json`;
-            document.body.appendChild(a);
-            a.click();
-            setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
+            try {
+                // 1. Fix Backup Export Engine: Deep-clone appData before stringifying
+                const cleanData = JSON.parse(JSON.stringify(appData));
+                const jsonStr = JSON.stringify(cleanData, null, 2);
+                const fileName = `kairos_valuation_backup_${new Date().toISOString().slice(0, 10)}.json`;
+                // iOS / Safari compatible Blob download
+                const blob = new Blob([jsonStr], { type: "application/json;charset=utf-8;" });
+
+                if (window.navigator && window.navigator.msSaveOrOpenBlob) {
+                    window.navigator.msSaveOrOpenBlob(blob, fileName);
+                    return;
+                }
+
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = fileName;
+                a.setAttribute('download', fileName);
+
+                if (typeof a.download === 'undefined') {
+                    a.target = '_blank';
+                }
+
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => {
+                    if (document.body.contains(a)) document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 1500);
+            } catch (err) {
+                console.error("Export error:", err);
+                alert("Failed to export backup data.");
+            }
         }
 
         function triggerImport() { document.getElementById('jsonFileInput').click(); }
 
         function importData(event) {
-            const file = event.target.files[0];
+            const file = event.target && event.target.files && event.target.files[0];
             if (!file) return;
             const reader = new FileReader();
             reader.onload = function(e) {
                 try {
-                    const imported = JSON.parse(e.target.result);
-                    if (imported && typeof imported === 'object') {
-                        appData = imported;
+                    const content = e.target.result;
+                    const imported = JSON.parse(content);
+                    if (imported && typeof imported === 'object' && Object.keys(imported).length > 0) {
+                        // Independent deep-cloned instance to avoid reference contamination
+                        appData = JSON.parse(JSON.stringify(imported));
                         saveToLocalStorage();
                         refreshApp();
+                        if (typeof switchTab === 'function') switchTab(activeTab);
                         alert('Backup loaded successfully!');
+                    } else {
+                        throw new Error("Invalid backup format");
                     }
                 } catch(err) {
-                    alert('Invalid JSON file.');
+                    console.error("Import error:", err);
+                    alert('Invalid JSON backup file. Please verify file format.');
                 }
+            };
+            reader.onerror = function() {
+                alert('Failed to read file.');
             };
             reader.readAsText(file);
             event.target.value = '';

@@ -1498,7 +1498,8 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
 
               if (!nextItem || nextItem.ccy !== item.ccy || nextCategory !== currentCategory) {
                 const smartTitle = getSmartGroupTitle(item.ccy, currentBlock, isEs);
-                const categoryId = `${day}-${item.ccy}-${currentCategory}`.replace(/[^a-zA-Z0-9]/g, '-');
+                const blockIdx = blocks.length;
+                const categoryId = `${day}-${item.ccy}-${currentCategory}-${blockIdx}`.replace(/[^a-zA-Z0-9]/g, '-');
                 blocks.push({
                   events: [...currentBlock],
                   smartTitle,

@@ -11,7 +11,32 @@
   <!-- External stylesheet link -->
   <link rel="stylesheet" href="../css/styles.css">
   <style>
-    body { background-color: #030305; color: #d4d4d8; }
+    /* 1. Reset and clean base */
+    html, body {
+      background-color: #030305;
+      color: #d4d4d8;
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      overflow-x: hidden;
+    }
+
+    /* 2. Isolate scrolling ONLY to the horizontal table wrappers */
+    .table-touch-wrapper,
+    .overflow-x-auto {
+      overflow-x: auto !important;
+      -webkit-overflow-scrolling: touch !important;
+      touch-action: auto !important;
+    }
+
+    /* 3. On desktop, disable the horizontal overflow entirely to prevent sub-scrolling */
+    @media (min-width: 768px) {
+      .table-touch-wrapper,
+      .overflow-x-auto {
+        overflow-x: visible !important;
+      }
+    }
+
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: #030305; }
     ::-webkit-scrollbar-thumb { background: #18181b; border-radius: 3px; }
@@ -52,6 +77,9 @@
       box-sizing: border-box !important;
       flex-shrink: 0 !important;
       font-weight: 700 !important;
+      touch-action: manipulation !important;
+      -webkit-user-select: none;
+      user-select: none;
     }
 
     .score-btn-active-p2 { background-color: #059669 !important; color: white !important; border-color: #10b981 !important; }
@@ -162,34 +190,38 @@
           </div>
 
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div>
+            <div class="matrix-section-card">
               <span class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2 font-mono">Sección A: Divisas Forex Core</span>
-              <table class="w-full text-xs text-left">
-                <thead>
-                  <tr class="text-zinc-500 text-[10px] border-b border-zinc-800 font-mono uppercase">
-                    <th class="p-2">Divisa</th>
-                    <th class="p-2 text-center">Previo (Manual/Fijo)</th>
-                    <th class="p-2 text-center">Eventos (Auto)</th>
-                    <th class="p-2 text-center">Total Combinado</th>
-                  </tr>
-                </thead>
-                <tbody id="matrixForexBody"></tbody>
-              </table>
+              <div class="table-touch-wrapper overflow-x-auto">
+                <table class="w-full text-xs text-left">
+                  <thead>
+                    <tr class="text-zinc-500 text-[10px] border-b border-zinc-800 font-mono uppercase">
+                      <th class="p-2">Divisa</th>
+                      <th class="p-2 text-center">Previo (Manual/Fijo)</th>
+                      <th class="p-2 text-center">Eventos (Auto)</th>
+                      <th class="p-2 text-center">Total Combinado</th>
+                    </tr>
+                  </thead>
+                  <tbody id="matrixForexBody"></tbody>
+                </table>
+              </div>
             </div>
 
-            <div>
+            <div class="matrix-section-card">
               <span class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2 font-mono">Sección B: Materias Primas y Riesgo</span>
-              <table class="w-full text-xs text-left">
-                <thead>
-                  <tr class="text-zinc-500 text-[10px] border-b border-zinc-800 font-mono uppercase">
-                    <th class="p-2">Activo</th>
-                    <th class="p-2 text-center">Previo (Manual/Fijo)</th>
-                    <th class="p-2 text-center">Evaluación</th>
-                    <th class="p-2 text-center">Total Combinado</th>
-                  </tr>
-                </thead>
-                <tbody id="matrixIntermarketBody"></tbody>
-              </table>
+              <div class="table-touch-wrapper overflow-x-auto">
+                <table class="w-full text-xs text-left">
+                  <thead>
+                    <tr class="text-zinc-500 text-[10px] border-b border-zinc-800 font-mono uppercase">
+                      <th class="p-2">Activo</th>
+                      <th class="p-2 text-center">Previo (Manual/Fijo)</th>
+                      <th class="p-2 text-center">Evaluación</th>
+                      <th class="p-2 text-center">Total Combinado</th>
+                    </tr>
+                  </thead>
+                  <tbody id="matrixIntermarketBody"></tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>
@@ -531,12 +563,23 @@
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
-          globalState.daysData = parsed.daysData || {};
-          globalState.categoryScores = parsed.categoryScores || {};
+          const clonedDaysData = JSON.parse(JSON.stringify(parsed.daysData || {}));
+          
+          // Ensure every event item has a unique string id and isolated memory reference
+          Object.keys(clonedDaysData).forEach((day, dIdx) => {
+            clonedDaysData[day] = (clonedDaysData[day] || []).map((evt, eIdx) => ({
+              ...evt,
+              id: evt.id || `evt_${dIdx}_${eIdx}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+              score: typeof evt.score === 'number' ? evt.score : 0
+            }));
+          });
+
+          globalState.daysData = clonedDaysData;
+          globalState.categoryScores = JSON.parse(JSON.stringify(parsed.categoryScores || {}));
           globalState.matrixPrev = Object.assign({ USD: 0, EUR: 0, GBP: 0, JPY: 0, CAD: 0, AUD: 0, NZD: 0, CHF: 0, CNH: 0, VIX: 0, Oil: 0, Gold: 0 }, parsed.matrixPrev || {});
           globalState.matrixPrevBreakdown = Object.assign({ USD: [], EUR: [], GBP: [], JPY: [], CAD: [], AUD: [], NZD: [], CHF: [], CNH: [], VIX: [], Oil: [], Gold: [] }, parsed.matrixPrevBreakdown || {});
           globalState.intermarketScores = Object.assign({ VIX: 0, Oil: 0, Gold: 0 }, parsed.intermarketScores || {});
-          globalState.dailyNotes = parsed.dailyNotes || {};
+          globalState.dailyNotes = JSON.parse(JSON.stringify(parsed.dailyNotes || {}));
           
           if (Object.keys(globalState.daysData).length > 0 || Object.values(globalState.matrixPrev).some(v => v !== 0)) {
             renderLiveInteractiveApp();
@@ -549,21 +592,34 @@
 
     function exportStateJSON() {
       try {
-        const dataStr = JSON.stringify(globalState, null, 2);
-        const blob = new Blob([dataStr], { type: "application/json" });
+        const cleanState = JSON.parse(JSON.stringify(globalState));
+        const dataStr = JSON.stringify(cleanState, null, 2);
+        const fileName = `kairos_backup_total_${new Date().toISOString().slice(0,10)}.json`;
+        const blob = new Blob([dataStr], { type: "application/json;charset=utf-8;" });
+
+        if (window.navigator && window.navigator.msSaveOrOpenBlob) {
+          window.navigator.msSaveOrOpenBlob(blob, fileName);
+          return;
+        }
+
         const url = URL.createObjectURL(blob);
-        
         const downloadAnchor = document.createElement('a');
+        downloadAnchor.style.display = 'none';
         downloadAnchor.href = url;
-        downloadAnchor.download = `kairos_backup_total_${new Date().toISOString().slice(0,10)}.json`;
-        
+        downloadAnchor.download = fileName;
+        downloadAnchor.setAttribute('download', fileName);
+
+        if (typeof downloadAnchor.download === 'undefined') {
+          downloadAnchor.target = '_blank';
+        }
+
         document.body.appendChild(downloadAnchor);
         downloadAnchor.click();
-        
+
         setTimeout(() => {
           if (document.body.contains(downloadAnchor)) document.body.removeChild(downloadAnchor);
           URL.revokeObjectURL(url);
-        }, 2000);
+        }, 1500);
       } catch (err) {
         console.error("Export error:", err);
         alert("Error al exportar el archivo JSON.");
@@ -583,9 +639,9 @@
             if (parsed.daysData && typeof parsed.daysData === 'object' && Object.keys(parsed.daysData).length > 0) {
               const reevaluatedDaysData = {};
 
-              Object.keys(parsed.daysData).forEach(day => {
+              Object.keys(parsed.daysData).forEach((day, dIdx) => {
                 const events = parsed.daysData[day] || [];
-                reevaluatedDaysData[day] = events.map(item => {
+                reevaluatedDaysData[day] = events.map((item, idx) => {
                   const ruleId = getCoreRuleId(item.ccy, item.event);
                   let isCore = false;
 
@@ -595,6 +651,8 @@
 
                   return {
                     ...item,
+                    id: item.id || `evt_${dIdx}_${idx}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+                    score: typeof item.score === 'number' ? item.score : 0,
                     coreRuleId: ruleId,
                     isCore: isCore
                   };
@@ -643,6 +701,8 @@
                   ccyTotal += scoreVal;
 
                   globalState.daysData[backupBlockName].push({
+                    id: item.id || `evt_${ccy}_${idx}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+                    score: scoreVal,
                     time: item.time || "—",
                     ccy: ccy,
                     event: evName,
@@ -735,6 +795,12 @@
           let rawEv = globalState.daysData[day] || [];
           let events = rawEv.filter(e => isWhitelisted(e.ccy, e.event) && e.ccy === ccy);
           if (!events || events.length === 0) return;
+
+          events.forEach(item => {
+            if (item && typeof item.score === 'number' && item.score !== 0) {
+              list.push({ label: item.event, score: item.score });
+            }
+          });
 
           let currentBlockEvents = [];
           events.forEach((item, idx) => {
@@ -951,6 +1017,238 @@
       reader.readAsArrayBuffer(file);
     }
 
+    // ==========================================
+    // 1. DATE/TIME PARSER (Fix Year 1899 Bug)
+    // ==========================================
+    function parseEventDateTime(timeVal, dateVal, dayContext) {
+      // 1. Determine base date YYYY-MM-DD
+      let baseDateStr = "";
+
+      if (dateVal) {
+        if (dateVal instanceof Date) {
+          if (!isNaN(dateVal.getTime()) && dateVal.getFullYear() >= 2020) {
+            baseDateStr = dateVal.toISOString().slice(0, 10);
+          }
+        } else if (typeof dateVal === 'number') {
+          if (dateVal >= 25000 && dateVal <= 60000) {
+            const epoch = new Date(Math.round((dateVal - 25569) * 86400 * 1000));
+            if (!isNaN(epoch.getTime()) && epoch.getFullYear() >= 2020) {
+              baseDateStr = epoch.toISOString().slice(0, 10);
+            }
+          }
+        } else {
+          const str = String(dateVal).trim();
+          if (!/^1899|1900/.test(str)) {
+            if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
+              const yr = parseInt(str.slice(0, 4), 10);
+              if (yr >= 2020) baseDateStr = str.slice(0, 10);
+            } else if (/^\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}/.test(str)) {
+              const parts = str.split(/[\/\-\.]/);
+              let y = parseInt(parts[2], 10);
+              if (y < 100) y += 2000;
+              if (y >= 2020) {
+                let m = parseInt(parts[1], 10);
+                let d = parseInt(parts[0], 10);
+                if (d <= 12 && m > 12) { const tmp = d; d = m; m = tmp; }
+                baseDateStr = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+              }
+            }
+          }
+        }
+      }
+
+      // If no valid base date from dateVal, extract from dayContext
+      if (!baseDateStr && dayContext) {
+        const yearMatch = dayContext.match(/\b(202\d|203\d)\b/);
+        if (yearMatch) {
+          const yr = yearMatch[1];
+          const dMatch = dayContext.match(/\b([1-9]|[12]\d|3[01])\b/);
+          const dayNum = dMatch ? dMatch[1].padStart(2, '0') : '15';
+          baseDateStr = `${yr}-10-${dayNum}`;
+        }
+      }
+
+      // Default active calendar release date
+      if (!baseDateStr) {
+        baseDateStr = "2026-10-15";
+      }
+
+      // 2. Parse time string (handling time-only strings, Excel decimal fractions, e.g. 0.75 -> 18:00:00, or Date objects with year 1899)
+      let timeString = "12:00:00";
+      let displayTime = "12:00";
+
+      if (timeVal !== null && timeVal !== undefined && String(timeVal).trim() !== "") {
+        if (timeVal instanceof Date) {
+          const hh = String(timeVal.getHours()).padStart(2, '0');
+          const mm = String(timeVal.getMinutes()).padStart(2, '0');
+          const ss = String(timeVal.getSeconds()).padStart(2, '0');
+          timeString = `${hh}:${mm}:${ss}`;
+          displayTime = `${hh}:${mm}`;
+        } else {
+          let tStr = String(timeVal).trim();
+          const numFraction = parseFloat(tStr);
+          if (!isNaN(numFraction) && numFraction > 0 && numFraction < 1 && !tStr.includes(':')) {
+            const totalSecs = Math.round(numFraction * 86400);
+            const hh = Math.floor(totalSecs / 3600) % 24;
+            const mm = Math.floor((totalSecs % 3600) / 60);
+            timeString = `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:00`;
+            displayTime = `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+          } else if (/^\d{1,2}:\d{2}(:\d{2})?/.test(tStr)) {
+            const parts = tStr.split(':');
+            const hh = parts[0].padStart(2, '0');
+            const mm = parts[1].padStart(2, '0');
+            const ss = parts[2] ? parts[2].slice(0, 2).padStart(2, '0') : '00';
+            timeString = `${hh}:${mm}:${ss}`;
+            displayTime = `${hh}:${mm}`;
+          } else if (tStr.includes('T')) {
+            const tPart = tStr.split('T')[1] || '';
+            const match = tPart.match(/^\d{1,2}:\d{2}/);
+            if (match) {
+              displayTime = match[0];
+              timeString = `${displayTime}:00`;
+            }
+          } else {
+            const timeMatch = tStr.match(/\b(\d{1,2}):(\d{2})(?::(\d{2}))?\b/);
+            if (timeMatch) {
+              const hh = timeMatch[1].padStart(2, '0');
+              const mm = timeMatch[2].padStart(2, '0');
+              const ss = timeMatch[3] ? timeMatch[3].padStart(2, '0') : '00';
+              timeString = `${hh}:${mm}:${ss}`;
+              displayTime = `${hh}:${mm}`;
+            } else {
+              const parsedD = new Date(tStr);
+              if (!isNaN(parsedD.getTime())) {
+                const hh = String(parsedD.getHours()).padStart(2, '0');
+                const mm = String(parsedD.getMinutes()).padStart(2, '0');
+                displayTime = `${hh}:${mm}`;
+                timeString = `${hh}:${mm}:00`;
+              }
+            }
+          }
+        }
+      }
+
+      // 3. Combine valid date string with time string before creating Date object
+      const parts = baseDateStr.split('-');
+      const y = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10) - 1;
+      const d = parseInt(parts[2], 10);
+      const [hh, mm, ss] = timeString.split(':').map(n => parseInt(n, 10));
+      let fullDateObj = new Date(y, m, d, hh || 12, mm || 0, ss || 0);
+
+      if (isNaN(fullDateObj.getTime()) || fullDateObj.getFullYear() < 2020) {
+        fullDateObj = new Date(2026, 9, 15, hh || 12, mm || 0, ss || 0);
+      }
+
+      // Format clean timestamp handling local offsets (e.g. "Thu Oct 15 2026 - 18:00 GMT-0400 (Venezuela Time)")
+      let fullTimestampStr = "";
+      try {
+        const datePart = fullDateObj.toDateString();
+        const tzMatch = fullDateObj.toString().match(/\((.+)\)$/);
+        const tzName = tzMatch ? tzMatch[1] : Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const tzOffsetMin = -fullDateObj.getTimezoneOffset();
+        const sign = tzOffsetMin >= 0 ? '+' : '-';
+        const absOffset = Math.abs(tzOffsetMin);
+        const offsetHH = String(Math.floor(absOffset / 60)).padStart(2, '0');
+        const offsetMM = String(absOffset % 60).padStart(2, '0');
+        const gmtStr = `GMT${sign}${offsetHH}${offsetMM}`;
+
+        fullTimestampStr = `${datePart} - ${displayTime} ${gmtStr} (${tzName})`;
+      } catch (e) {
+        fullTimestampStr = `${baseDateStr} ${displayTime}`;
+      }
+
+      return {
+        displayTime,
+        timeString,
+        baseDateStr,
+        fullDateObj,
+        fullTimestampStr
+      };
+    }
+
+    // ==========================================
+    // 2. DIVERGENCE & NUMERIC SCANNER ENGINE
+    // ==========================================
+    function parseNumericValue(val) {
+      if (val === null || val === undefined || val === '') return null;
+      let str = String(val).trim().replace(/[\u00A0\u200B\r\n]/g, '');
+      if (str === '-' || str === 'N/A' || str === 'n/a' || str === 'ND' || str === '') return null;
+      str = str.replace(/[,%$]/g, '').trim();
+      let mult = 1;
+      if (/k$/i.test(str)) { mult = 1000; str = str.replace(/k$/i, ''); }
+      else if (/m$/i.test(str)) { mult = 1000000; str = str.replace(/m$/i, ''); }
+      const num = parseFloat(str);
+      return isNaN(num) ? null : num * mult;
+    }
+
+    function calculateEventDivergence(item) {
+      const act = parseNumericValue(item.actual);
+      const fcst = parseNumericValue(item.forecast);
+      const prev = parseNumericValue(item.previous);
+
+      if (act === null) return null;
+
+      const ref = fcst !== null ? fcst : prev;
+      if (ref === null) return null;
+
+      const delta = act - ref;
+      if (isNaN(delta)) return null;
+
+      const isLowerBetter = /unemploy|desempleo|jobless|claimant|paroe|deficit/i.test(item.event || '');
+      const isBeat = isLowerBetter ? delta < -0.00001 : delta > 0.00001;
+      const isMiss = isLowerBetter ? delta > 0.00001 : delta < -0.00001;
+      const isInline = Math.abs(delta) <= 0.00001;
+
+      let displayDelta = delta.toFixed(2);
+      if (Math.abs(delta) < 0.01 && delta !== 0) {
+        displayDelta = delta.toFixed(4);
+      }
+      displayDelta = parseFloat(displayDelta).toString();
+      if (delta > 0) displayDelta = '+' + displayDelta;
+
+      return {
+        delta,
+        displayDelta,
+        isBeat,
+        isMiss,
+        isInline,
+        refType: fcst !== null ? 'Forecast' : 'Previous'
+      };
+    }
+
+    // ==========================================
+    // 3. IMMUTABLE EVENT VALUE UPDATE (By evt.id)
+    // ==========================================
+    function updateEventField(targetId, field, value) {
+      Object.keys(globalState.daysData).forEach(day => {
+        globalState.daysData[day] = (globalState.daysData[day] || []).map(evt => {
+          if (evt.id === targetId) {
+            return { ...evt, [field]: value };
+          }
+          return evt;
+        });
+      });
+      saveToLocalStorage();
+      renderInteractiveCalendar();
+      recalculateMatrixAndDivergences();
+    }
+
+    function setEventScore(targetId, scoreVal) {
+      const newScore = parseInt(scoreVal, 10);
+      Object.keys(globalState.daysData).forEach(day => {
+        globalState.daysData[day] = (globalState.daysData[day] || []).map(evt => {
+          if (evt.id === targetId) {
+            return { ...evt, score: newScore };
+          }
+          return evt;
+        });
+      });
+      saveToLocalStorage();
+      renderInteractiveCalendar();
+      recalculateMatrixAndDivergences();
+    }
+
     function parseSpreadsheetData(rows) {
       if (!rows || rows.length === 0) {
         alert("El archivo no contiene filas legibles.");
@@ -1119,8 +1417,16 @@
         if (isWhitelisted(ccy, event)) {
           if (!daysData[currentDay]) daysData[currentDay] = [];
           const ruleId = getCoreRuleId(ccy, event);
+          const dateCell = colIdx.date !== -1 ? cleanRow[colIdx.date] : null;
+          const parsedDT = parseEventDateTime(time, dateCell, currentDay);
+          const uniqueId = `evt_${Date.now()}_${rowIndex}_${Math.random().toString(36).substring(2, 7)}`;
+
           daysData[currentDay].push({ 
-            time, 
+            id: uniqueId,
+            score: 0,
+            time: parsedDT.displayTime, 
+            timestampStr: parsedDT.fullTimestampStr,
+            date: parsedDT.baseDateStr,
             ccy, 
             event, 
             actual, 
@@ -1204,11 +1510,11 @@
             </td>
             <td class="p-2 text-center font-mono">
               <div class="flex items-center justify-center gap-1">
-                <button type="button" onclick="setIntermarketScore('${asset}', 2, event)" class="score-btn bg-zinc-900 border border-zinc-800 rounded text-[10px] text-zinc-300 hover:border-emerald-500 cursor-pointer ${curScore === 2 ? 'score-btn-active-p2' : ''}">+2</button>
-                <button type="button" onclick="setIntermarketScore('${asset}', 1, event)" class="score-btn bg-zinc-900 border border-zinc-800 rounded text-[10px] text-zinc-300 hover:border-emerald-400 cursor-pointer ${curScore === 1 ? 'score-btn-active-p1' : ''}">+1</button>
-                <button type="button" onclick="setIntermarketScore('${asset}', 0, event)" class="score-btn bg-zinc-900 border border-zinc-800 rounded text-[10px] text-zinc-300 hover:border-zinc-500 cursor-pointer ${curScore === 0 ? 'score-btn-active-0' : ''}">0</button>
-                <button type="button" onclick="setIntermarketScore('${asset}', -1, event)" class="score-btn bg-zinc-900 border border-zinc-800 rounded text-[10px] text-zinc-300 hover:border-rose-400 cursor-pointer ${curScore === -1 ? 'score-btn-active-m1' : ''}">-1</button>
-                <button type="button" onclick="setIntermarketScore('${asset}', -2, event)" class="score-btn bg-zinc-900 border border-zinc-800 rounded text-[10px] text-zinc-300 hover:border-rose-600 cursor-pointer ${curScore === -2 ? 'score-btn-active-m2' : ''}">-2</button>
+                <button type="button" onclick="setIntermarketScore('${asset}', 2)" class="score-btn bg-zinc-900 border border-zinc-800 rounded text-[10px] text-zinc-300 hover:border-emerald-500 cursor-pointer ${curScore === 2 ? 'score-btn-active-p2' : ''}">+2</button>
+                <button type="button" onclick="setIntermarketScore('${asset}', 1)" class="score-btn bg-zinc-900 border border-zinc-800 rounded text-[10px] text-zinc-300 hover:border-emerald-400 cursor-pointer ${curScore === 1 ? 'score-btn-active-p1' : ''}">+1</button>
+                <button type="button" onclick="setIntermarketScore('${asset}', 0)" class="score-btn bg-zinc-900 border border-zinc-800 rounded text-[10px] text-zinc-300 hover:border-zinc-500 cursor-pointer ${curScore === 0 ? 'score-btn-active-0' : ''}">0</button>
+                <button type="button" onclick="setIntermarketScore('${asset}', -1)" class="score-btn bg-zinc-900 border border-zinc-800 rounded text-[10px] text-zinc-300 hover:border-rose-400 cursor-pointer ${curScore === -1 ? 'score-btn-active-m1' : ''}">-1</button>
+                <button type="button" onclick="setIntermarketScore('${asset}', -2)" class="score-btn bg-zinc-900 border border-zinc-800 rounded text-[10px] text-zinc-300 hover:border-rose-600 cursor-pointer ${curScore === -2 ? 'score-btn-active-m2' : ''}">-2</button>
               </div>
             </td>
             <td id="live-matrix-${asset}" class="p-2 text-center font-mono text-xs rounded transition-all">0</td>
@@ -1230,10 +1536,7 @@
       renderInteractiveCalendar();
     }
 
-    function handleScoreBtnClick(btn, e) {
-      if (e) e.preventDefault();
-      const rectBefore = btn.getBoundingClientRect();
-      
+    function handleScoreBtnClick(btn) {
       const catId = btn.getAttribute('data-catid');
       const ccy = btn.getAttribute('data-ccy');
       const scoreVal = parseInt(btn.getAttribute('data-score')) || 0;
@@ -1241,10 +1544,6 @@
       const summary = btn.getAttribute('data-summary') || '';
       
       setCategoryScore(catId, ccy, scoreVal, title, summary, btn);
-
-      const rectAfter = btn.getBoundingClientRect();
-      const diff = rectAfter.top - rectBefore.top;
-      if (diff !== 0) window.scrollBy({ top: diff, behavior: 'instant' });
     }
 
     function setCategoryScore(categoryId, ccy, scoreVal, title, eventsSummary, btn) {
@@ -1272,21 +1571,11 @@
       recalculateMatrixAndDivergences();
     }
 
-    function setIntermarketScore(asset, scoreVal, e) {
-      if (e) e.preventDefault();
-      const container = document.getElementById('liveMatrixContainer');
-      const rectBefore = container ? container.getBoundingClientRect() : null;
-
+    function setIntermarketScore(asset, scoreVal) {
       globalState.intermarketScores[asset] = parseInt(scoreVal);
       saveToLocalStorage();
       renderMatrixTables();
       recalculateMatrixAndDivergences();
-
-      if (container && rectBefore) {
-        const rectAfter = container.getBoundingClientRect();
-        const diff = rectAfter.top - rectBefore.top;
-        if (diff !== 0) window.scrollBy({ top: diff, behavior: 'instant' });
-      }
     }
 
     function toggleDivergenceExpand() {
@@ -1331,7 +1620,7 @@
         const coreCount = events.filter(e => e.isCore).length;
 
         let dayCard = document.createElement('div');
-        dayCard.className = "day-card bg-[#07090e] border border-cyan-500/30 rounded-2xl shadow-xl shadow-cyan-950/20 space-y-4 overflow-hidden transition hover:border-cyan-500/50";
+        dayCard.className = "day-card bg-[#07090e] border border-cyan-500/30 rounded-2xl shadow-xl shadow-cyan-950/20 space-y-4 transition hover:border-cyan-500/50";
 
         const translatedDay = translateDayToSpanish(day);
 
@@ -1349,16 +1638,17 @@
         `;
 
         let tableHTML = `
-          <div class="px-4 overflow-x-auto">
+          <div class="px-4 overflow-x-auto table-touch-wrapper">
             <table class="w-full text-left text-xs font-mono border-collapse table-fixed">
               <thead>
                 <tr class="text-zinc-500 text-[10px] border-b border-zinc-800 uppercase tracking-wider">
-                  <th class="p-2.5 w-[10%]">Hora</th>
-                  <th class="p-2.5 w-[10%]">Divisa</th>
-                  <th class="p-2.5 w-[44%]">Evento Económico</th>
-                  <th class="p-2.5 w-[12%]">Actual</th>
-                  <th class="p-2.5 w-[12%]">Pronóstico</th>
-                  <th class="p-2.5 w-[12%]">Previo</th>
+                  <th class="p-2.5 w-[9%]">Hora</th>
+                  <th class="p-2.5 w-[8%]">Divisa</th>
+                  <th class="p-2.5 w-[36%]">Evento Económico</th>
+                  <th class="p-2.5 w-[10%]">Actual</th>
+                  <th class="p-2.5 w-[10%]">Pronóstico</th>
+                  <th class="p-2.5 w-[10%]">Previo</th>
+                  <th class="p-2.5 w-[17%] text-center">Puntaje</th>
                 </tr>
               </thead>
               <tbody>
@@ -1376,19 +1666,49 @@
             ? 'core-row-highlight border-b border-amber-500/20 text-zinc-100' 
             : (idx % 2 === 0 ? 'bg-transparent border-b border-zinc-800/30' : 'bg-zinc-900/20 border-b border-zinc-800/30');
 
+          const divInfo = calculateEventDivergence(item);
+          let divBadgeHTML = '';
+          if (divInfo && !isNaN(divInfo.delta)) {
+            if (divInfo.isBeat) {
+              divBadgeHTML = `<span class="bg-emerald-950/80 text-emerald-400 border border-emerald-500/50 text-[9px] px-1.5 py-0.5 rounded font-bold font-mono tracking-wider ml-1.5 shrink-0" title="Beat vs ${divInfo.refType} (${divInfo.displayDelta})">▲ BEAT ${divInfo.displayDelta}</span>`;
+            } else if (divInfo.isMiss) {
+              divBadgeHTML = `<span class="bg-rose-950/80 text-rose-400 border border-rose-500/50 text-[9px] px-1.5 py-0.5 rounded font-bold font-mono tracking-wider ml-1.5 shrink-0" title="Miss vs ${divInfo.refType} (${divInfo.displayDelta})">▼ MISS ${divInfo.displayDelta}</span>`;
+            } else if (divInfo.isInline) {
+              divBadgeHTML = `<span class="bg-zinc-800/80 text-zinc-400 border border-zinc-700 text-[9px] px-1.5 py-0.5 rounded font-mono ml-1.5 shrink-0" title="In line with ${divInfo.refType}">INLINE</span>`;
+            }
+          }
+
           tableHTML += `
             <tr class="${rowClass} hover:bg-zinc-800/40 transition">
-              <td class="p-2.5 text-zinc-400 font-mono text-[11px] font-bold">${escapeHtml(item.time)}</td>
+              <td class="p-2.5 text-zinc-400 font-mono text-[11px] font-bold" title="${escapeHtml(item.timestampStr || item.time)}">${escapeHtml(item.time)}</td>
               <td class="p-2.5"><span class="${badgeClass} px-2 py-0.5 rounded font-bold text-[9px] tracking-wide">${escapeHtml(item.ccy)}</span></td>
               <td class="p-2.5 font-sans text-xs font-medium truncate pr-2">
-                <div class="flex items-center justify-between gap-2 overflow-hidden">
-                  <span class="${isCore ? 'text-amber-200 font-bold' : 'text-zinc-200'} truncate">${escapeHtml(item.event)}</span>
+                <div class="flex items-center justify-between gap-2">
+                  <div class="flex items-center gap-1 truncate">
+                    <span class="${isCore ? 'text-amber-200 font-bold' : 'text-zinc-200'} truncate">${escapeHtml(item.event)}</span>
+                    ${divBadgeHTML}
+                  </div>
                   ${isCore ? '<span class="bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[9px] px-1.5 py-0.5 rounded font-bold font-mono tracking-wider flex-shrink-0">🎯 CORE</span>' : ''}
                 </div>
               </td>
-              <td class="p-2.5 font-bold text-white font-mono truncate">${escapeHtml(item.actual) || '—'}</td>
-              <td class="p-2.5 text-zinc-400 font-mono truncate">${escapeHtml(item.forecast) || '—'}</td>
-              <td class="p-2.5 text-zinc-500 font-mono truncate">${escapeHtml(item.previous) || '—'}</td>
+              <td class="p-2.5 font-bold text-white font-mono">
+                <input type="text" value="${escapeHtml(item.actual || '')}" placeholder="—" onchange="updateEventField('${escapeHtml(item.id)}', 'actual', this.value)" class="w-full bg-transparent border border-transparent hover:border-zinc-700 focus:border-cyan-500 focus:bg-[#020203] rounded px-1 py-0.5 text-xs text-white font-mono font-bold outline-none transition">
+              </td>
+              <td class="p-2.5 text-zinc-400 font-mono">
+                <input type="text" value="${escapeHtml(item.forecast || '')}" placeholder="—" onchange="updateEventField('${escapeHtml(item.id)}', 'forecast', this.value)" class="w-full bg-transparent border border-transparent hover:border-zinc-700 focus:border-cyan-500 focus:bg-[#020203] rounded px-1 py-0.5 text-xs text-zinc-400 font-mono outline-none transition">
+              </td>
+              <td class="p-2.5 text-zinc-500 font-mono">
+                <input type="text" value="${escapeHtml(item.previous || '')}" placeholder="—" onchange="updateEventField('${escapeHtml(item.id)}', 'previous', this.value)" class="w-full bg-transparent border border-transparent hover:border-zinc-700 focus:border-cyan-500 focus:bg-[#020203] rounded px-1 py-0.5 text-xs text-zinc-500 font-mono outline-none transition">
+              </td>
+              <td class="p-2.5 text-center font-mono">
+                <div class="flex items-center justify-center gap-1">
+                  <button type="button" onclick="setEventScore('${escapeHtml(item.id)}', 2)" class="score-btn bg-zinc-900 border border-zinc-800 rounded text-[10px] text-zinc-300 hover:border-emerald-500 cursor-pointer ${item.score === 2 ? 'score-btn-active-p2' : ''}">+2</button>
+                  <button type="button" onclick="setEventScore('${escapeHtml(item.id)}', 1)" class="score-btn bg-zinc-900 border border-zinc-800 rounded text-[10px] text-zinc-300 hover:border-emerald-400 cursor-pointer ${item.score === 1 ? 'score-btn-active-p1' : ''}">+1</button>
+                  <button type="button" onclick="setEventScore('${escapeHtml(item.id)}', 0)" class="score-btn bg-zinc-900 border border-zinc-800 rounded text-[10px] text-zinc-300 hover:border-zinc-500 cursor-pointer ${(item.score === 0 || item.score === undefined) ? 'score-btn-active-0' : ''}">0</button>
+                  <button type="button" onclick="setEventScore('${escapeHtml(item.id)}', -1)" class="score-btn bg-zinc-900 border border-zinc-800 rounded text-[10px] text-zinc-300 hover:border-rose-400 cursor-pointer ${item.score === -1 ? 'score-btn-active-m1' : ''}">-1</button>
+                  <button type="button" onclick="setEventScore('${escapeHtml(item.id)}', -2)" class="score-btn bg-zinc-900 border border-zinc-800 rounded text-[10px] text-zinc-300 hover:border-rose-600 cursor-pointer ${item.score === -2 ? 'score-btn-active-m2' : ''}">-2</button>
+                </div>
+              </td>
             </tr>
           `;
 
@@ -1406,19 +1726,19 @@
 
             tableHTML += `
               <tr>
-                <td colspan="6" class="py-2.5 px-1">
+                <td colspan="7" class="py-2.5 px-1">
                   <div class="bg-gradient-to-r from-amber-950/20 via-zinc-900/40 to-zinc-900/20 border border-amber-500/30 rounded-xl p-2.5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2.5 my-1">
-                    <div class="flex items-center gap-2 overflow-hidden">
+                    <div class="flex items-center gap-2">
                       <span class="text-amber-400 text-xs flex-shrink-0">📊</span>
                       <span class="text-xs font-bold text-amber-200 tracking-wide truncate">${escapeHtml(smartTitle)}</span>
                     </div>
                     <div class="flex items-center gap-1.5 font-mono flex-shrink-0 self-end sm:self-auto">
                       <span class="text-[10px] text-zinc-400 mr-1 uppercase">Puntuación:</span>
-                      <button type="button" data-catid="${escapeHtml(categoryId)}" data-ccy="${escapeHtml(item.ccy)}" data-score="2" data-title="${escapeHtml(smartTitle)}" data-summary="${escapeHtml(eventsSummaryText)}" onclick="handleScoreBtnClick(this, event)" class="score-btn bg-zinc-900 border border-zinc-800 rounded text-[10px] text-zinc-300 hover:border-emerald-500 transition cursor-pointer ${currentScore === 2 ? 'score-btn-active-p2' : ''}">+2</button>
-                      <button type="button" data-catid="${escapeHtml(categoryId)}" data-ccy="${escapeHtml(item.ccy)}" data-score="1" data-title="${escapeHtml(smartTitle)}" data-summary="${escapeHtml(eventsSummaryText)}" onclick="handleScoreBtnClick(this, event)" class="score-btn bg-zinc-900 border border-zinc-800 rounded text-[10px] text-zinc-300 hover:border-emerald-400 transition cursor-pointer ${currentScore === 1 ? 'score-btn-active-p1' : ''}">+1</button>
-                      <button type="button" data-catid="${escapeHtml(categoryId)}" data-ccy="${escapeHtml(item.ccy)}" data-score="0" data-title="${escapeHtml(smartTitle)}" data-summary="${escapeHtml(eventsSummaryText)}" onclick="handleScoreBtnClick(this, event)" class="score-btn bg-zinc-900 border border-zinc-800 rounded text-[10px] text-zinc-300 hover:border-zinc-500 transition cursor-pointer ${currentScore === 0 ? 'score-btn-active-0' : ''}">0</button>
-                      <button type="button" data-catid="${escapeHtml(categoryId)}" data-ccy="${escapeHtml(item.ccy)}" data-score="-1" data-title="${escapeHtml(smartTitle)}" data-summary="${escapeHtml(eventsSummaryText)}" onclick="handleScoreBtnClick(this, event)" class="score-btn bg-zinc-900 border border-zinc-800 rounded text-[10px] text-zinc-300 hover:border-rose-400 transition cursor-pointer ${currentScore === -1 ? 'score-btn-active-m1' : ''}">-1</button>
-                      <button type="button" data-catid="${escapeHtml(categoryId)}" data-ccy="${escapeHtml(item.ccy)}" data-score="-2" data-title="${escapeHtml(smartTitle)}" data-summary="${escapeHtml(eventsSummaryText)}" onclick="handleScoreBtnClick(this, event)" class="score-btn bg-zinc-900 border border-zinc-800 rounded text-[10px] text-zinc-300 hover:border-rose-600 transition cursor-pointer ${currentScore === -2 ? 'score-btn-active-m2' : ''}">-2</button>
+                      <button type="button" data-catid="${escapeHtml(categoryId)}" data-ccy="${escapeHtml(item.ccy)}" data-score="2" data-title="${escapeHtml(smartTitle)}" data-summary="${escapeHtml(eventsSummaryText)}" onclick="handleScoreBtnClick(this)" class="score-btn bg-zinc-900 border border-zinc-800 rounded text-[10px] text-zinc-300 hover:border-emerald-500 transition cursor-pointer ${currentScore === 2 ? 'score-btn-active-p2' : ''}">+2</button>
+                      <button type="button" data-catid="${escapeHtml(categoryId)}" data-ccy="${escapeHtml(item.ccy)}" data-score="1" data-title="${escapeHtml(smartTitle)}" data-summary="${escapeHtml(eventsSummaryText)}" onclick="handleScoreBtnClick(this)" class="score-btn bg-zinc-900 border border-zinc-800 rounded text-[10px] text-zinc-300 hover:border-emerald-400 transition cursor-pointer ${currentScore === 1 ? 'score-btn-active-p1' : ''}">+1</button>
+                      <button type="button" data-catid="${escapeHtml(categoryId)}" data-ccy="${escapeHtml(item.ccy)}" data-score="0" data-title="${escapeHtml(smartTitle)}" data-summary="${escapeHtml(eventsSummaryText)}" onclick="handleScoreBtnClick(this)" class="score-btn bg-zinc-900 border border-zinc-800 rounded text-[10px] text-zinc-300 hover:border-zinc-500 transition cursor-pointer ${currentScore === 0 ? 'score-btn-active-0' : ''}">0</button>
+                      <button type="button" data-catid="${escapeHtml(categoryId)}" data-ccy="${escapeHtml(item.ccy)}" data-score="-1" data-title="${escapeHtml(smartTitle)}" data-summary="${escapeHtml(eventsSummaryText)}" onclick="handleScoreBtnClick(this)" class="score-btn bg-zinc-900 border border-zinc-800 rounded text-[10px] text-zinc-300 hover:border-rose-400 transition cursor-pointer ${currentScore === -1 ? 'score-btn-active-m1' : ''}">-1</button>
+                      <button type="button" data-catid="${escapeHtml(categoryId)}" data-ccy="${escapeHtml(item.ccy)}" data-score="-2" data-title="${escapeHtml(smartTitle)}" data-summary="${escapeHtml(eventsSummaryText)}" onclick="handleScoreBtnClick(this)" class="score-btn bg-zinc-900 border border-zinc-800 rounded text-[10px] text-zinc-300 hover:border-rose-600 transition cursor-pointer ${currentScore === -2 ? 'score-btn-active-m2' : ''}">-2</button>
                     </div>
                   </div>
                 </td>
@@ -1482,10 +1802,25 @@
       currencies.forEach(c => globalState.matrixEvents[c] = 0);
       intermarket.forEach(i => globalState.matrixEvents[i] = globalState.intermarketScores[i] || 0);
 
+      // Sum individual event scores
+      if (globalState.daysData) {
+        Object.keys(globalState.daysData).forEach(day => {
+          (globalState.daysData[day] || []).forEach(evt => {
+            if (evt && evt.ccy && typeof evt.score === 'number' && evt.score !== 0) {
+              if (globalState.matrixEvents[evt.ccy] !== undefined) {
+                globalState.matrixEvents[evt.ccy] += evt.score;
+              } else {
+                globalState.matrixEvents[evt.ccy] = evt.score;
+              }
+            }
+          });
+        });
+      }
+
       if (globalState.categoryScores) {
         Object.keys(globalState.categoryScores).forEach(catId => {
           const item = globalState.categoryScores[catId];
-          if (item && item.ccy && typeof item.score === 'number') {
+          if (item && item.ccy && typeof item.score === 'number' && item.score !== 0) {
             if (globalState.matrixEvents[item.ccy] !== undefined) {
               globalState.matrixEvents[item.ccy] += item.score;
             } else {
