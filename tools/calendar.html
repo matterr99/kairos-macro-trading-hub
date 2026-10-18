@@ -10,90 +10,84 @@
   
   <!-- External stylesheet link -->
   <link rel="stylesheet" href="../css/styles.css">
-<style>
-/* 1. Reset and clean base */
-html, body {
-background-color: #030305;
-color: #d4d4d8;
-margin: 0;
-padding: 0;
-width: 100%;
-overflow-x: hidden;
-}
+  <style>
+    /* 1. Base Reset & iOS Iframe Fix */
+    html, body {
+      background-color: #030305;
+      color: #d4d4d8;
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      min-height: 100vh;
+      overflow-x: hidden !important;
+    }
 
-/* 2. Isolate scrolling ONLY to the horizontal table wrappers */
-.table-touch-wrapper,
-.overflow-x-auto {
-overflow-x: auto !important;
--webkit-overflow-scrolling: touch !important;
-touch-action: auto !important;
-}
+    /* 2. Safe Horizontal Scrolling for Tables */
+    .table-touch-wrapper,
+    .overflow-x-auto {
+      overflow-x: auto !important;
+      overflow-y: hidden !important;
+      -webkit-overflow-scrolling: touch !important;
+      width: 100%;
+      touch-action: pan-y !important; /* Tells iOS to pass vertical swipes directly to the body */
+    }
 
-/* 3. On desktop, disable the horizontal overflow entirely to prevent sub-scrolling */
-@media (min-width: 768px) {
-.table-touch-wrapper,
-.overflow-x-auto {
-overflow-x: visible !important;
-}
-}
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #030305; }
+    ::-webkit-scrollbar-thumb { background: #18181b; border-radius: 3px; }
 
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: #030305; }
-::-webkit-scrollbar-thumb { background: #18181b; border-radius: 3px; }
+    @media screen { #outputContainer { display: none !important; } }
+    @media print {
+      .no-print { display: none !important; }
+      body, html { background: white !important; color: black !important; padding: 0 !important; margin: 0 !important; }
+      #outputContainer { display: block !important; width: 100% !important; background: white !important; color: black !important; }
+      .page-break { page-break-before: always; }
+      table, tr, .report-card, .day-card { break-inside: avoid !important; page-break-inside: avoid !important; }
+      * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    }
 
-/* ESTILOS DE IMPRESIÓN RIGUROSOS */
-@media screen { #outputContainer { display: none !important; } }
-@media print {
-.no-print { display: none !important; }
-body, html { background: white !important; color: black !important; padding: 0 !important; margin: 0 !important; }
-#outputContainer { display: block !important; width: 100% !important; background: white !important; color: black !important; }
-.page-break { page-break-before: always; }
-table, tr, .report-card, .day-card { break-inside: avoid !important; page-break-inside: avoid !important; }
-* { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-}
+    /* Badges & Scores */
+    .badge-USD { background-color: #D9E1F2; color: #1E293B; }
+    .badge-EUR { background-color: #FFF2CC; color: #1E293B; }
+    .badge-GBP { background-color: #E2EFDA; color: #1E293B; }
+    .badge-JPY { background-color: #FCE4D6; color: #1E293B; }
+    .badge-CAD { background-color: #E1D5E7; color: #1E293B; }
+    .badge-AUD { background-color: #D5E8D4; color: #1E293B; }
+    .badge-NZD { background-color: #DAE8FC; color: #1E293B; }
+    .badge-CHF { background-color: #F8CECC; color: #1E293B; }
+    .badge-CNH, .badge-CNY { background-color: #FFE6CC; color: #1E293B; }
+    .badge-DEFAULT { background-color: #E2E8F0; color: #1E293B; }
 
-.badge-USD { background-color: #D9E1F2; color: #1E293B; }
-.badge-EUR { background-color: #FFF2CC; color: #1E293B; }
-.badge-GBP { background-color: #E2EFDA; color: #1E293B; }
-.badge-JPY { background-color: #FCE4D6; color: #1E293B; }
-.badge-CAD { background-color: #E1D5E7; color: #1E293B; }
-.badge-AUD { background-color: #D5E8D4; color: #1E293B; }
-.badge-NZD { background-color: #DAE8FC; color: #1E293B; }
-.badge-CHF { background-color: #F8CECC; color: #1E293B; }
-.badge-CNH, .badge-CNY { background-color: #FFE6CC; color: #1E293B; }
-.badge-DEFAULT { background-color: #E2E8F0; color: #1E293B; }
+    .core-row-highlight {
+      background: linear-gradient(90deg, rgba(245, 158, 11, 0.14) 0%, rgba(6, 182, 212, 0.08) 100%) !important;
+      border-left: 3px solid #f59e0b !important;
+    }
 
-.core-row-highlight {
-background: linear-gradient(90deg, rgba(245, 158, 11, 0.14) 0%, rgba(6, 182, 212, 0.08) 100%) !important;
-border-left: 3px solid #f59e0b !important;
-}
+    .score-btn {
+      width: 2rem !important;
+      height: 1.5rem !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      box-sizing: border-box !important;
+      flex-shrink: 0 !important;
+      font-weight: 700 !important;
+      touch-action: manipulation !important;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    .score-btn-active-p2 { background-color: #059669 !important; color: white !important; border-color: #10b981 !important; }
+    .score-btn-active-p1 { background-color: #10b981 !important; color: white !important; border-color: #34d399 !important; }
+    .score-btn-active-0  { background-color: #3f3f46 !important; color: white !important; border-color: #71717a !important; }
+    .score-btn-active-m1 { background-color: #f43f5e !important; color: white !important; border-color: #fb7185 !important; }
+    .score-btn-active-m2 { background-color: #be123c !important; color: white !important; border-color: #e11d48 !important; }
 
-.score-btn {
-width: 2rem !important;
-height: 1.5rem !important;
-display: inline-flex !important;
-align-items: center !important;
-justify-content: center !important;
-box-sizing: border-box !important;
-flex-shrink: 0 !important;
-font-weight: 700 !important;
-touch-action: manipulation !important;
--webkit-user-select: none;
-user-select: none;
-}
-
-.score-btn-active-p2 { background-color: #059669 !important; color: white !important; border-color: #10b981 !important; }
-.score-btn-active-p1 { background-color: #10b981 !important; color: white !important; border-color: #34d399 !important; }
-.score-btn-active-0 { background-color: #3f3f46 !important; color: white !important; border-color: #71717a !important; }
-.score-btn-active-m1 { background-color: #f43f5e !important; color: white !important; border-color: #fb7185 !important; }
-.score-btn-active-m2 { background-color: #be123c !important; color: white !important; border-color: #e11d48 !important; }
-
-.score-scale-strong-bullish { background-color: rgba(16, 185, 129, 0.15) !important; color: #34d399 !important; border: 1px solid rgba(16, 185, 129, 0.4) !important; }
-.score-scale-bullish { background-color: rgba(234, 179, 8, 0.15) !important; color: #facc15 !important; border: 1px solid rgba(234, 179, 8, 0.4) !important; }
-.score-scale-neutral { background-color: rgba(63, 63, 70, 0.3) !important; color: #a1a1aa !important; border: 1px solid rgba(113, 113, 122, 0.3) !important; }
-.score-scale-bearish { background-color: rgba(249, 115, 22, 0.15) !important; color: #fb923c !important; border: 1px solid rgba(249, 115, 22, 0.4) !important; }
-.score-scale-strong-bearish { background-color: rgba(225, 29, 72, 0.15) !important; color: #fb7185 !important; border: 1px solid rgba(225, 29, 72, 0.4) !important; }
-</style>
+    .score-scale-strong-bullish { background-color: rgba(16, 185, 129, 0.15) !important; color: #34d399 !important; border: 1px solid rgba(16, 185, 129, 0.4) !important; }
+    .score-scale-bullish { background-color: rgba(234, 179, 8, 0.15) !important; color: #facc15 !important; border: 1px solid rgba(234, 179, 8, 0.4) !important; }
+    .score-scale-neutral { background-color: rgba(63, 63, 70, 0.3) !important; color: #a1a1aa !important; border: 1px solid rgba(113, 113, 122, 0.3) !important; }
+    .score-scale-bearish { background-color: rgba(249, 115, 22, 0.15) !important; color: #fb923c !important; border: 1px solid rgba(249, 115, 22, 0.4) !important; }
+    .score-scale-strong-bearish { background-color: rgba(225, 29, 72, 0.15) !important; color: #fb7185 !important; border: 1px solid rgba(225, 29, 72, 0.4) !important; }
+  </style>
 </head>
 <body class="bg-[#020203] text-zinc-300 font-sans antialiased min-h-screen flex flex-col justify-between">
 
@@ -260,6 +254,68 @@ user-select: none;
 
     <!-- ÁREA DE IMPRESIÓN PDF -->
     <div id="outputContainer"></div>
+
+    <!-- IN-APP CONFIRMATION MODAL -->
+    <div id="inAppConfirmModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm">
+      <div class="bg-[#0b0c10] border border-zinc-800 rounded-xl max-w-md w-full p-5 sm:p-6 shadow-2xl space-y-4 font-sans text-left">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center justify-center shrink-0 text-base font-bold">
+            ⚠️
+          </div>
+          <h3 id="inAppConfirmTitle" class="text-sm font-bold text-white tracking-wide">
+            Confirmación
+          </h3>
+        </div>
+        <p id="inAppConfirmMsg" class="text-xs text-zinc-300 leading-relaxed whitespace-pre-line font-mono bg-[#050608] border border-zinc-800 p-3.5 rounded-lg">
+          ¿Deseas continuar?
+        </p>
+        <div class="flex items-center justify-end gap-2.5 pt-2">
+          <button type="button" id="inAppConfirmCancelBtn" onclick="closeConfirmModal()" class="px-3.5 py-2 text-xs text-zinc-400 hover:text-white bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded transition cursor-pointer min-h-[36px]">
+            Cancelar
+          </button>
+          <button type="button" id="inAppConfirmOkBtn" onclick="executeConfirmModal()" class="px-4 py-2 text-xs font-bold rounded bg-amber-500 hover:bg-amber-400 text-black transition cursor-pointer min-h-[36px]">
+            Confirmar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- IN-APP TOAST NOTIFICATION -->
+    <div id="inAppToast" class="hidden fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-lg shadow-2xl text-xs font-mono border backdrop-blur-md bg-[#0c0d12]/95 border-cyan-500/50 text-cyan-200">
+      <span id="inAppToastIcon" class="text-base">ℹ️</span>
+      <span id="inAppToastMsg" class="leading-tight">Notificación</span>
+      <button type="button" onclick="document.getElementById('inAppToast').classList.add('hidden')" class="ml-2 text-zinc-400 hover:text-white cursor-pointer font-bold">
+        ✕
+      </button>
+    </div>
+
+    <!-- REPORTE PREVIEW MODAL (PDF / IMPRESIÓN) -->
+    <div id="reportPreviewModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-6 bg-black/90 backdrop-blur-md overflow-y-auto">
+      <div class="bg-[#0b0c10] border border-zinc-800 rounded-xl max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+        <div class="p-4 border-b border-zinc-800 bg-[#07080c] flex flex-wrap items-center justify-between gap-3">
+          <div class="flex items-center gap-2">
+            <span class="text-cyan-400 text-base">📄</span>
+            <span class="text-xs font-bold text-white uppercase tracking-wider font-mono">
+              Reporte Semanal Macro (PDF / Impresión)
+            </span>
+          </div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <button type="button" onclick="printReportFromModal()" class="px-3.5 py-1.5 bg-cyan-500 hover:bg-cyan-400 text-black text-xs font-bold rounded flex items-center gap-1.5 transition cursor-pointer min-h-[34px]">
+              🖨️ Imprimir / Guardar PDF
+            </button>
+            <button type="button" onclick="downloadReportHtml()" class="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-xs rounded flex items-center gap-1.5 transition cursor-pointer min-h-[34px]">
+              ⬇️ Descargar HTML
+            </button>
+            <button type="button" onclick="closeReportModal()" class="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded transition cursor-pointer ml-1 text-sm font-bold">
+              ✕
+            </button>
+          </div>
+        </div>
+        <div id="reportPreviewContent" class="p-4 sm:p-8 overflow-y-auto bg-white text-slate-900 font-sans text-xs flex-grow">
+          <!-- Report content rendered here -->
+        </div>
+      </div>
+    </div>
   </main>
 
   <!-- 3. DYNAMIC FOOTER CONTAINER -->
@@ -513,8 +569,13 @@ user-select: none;
       });
     }
 
-    window.addEventListener('dragover', (e) => e.preventDefault());
-    window.addEventListener('drop', (e) => e.preventDefault());
+    // Safely prevent global drops without hijacking iOS touch gestures
+    window.addEventListener('dragover', (e) => {
+      if (e.dataTransfer && e.dataTransfer.types.includes('Files')) e.preventDefault();
+    });
+    window.addEventListener('drop', (e) => {
+      if (e.dataTransfer && e.dataTransfer.types.includes('Files')) e.preventDefault();
+    });
 
     window.addEventListener('DOMContentLoaded', () => {
       updateAdminUI();
@@ -749,34 +810,43 @@ user-select: none;
     }
 
     function lockCurrentAsPreviousWeek() {
-      if (!globalState.daysData || Object.keys(globalState.daysData).length === 0) {
-        alert('Primero debes cargar el Excel o JSON de la semana pasada para poder congelarla.');
+      const hasScores = Object.values(globalState.categoryScores || {}).some(e => e && e.score !== 0) ||
+        Object.values(globalState.intermarketScores || {}).some(v => v !== 0) ||
+        Object.values(globalState.daysData || {}).some(evts => Array.isArray(evts) && evts.length > 0);
+
+      if (!hasScores) {
+        showInAppToast('⚠️ No hay eventos ni puntuaciones evaluadas para congelar como semana previa. Primero evalúa los eventos (+2, +1, -1, -2) o carga un calendario.', 'error');
         return;
       }
 
-      const confirmLock = confirm('¿Deseas fijar la semana actual como "Semana Previa"?\n\nEsto tomará los eventos evaluados, congelará su desglose como base histórica de la matriz, y limpiará el calendario para que cargues el archivo de la SEMANA NUEVA.');
-      if (!confirmLock) return;
+      openConfirmModal(
+        'Fijar como Semana Previa',
+        '¿Deseas fijar la semana actual como "Semana Previa"?\n\nEsto tomará los eventos evaluados, congelará su desglose como base histórica de la matriz, y limpiará el calendario para que cargues el archivo de la SEMANA NUEVA.',
+        () => {
+          const currencies = ['USD', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD', 'NZD', 'CHF', 'CNH', 'VIX', 'Oil', 'Gold'];
+          const newPrevBreakdown = {};
+          const newPrevTotals = {};
 
-      const currencies = ['USD', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD', 'NZD', 'CHF', 'CNH', 'VIX', 'Oil', 'Gold'];
-      const newPrevBreakdown = {};
-      const newPrevTotals = {};
+          currencies.forEach(ccy => {
+            const eventsList = getCurrencyEvaluatedEventsList(ccy);
+            newPrevBreakdown[ccy] = eventsList;
+            newPrevTotals[ccy] = eventsList.reduce((acc, item) => acc + item.score, 0);
+          });
 
-      currencies.forEach(ccy => {
-        const eventsList = getCurrencyEvaluatedEventsList(ccy);
-        newPrevBreakdown[ccy] = eventsList;
-        newPrevTotals[ccy] = eventsList.reduce((acc, item) => acc + item.score, 0);
-      });
+          globalState.matrixPrevBreakdown = newPrevBreakdown;
+          globalState.matrixPrev = newPrevTotals;
 
-      globalState.matrixPrevBreakdown = newPrevBreakdown;
-      globalState.matrixPrev = newPrevTotals;
+          globalState.daysData = {};
+          globalState.categoryScores = {};
+          globalState.dailyNotes = {};
 
-      globalState.daysData = {};
-      globalState.categoryScores = {};
-      globalState.dailyNotes = {};
-
-      saveToLocalStorage();
-      renderLiveInteractiveApp();
-      alert('📌 ¡Semana anterior congelada con éxito como Base Previa!\n\nAhora puedes arrastrar o seleccionar el archivo Excel de la SEMANA ACTUAL.');
+          saveToLocalStorage();
+          renderLiveInteractiveApp();
+          showInAppToast('📌 ¡Semana anterior congelada con éxito como Base Previa! Ya puedes cargar el archivo de la nueva semana.', 'success');
+        },
+        false,
+        'Sí, Fijar como Base Previa'
+      );
     }
 
     function getCurrencyEvaluatedEventsList(ccy) {
@@ -2050,33 +2120,144 @@ user-select: none;
       }
     }
 
-    function resetAllScores() {
-      if (confirm('¿Reiniciar todo el tablero? Esto borrará los datos cargados y puntuaciones.')) {
-        localStorage.removeItem('kairos_macro_engine_state_v15');
-        globalState = {
-          daysData: {},
-          categoryScores: {},
-          matrixEvents: { USD: 0, EUR: 0, GBP: 0, JPY: 0, CAD: 0, AUD: 0, NZD: 0, CHF: 0, CNH: 0, VIX: 0, Oil: 0, Gold: 0 },
-          matrixTotals: { USD: 0, EUR: 0, GBP: 0, JPY: 0, CAD: 0, AUD: 0, NZD: 0, CHF: 0, CNH: 0, VIX: 0, Oil: 0, Gold: 0 },
-          matrixPrev: { USD: 0, EUR: 0, GBP: 0, JPY: 0, CAD: 0, AUD: 0, NZD: 0, CHF: 0, CNH: 0, VIX: 0, Oil: 0, Gold: 0 },
-          matrixPrevBreakdown: { USD: [], EUR: [], GBP: [], JPY: [], CAD: [], AUD: [], NZD: [], CHF: [], CNH: [], VIX: [], Oil: [], Gold: [] },
-          intermarketScores: { VIX: 0, Oil: 0, Gold: 0 },
-          dailyNotes: {}
-        };
-        const cal = document.getElementById('interactiveCalendarContainer');
-        const mat = document.getElementById('liveMatrixContainer');
-        const bar = document.getElementById('calendarFilterBar');
-        const div = document.getElementById('divergenceAlertBox');
-        if (cal) cal.innerHTML = '';
-        if (mat) mat.classList.add('hidden');
-        if (bar) bar.classList.add('hidden');
-        if (div) div.classList.add('hidden');
+    let currentConfirmCallback = null;
+
+    function openConfirmModal(title, msg, onConfirm, isDanger = false, confirmText = 'Confirmar', cancelText = 'Cancelar') {
+      currentConfirmCallback = onConfirm;
+      const modal = document.getElementById('inAppConfirmModal');
+      const titleEl = document.getElementById('inAppConfirmTitle');
+      const msgEl = document.getElementById('inAppConfirmMsg');
+      const okBtn = document.getElementById('inAppConfirmOkBtn');
+      const cancelBtn = document.getElementById('inAppConfirmCancelBtn');
+
+      if (titleEl) titleEl.textContent = title;
+      if (msgEl) msgEl.textContent = msg;
+      if (cancelBtn) cancelBtn.textContent = cancelText;
+      if (okBtn) {
+        okBtn.textContent = confirmText;
+        okBtn.className = isDanger 
+          ? "px-4 py-2 text-xs font-bold rounded bg-rose-600 hover:bg-rose-500 text-white transition cursor-pointer min-h-[36px]"
+          : "px-4 py-2 text-xs font-bold rounded bg-amber-500 hover:bg-amber-400 text-black transition cursor-pointer min-h-[36px]";
       }
+      if (modal) modal.classList.remove('hidden');
+    }
+
+    function closeConfirmModal() {
+      currentConfirmCallback = null;
+      const modal = document.getElementById('inAppConfirmModal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function executeConfirmModal() {
+      const cb = currentConfirmCallback;
+      closeConfirmModal();
+      if (typeof cb === 'function') cb();
+    }
+
+    let toastTimer = null;
+    function showInAppToast(msg, type = 'info') {
+      const toast = document.getElementById('inAppToast');
+      const text = document.getElementById('inAppToastMsg');
+      const icon = document.getElementById('inAppToastIcon');
+      if (!toast || !text) return;
+
+      text.textContent = msg;
+      if (icon) {
+        if (type === 'success') icon.textContent = '✅';
+        else if (type === 'error') icon.textContent = '⚠️';
+        else icon.textContent = 'ℹ️';
+      }
+
+      toast.classList.remove('hidden');
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toast.classList.add('hidden');
+      }, 4000);
+    }
+
+    function resetAllScores() {
+      openConfirmModal(
+        'Reiniciar Todo el Tablero',
+        '¿Reiniciar todo el tablero? Esto borrará los datos cargados, puntuaciones evaluadas, base previa y notas.',
+        () => {
+          try {
+            localStorage.removeItem('kairos_macro_engine_state_v15');
+          } catch(e) {}
+          globalState = {
+            daysData: {},
+            categoryScores: {},
+            matrixEvents: { USD: 0, EUR: 0, GBP: 0, JPY: 0, CAD: 0, AUD: 0, NZD: 0, CHF: 0, CNH: 0, VIX: 0, Oil: 0, Gold: 0 },
+            matrixTotals: { USD: 0, EUR: 0, GBP: 0, JPY: 0, CAD: 0, AUD: 0, NZD: 0, CHF: 0, CNH: 0, VIX: 0, Oil: 0, Gold: 0 },
+            matrixPrev: { USD: 0, EUR: 0, GBP: 0, JPY: 0, CAD: 0, AUD: 0, NZD: 0, CHF: 0, CNH: 0, VIX: 0, Oil: 0, Gold: 0 },
+            matrixPrevBreakdown: { USD: [], EUR: [], GBP: [], JPY: [], CAD: [], AUD: [], NZD: [], CHF: [], CNH: [], VIX: [], Oil: [], Gold: [] },
+            intermarketScores: { VIX: 0, Oil: 0, Gold: 0 },
+            dailyNotes: {}
+          };
+          saveToLocalStorage();
+          renderLiveInteractiveApp();
+          const cal = document.getElementById('interactiveCalendarContainer');
+          const mat = document.getElementById('liveMatrixContainer');
+          const bar = document.getElementById('calendarFilterBar');
+          const div = document.getElementById('divergenceAlertBox');
+          if (cal) cal.innerHTML = '';
+          if (mat) mat.classList.add('hidden');
+          if (bar) bar.classList.add('hidden');
+          if (div) div.classList.add('hidden');
+          showInAppToast('🗑️ Tablero macro reiniciado a valores iniciales.', 'info');
+        },
+        true,
+        'Sí, Reiniciar Todo'
+      );
     }
 
     function triggerPrint() {
       renderPDFPrintPreview();
-      setTimeout(() => { window.print(); }, 200);
+      openReportModal();
+    }
+
+    function openReportModal() {
+      const modal = document.getElementById('reportPreviewModal');
+      const container = document.getElementById('reportPreviewContent');
+      if (container) {
+        container.innerHTML = renderReportTemplate(globalState.daysData);
+      }
+      if (modal) modal.classList.remove('hidden');
+    }
+
+    function closeReportModal() {
+      const modal = document.getElementById('reportPreviewModal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function printReportFromModal() {
+      renderPDFPrintPreview();
+      try {
+        window.print();
+      } catch (err) {
+        console.warn('Direct print blocked by iframe sandbox, downloading HTML report fallback:', err);
+        downloadReportHtml();
+      }
+    }
+
+    function downloadReportHtml() {
+      try {
+        const content = renderReportTemplate(globalState.daysData);
+        const fullHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Reporte Semanal Macro Kairos</title><style>body { font-family: sans-serif; padding: 20px; color: #0f172a; } @media print { .no-print { display: none; } }</style></head><body>${content}</body></html>`;
+        const blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `kairos_macro_report_${new Date().toISOString().slice(0, 10)}.html`;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+          if (document.body.contains(a)) document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }, 1500);
+        showInAppToast('Reporte HTML descargado con éxito.', 'success');
+      } catch (e) {
+        showInAppToast('Error al descargar reporte HTML.', 'error');
+      }
     }
 
     function renderPDFPrintPreview() {

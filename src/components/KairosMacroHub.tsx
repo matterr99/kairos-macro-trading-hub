@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import * as XLSX from 'xlsx';
 import Papa from 'papaparse';
+import { Printer, Download, Copy, Check, X, AlertTriangle, AlertCircle, CheckCircle2, Info, FileText } from 'lucide-react';
 import { Language } from '../types';
 
 interface MacroEvent {
@@ -306,6 +307,55 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
   const [isDivergenceExpanded, setIsDivergenceExpanded] = useState<boolean>(false);
   const [isDragOver, setIsDragOver] = useState<boolean>(false);
 
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    confirmText?: string;
+    cancelText?: string;
+    confirmStyle?: 'danger' | 'warning' | 'primary';
+    onConfirm: () => void;
+  } | null>(null);
+
+  const [toast, setToast] = useState<{
+    id: number;
+    message: string;
+    type: 'success' | 'error' | 'info';
+  } | null>(null);
+
+  const [isReportModalOpen, setIsReportModalOpen] = useState<boolean>(false);
+  const [copiedReportText, setCopiedReportText] = useState<boolean>(false);
+
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    const id = Date.now();
+    setToast({ id, message, type });
+    setTimeout(() => {
+      setToast(prev => (prev?.id === id ? null : prev));
+    }, 4000);
+  };
+
+  const showConfirm = (
+    title: string,
+    message: string,
+    onConfirm: () => void,
+    confirmStyle: 'danger' | 'warning' | 'primary' = 'primary',
+    confirmText?: string,
+    cancelText?: string
+  ) => {
+    setConfirmModal({
+      isOpen: true,
+      title,
+      message,
+      confirmStyle,
+      confirmText: confirmText || (isEs ? 'Confirmar' : 'Confirm'),
+      cancelText: cancelText || (isEs ? 'Cancelar' : 'Cancel'),
+      onConfirm: () => {
+        setConfirmModal(null);
+        onConfirm();
+      }
+    });
+  };
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const jsonInputRef = useRef<HTMLInputElement>(null);
 
@@ -349,10 +399,21 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
   // Evaluated events helper
   const getCurrencyEvaluatedEventsList = (ccy: string): PrevBreakdownItem[] => {
     const list: PrevBreakdownItem[] = [];
-    Object.values(globalState.categoryScores).forEach(entry => {
-      if (entry.ccy === ccy && entry.score !== 0) {
+    if (['VIX', 'Oil', 'Gold'].includes(ccy)) {
+      const score = globalState.intermarketScores[ccy] || 0;
+      if (score !== 0) {
         list.push({
-          label: entry.title || entry.eventsSummary || isEs ? 'Evento evaluado' : 'Evaluated event',
+          label: isEs ? `Evaluación de ${ccy}` : `${ccy} Assessment`,
+          score
+        });
+      }
+      return list;
+    }
+
+    Object.values(globalState.categoryScores).forEach(entry => {
+      if (entry && entry.ccy === ccy && entry.score !== 0) {
+        list.push({
+          label: entry.title || entry.eventsSummary || (isEs ? 'Evento evaluado' : 'Evaluated event'),
           score: entry.score
         });
       }
@@ -492,64 +553,95 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
 
   // Lock Current as Previous Week
   const lockCurrentAsPreviousWeek = () => {
-    if (!globalState.daysData || Object.keys(globalState.daysData).length === 0) {
-      alert(isEs 
-        ? 'Primero debes cargar o tener eventos evaluados para poder congelarlos como semana previa.'
-        : 'You must have evaluated events loaded before freezing them as the prior week baseline.');
+    const hasCategoryScores = Object.values(globalState.categoryScores || {}).some(entry => entry && entry.score !== 0);
+    const hasIntermarket = Object.values(globalState.intermarketScores || {}).some(v => v !== 0);
+    const hasDaysData = Object.values(globalState.daysData || {}).some(events => Array.isArray(events) && events.length > 0);
+    const hasMatrixEvents = Object.values(computedMatrix.events || {}).some(v => v !== 0);
+
+    if (!hasCategoryScores && !hasIntermarket && !hasDaysData && !hasMatrixEvents) {
+      showToast(
+        isEs
+          ? '⚠️ No hay eventos ni evaluaciones para congelar. Evalúa eventos (+2, +1, -1, -2) o carga un calendario primero.'
+          : '⚠️ No evaluated events or scores found to lock. Please score events (+2, +1, -1, -2) or upload a calendar first.',
+        'error'
+      );
       return;
     }
 
-    const confirmMsg = isEs
-      ? '¿Deseas fijar la semana actual como "Semana Previa"?\n\nEsto tomará los eventos evaluados, congelará su desglose como base histórica de la matriz, y limpiará el calendario para que cargues el archivo de la SEMANA NUEVA.'
+    const title = isEs ? 'Fijar como Semana Previa' : 'Lock as Prior Week Baseline';
+    const msg = isEs
+      ? '¿Deseas fijar la semana actual como "Semana Previa"?\n\nEsto congelará todas las evaluaciones actuales como base histórica de la matriz, y limpiará el calendario activo para que cargues el archivo de la SEMANA NUEVA.'
       : 'Lock current week as "Previous Week Baseline"?\n\nThis will freeze current evaluated scores as historical baseline factors, and reset the active calendar for your new week file.';
 
-    if (!confirm(confirmMsg)) {
-      return;
-    }
+    showConfirm(
+      title,
+      msg,
+      () => {
+        const currencies = ['USD', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD', 'NZD', 'CHF', 'CNH', 'VIX', 'Oil', 'Gold'];
+        const newPrevBreakdown: Record<string, PrevBreakdownItem[]> = {};
+        const newPrevTotals: Record<string, number> = {};
 
-    const currencies = ['USD', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD', 'NZD', 'CHF', 'CNH', 'VIX', 'Oil', 'Gold'];
-    const newPrevBreakdown: Record<string, PrevBreakdownItem[]> = {};
-    const newPrevTotals: Record<string, number> = {};
+        currencies.forEach(ccy => {
+          const eventsList = getCurrencyEvaluatedEventsList(ccy);
+          newPrevBreakdown[ccy] = eventsList;
+          newPrevTotals[ccy] = eventsList.reduce((acc, item) => acc + item.score, 0);
+        });
 
-    currencies.forEach(ccy => {
-      const eventsList = getCurrencyEvaluatedEventsList(ccy);
-      newPrevBreakdown[ccy] = eventsList;
-      newPrevTotals[ccy] = eventsList.reduce((acc, item) => acc + item.score, 0);
-    });
+        setGlobalState(prev => ({
+          ...prev,
+          matrixPrev: newPrevTotals,
+          matrixPrevBreakdown: newPrevBreakdown,
+          daysData: {},
+          categoryScores: {},
+          dailyNotes: {}
+        }));
 
-    setGlobalState(prev => ({
-      ...prev,
-      matrixPrev: newPrevTotals,
-      matrixPrevBreakdown: newPrevBreakdown,
-      daysData: {},
-      categoryScores: {},
-      dailyNotes: {}
-    }));
-
-    alert(isEs
-      ? '📌 ¡Semana anterior congelada con éxito como Base Previa!\n\nAhora puedes arrastrar o seleccionar el archivo Excel de la SEMANA ACTUAL.'
-      : '📌 Prior week successfully locked as baseline!\n\nYou can now upload or drop the Excel calendar for the active trading week.');
+        showToast(
+          isEs
+            ? '📌 ¡Semana anterior congelada con éxito como Base Previa! Ya puedes cargar el archivo de la SEMANA ACTUAL.'
+            : '📌 Prior week successfully locked as baseline! You can now upload the active trading week calendar.',
+          'success'
+        );
+      },
+      'warning',
+      isEs ? 'Sí, Fijar como Base Previa' : 'Yes, Lock as Baseline'
+    );
   };
 
   // Reset Everything
   const resetAllScores = () => {
-    const confirmMsg = isEs
-      ? '¿Reiniciar todo el tablero? Esto borrará los datos cargados y puntuaciones.'
-      : 'Reset entire dashboard? This will clear all uploaded data and scored event factors.';
+    const title = isEs ? 'Reiniciar Todo el Tablero' : 'Reset Entire Dashboard';
+    const msg = isEs
+      ? '¿Reiniciar todo el tablero? Esto borrará los datos cargados, puntuaciones asignadas, base previa y notas.'
+      : 'Reset entire dashboard? This will clear all uploaded data, scored event factors, prior baseline, and session notes.';
 
-    if (confirm(confirmMsg)) {
-      localStorage.removeItem('kairos_macro_engine_state_v16');
-      setGlobalState({
-        daysData: {},
-        categoryScores: {},
-        matrixEvents: { USD: 0, EUR: 0, GBP: 0, JPY: 0, CAD: 0, AUD: 0, NZD: 0, CHF: 0, CNH: 0, VIX: 0, Oil: 0, Gold: 0 },
-        matrixTotals: { USD: 0, EUR: 0, GBP: 0, JPY: 0, CAD: 0, AUD: 0, NZD: 0, CHF: 0, CNH: 0, VIX: 0, Oil: 0, Gold: 0 },
-        matrixPrev: { USD: 0, EUR: 0, GBP: 0, JPY: 0, CAD: 0, AUD: 0, NZD: 0, CHF: 0, CNH: 0, VIX: 0, Oil: 0, Gold: 0 },
-        matrixPrevBreakdown: { USD: [], EUR: [], GBP: [], JPY: [], CAD: [], AUD: [], NZD: [], CHF: [], CNH: [], VIX: [], Oil: [], Gold: [] },
-        intermarketScores: { VIX: 0, Oil: 0, Gold: 0 },
-        dailyNotes: {}
-      });
-    }
+    showConfirm(
+      title,
+      msg,
+      () => {
+        try {
+          localStorage.removeItem('kairos_macro_engine_state_v16');
+        } catch (e) {
+          console.error(e);
+        }
+        setGlobalState({
+          daysData: {},
+          categoryScores: {},
+          matrixEvents: { USD: 0, EUR: 0, GBP: 0, JPY: 0, CAD: 0, AUD: 0, NZD: 0, CHF: 0, CNH: 0, VIX: 0, Oil: 0, Gold: 0 },
+          matrixTotals: { USD: 0, EUR: 0, GBP: 0, JPY: 0, CAD: 0, AUD: 0, NZD: 0, CHF: 0, CNH: 0, VIX: 0, Oil: 0, Gold: 0 },
+          matrixPrev: { USD: 0, EUR: 0, GBP: 0, JPY: 0, CAD: 0, AUD: 0, NZD: 0, CHF: 0, CNH: 0, VIX: 0, Oil: 0, Gold: 0 },
+          matrixPrevBreakdown: { USD: [], EUR: [], GBP: [], JPY: [], CAD: [], AUD: [], NZD: [], CHF: [], CNH: [], VIX: [], Oil: [], Gold: [] },
+          intermarketScores: { VIX: 0, Oil: 0, Gold: 0 },
+          dailyNotes: {}
+        });
+        showToast(
+          isEs ? '🗑️ Tablero macro restablecido a valores iniciales.' : '🗑️ Macro dashboard reset to clean baseline.',
+          'info'
+        );
+      },
+      'danger',
+      isEs ? 'Sí, Reiniciar Todo' : 'Yes, Reset All'
+    );
   };
 
   // Export JSON Backup
@@ -567,6 +659,7 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
 
       if ((window.navigator as any)?.msSaveOrOpenBlob) {
         (window.navigator as any).msSaveOrOpenBlob(blob, fileName);
+        showToast(isEs ? 'Respaldo JSON descargado con éxito.' : 'JSON backup downloaded successfully.', 'success');
         return;
       }
 
@@ -585,9 +678,10 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
         if (document.body.contains(a)) document.body.removeChild(a);
         URL.revokeObjectURL(url);
       }, 1500);
+      showToast(isEs ? 'Respaldo JSON generado con éxito.' : 'JSON backup generated successfully.', 'success');
     } catch (err) {
       console.error(err);
-      alert(isEs ? 'Error al exportar el archivo JSON.' : 'Error exporting JSON backup file.');
+      showToast(isEs ? 'Error al exportar el archivo JSON.' : 'Error exporting JSON backup file.', 'error');
     }
   };
 
@@ -625,20 +719,281 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
               intermarketScores: Object.assign({ VIX: 0, Oil: 0, Gold: 0 }, parsed.intermarketScores || {}),
               dailyNotes: parsed.dailyNotes || {}
             });
-            alert(isEs
-              ? '¡Respaldo cargado con éxito! Todos los eventos fueron re-evaluados con las reglas actuales.'
-              : 'Backup loaded successfully! All events re-evaluated under current macro rules.');
+            showToast(
+              isEs
+                ? '¡Respaldo cargado con éxito! Todos los eventos fueron re-evaluados con las reglas actuales.'
+                : 'Backup loaded successfully! All events re-evaluated under current macro rules.',
+              'success'
+            );
           } else {
-            alert(isEs ? 'El archivo JSON no contiene un calendario estructurado válido.' : 'JSON file does not contain a valid calendar structure.');
+            showToast(isEs ? 'El archivo JSON no contiene un calendario estructurado válido.' : 'JSON file does not contain a valid calendar structure.', 'error');
           }
         }
       } catch (err) {
         console.error(err);
-        alert(isEs ? 'Archivo JSON inválido o corrupto.' : 'Invalid JSON file.');
+        showToast(isEs ? 'Archivo JSON inválido o corrupto.' : 'Invalid JSON file.', 'error');
       }
     };
     reader.readAsText(file);
     e.target.value = '';
+  };
+
+  // Generate Institutional Printable HTML Report
+  const generateReportHTML = () => {
+    const title = isEs ? "CALENDARIO ECONÓMICO SEMANAL — REPORTE INSTITUCIONAL DE RIESGO" : "WEEKLY ECONOMIC CALENDAR — INSTITUTIONAL RISK REPORT";
+    const subtitle = isEs ? "Kairos Global Research · Motor Cuantitativo Integrado de Inteligencia Macro" : "Kairos Global Research · Integrated Quantitative Macro Intelligence Engine";
+    const dateStr = new Date().toLocaleDateString(isEs ? 'es-ES' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+    let daysHtml = '';
+    const dayKeys = Object.keys(globalState.daysData || {});
+    if (dayKeys.length === 0) {
+      daysHtml = `<p style="padding: 20px; text-align: center; color: #64748b; font-style: italic;">${isEs ? 'No hay eventos evaluados cargados en el calendario activo.' : 'No evaluated events loaded in active calendar.'}</p>`;
+    } else {
+      dayKeys.forEach(day => {
+        let events = (globalState.daysData[day] || []).filter(e => isWhitelisted(e.ccy, e.event));
+        if (filterCoreOnly) events = events.filter(e => e.isCore);
+        if (events.length === 0) return;
+
+        let rowsHtml = '';
+        let currentBlock: MacroEvent[] = [];
+
+        events.forEach((item, idx) => {
+          currentBlock.push(item);
+          const nextItem = events[idx + 1];
+          const currentCategory = getCategorySentimentTitle(item.ccy, item.event);
+          const nextCategory = nextItem ? getCategorySentimentTitle(nextItem.ccy, nextItem.event) : null;
+
+          const isCore = item.isCore;
+          rowsHtml += `
+            <tr style="border-bottom: 1px solid #e2e8f0; ${isCore ? 'background-color: #fef3c7;' : ''}">
+              <td style="padding: 5px 6px; font-family: monospace; font-size: 10px;">${item.time}</td>
+              <td style="padding: 5px 6px; font-weight: bold; font-size: 10px;">${item.ccy}</td>
+              <td style="padding: 5px 6px; font-size: 10px; ${isCore ? 'font-weight: bold; color: #92400e;' : 'color: #0f172a;'}">${item.event} ${isCore ? '🎯' : ''}</td>
+              <td style="padding: 5px 6px; font-weight: bold; font-size: 10px; text-align: right;">${item.actual || '—'}</td>
+              <td style="padding: 5px 6px; font-size: 10px; text-align: right; color: #64748b;">${item.forecast || '—'}</td>
+              <td style="padding: 5px 6px; font-size: 10px; text-align: right; color: #64748b;">${item.previous || '—'}</td>
+            </tr>
+          `;
+
+          if (!nextItem || nextItem.ccy !== item.ccy || nextCategory !== currentCategory) {
+            const smartTitle = getSmartGroupTitle(item.ccy, currentBlock, isEs);
+            const matchingScore = Object.values(globalState.categoryScores || {}).find(
+              cs => cs.ccy === item.ccy && (cs.title === smartTitle || cs.eventsSummary.includes(item.event))
+            );
+            const scoreVal = matchingScore ? matchingScore.score : 0;
+            const scoreColor = scoreVal > 0 ? '#166534' : (scoreVal < 0 ? '#991b1b' : '#475569');
+            const scoreBg = scoreVal > 0 ? '#dcfce7' : (scoreVal < 0 ? '#fee2e2' : '#f1f5f9');
+            const formattedVal = scoreVal > 0 ? `+${scoreVal}` : `${scoreVal}`;
+
+            rowsHtml += `
+              <tr style="background-color: #fefce8; border-top: 1px solid #e2e8f0; border-bottom: 2px solid #cbd5e1;">
+                <td colspan="5" style="padding: 6px 8px; font-weight: bold; font-size: 10px; color: #854d0e; font-style: italic;">
+                  📊 ${smartTitle}
+                </td>
+                <td style="padding: 4px; text-align: center;">
+                  <span style="display: inline-block; padding: 2px 6px; border-radius: 3px; font-weight: bold; font-size: 10px; font-family: monospace; color: ${scoreColor}; background-color: ${scoreBg};">
+                    ${formattedVal}
+                  </span>
+                </td>
+              </tr>
+            `;
+            currentBlock = [];
+          }
+        });
+
+        const dayNote = globalState.dailyNotes[day] || '';
+        daysHtml += `
+          <div style="margin-top: 18px; page-break-inside: avoid;">
+            <div style="background-color: #0f172a; color: white; padding: 6px 10px; font-weight: bold; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;">
+              ${day}
+            </div>
+            <table style="width: 100%; border-collapse: collapse; font-family: sans-serif;">
+              <thead>
+                <tr style="background-color: #f8fafc; border-bottom: 2px solid #0f172a; text-align: left; font-size: 10px; color: #475569;">
+                  <th style="padding: 6px; width: 10%;">${isEs ? 'HORA' : 'TIME'}</th>
+                  <th style="padding: 6px; width: 8%;">${isEs ? 'DIVISA' : 'CCY'}</th>
+                  <th style="padding: 6px; width: 44%;">${isEs ? 'CATALIZADOR / EVENTO' : 'CATALYST / EVENT'}</th>
+                  <th style="padding: 6px; width: 12%; text-align: right;">${isEs ? 'ACTUAL' : 'ACTUAL'}</th>
+                  <th style="padding: 6px; width: 13%; text-align: right;">${isEs ? 'PRONÓSTICO' : 'FORECAST'}</th>
+                  <th style="padding: 6px; width: 13%; text-align: center;">${isEs ? 'PREV / EVAL' : 'PREV / SCORE'}</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rowsHtml}
+              </tbody>
+            </table>
+            ${dayNote ? `
+              <div style="border: 1px dashed #cbd5e1; background: #fafafa; padding: 6px 10px; margin-top: 6px; border-radius: 4px; font-size: 10px; color: #334155;">
+                <strong>${isEs ? 'Notas del Analista:' : 'Analyst Notes:'}</strong> ${dayNote}
+              </div>
+            ` : ''}
+          </div>
+        `;
+      });
+    }
+
+    return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>${title}</title>
+  <style>
+    @page { size: A4; margin: 12mm; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; background: #ffffff; color: #0f172a; margin: 0; padding: 20px; line-height: 1.4; }
+    .report-card { max-width: 900px; margin: 0 auto; }
+    h1 { font-size: 16px; margin: 0; color: #0f172a; border-bottom: 2px solid #0f172a; padding-bottom: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
+    h2 { font-size: 10px; color: #64748b; margin: 4px 0 16px 0; font-weight: normal; }
+    table { width: 100%; border-collapse: collapse; font-size: 10px; }
+    th, td { padding: 4px 6px; }
+    .matrix-box { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 4px; padding: 10px; margin-bottom: 16px; }
+    .matrix-title { font-weight: bold; font-size: 11px; color: #0f172a; margin-bottom: 6px; text-transform: uppercase; }
+    @media print {
+      body { padding: 0; }
+      .no-print { display: none !important; }
+      .page-break { page-break-before: always; }
+      * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="report-card">
+    <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #0f172a; padding-bottom: 6px; margin-bottom: 12px;">
+      <div>
+        <h1 style="border: none; padding: 0;">${title}</h1>
+        <h2>${subtitle}</h2>
+      </div>
+      <div style="font-size: 9px; color: #64748b; font-family: monospace; text-align: right;">
+        ${dateStr}
+      </div>
+    </div>
+
+    <!-- Matrix Summary Table -->
+    <div class="matrix-box">
+      <div class="matrix-title">${isEs ? 'MATRIZ DE FUERZA CUANTITATIVA RELATIVA (G10 + INTERMERCADO)' : 'RELATIVE QUANTITATIVE STRENGTH MATRIX (G10 + INTERMARKET)'}</div>
+      <table>
+        <thead>
+          <tr style="background-color: #0f172a; color: white;">
+            <th style="text-align: left; width: 40%;">${isEs ? 'ACTIVO / DIVISA' : 'ASSET / CURRENCY'}</th>
+            <th style="text-align: center; width: 20%;">${isEs ? 'BASE PREVIA' : 'PRIOR BASELINE'}</th>
+            <th style="text-align: center; width: 20%;">${isEs ? 'ESTA SEMANA' : 'ACTIVE WEEK'}</th>
+            <th style="text-align: center; width: 20%;">${isEs ? 'TOTAL COMBINADO' : 'NET TOTAL'}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="background-color: #e2e8f0; font-weight: bold;"><td colspan="4" style="color: #0f172a; font-size: 9px;">${isEs ? 'SECCIÓN A: DIVISAS G10 FOREX CORE' : 'SECTION A: G10 FOREX CORE CURRENCIES'}</td></tr>
+          ${['USD', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD', 'NZD', 'CHF', 'CNH'].map(ccy => {
+            const prev = globalState.matrixPrev[ccy] || 0;
+            const active = computedMatrix.events[ccy] || 0;
+            const net = computedMatrix.totals[ccy] || 0;
+            return `
+              <tr style="border-bottom: 1px solid #e2e8f0;">
+                <td style="font-weight: bold;">${ccy}</td>
+                <td style="text-align: center; color: #64748b;">${prev > 0 ? '+' : ''}${prev}</td>
+                <td style="text-align: center; color: #0f172a;">${active > 0 ? '+' : ''}${active}</td>
+                <td style="text-align: center; font-weight: bold; color: ${net > 0 ? '#166534' : (net < 0 ? '#991b1b' : '#475569')};">${net > 0 ? '+' : ''}${net}</td>
+              </tr>
+            `;
+          }).join('')}
+          <tr style="background-color: #e2e8f0; font-weight: bold;"><td colspan="4" style="color: #0f172a; font-size: 9px;">${isEs ? 'SECCIÓN B: CATALIZADORES INTERMERCADO Y RIESGO' : 'SECTION B: INTERMARKET CATALYSTS & RISK'}</td></tr>
+          ${[
+            ['VIX', isEs ? 'VIX (Índice de Volatilidad)' : 'VIX (Volatility Index)'],
+            ['Oil', isEs ? 'Petróleo (Crudo WTI)' : 'Crude Oil (WTI)'],
+            ['Gold', isEs ? 'Oro (XAU/USD)' : 'Gold (XAU/USD)']
+          ].map(([asset, label]) => {
+            const prev = globalState.matrixPrev[asset] || 0;
+            const active = globalState.intermarketScores[asset] || 0;
+            const net = (globalState.matrixTotals[asset] !== undefined) ? globalState.matrixTotals[asset] : (prev + active);
+            return `
+              <tr style="border-bottom: 1px solid #e2e8f0;">
+                <td style="font-weight: bold;">${label}</td>
+                <td style="text-align: center; color: #64748b;">${prev > 0 ? '+' : ''}${prev}</td>
+                <td style="text-align: center; color: #0f172a;">${active > 0 ? '+' : ''}${active}</td>
+                <td style="text-align: center; font-weight: bold; color: ${net > 0 ? '#166534' : (net < 0 ? '#991b1b' : '#475569')};">${net > 0 ? '+' : ''}${net}</td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Day Events Breakdown -->
+    ${daysHtml}
+
+    <div style="margin-top: 30px; border-top: 1px solid #cbd5e1; padding-top: 8px; text-align: center; font-size: 8px; color: #94a3b8; font-family: monospace;">
+      ${isEs ? 'Inteligencia Institucional de Riesgo Macro · Kairos Global Research Engine' : 'Institutional Macro Risk Intelligence · Kairos Global Research Engine'}
+    </div>
+  </div>
+</body>
+</html>`;
+  };
+
+  const handleDownloadHTMLReport = () => {
+    try {
+      const htmlContent = generateReportHTML();
+      const fileName = `kairos_macro_report_${new Date().toISOString().slice(0, 10)}.html`;
+      const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        if (document.body.contains(a)) document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 1500);
+      showToast(isEs ? 'Reporte HTML descargado con éxito.' : 'HTML report downloaded successfully.', 'success');
+    } catch (err) {
+      console.error(err);
+      showToast(isEs ? 'Error al generar descarga de reporte.' : 'Failed to download report file.', 'error');
+    }
+  };
+
+  const handleCopyReportText = () => {
+    try {
+      const textLines: string[] = [];
+      textLines.push(isEs ? '=== REPORTE SEMANAL MACRO KAIROS ===' : '=== KAIROS WEEKLY MACRO REPORT ===');
+      textLines.push(`Date: ${new Date().toISOString().slice(0, 10)}`);
+      textLines.push('');
+      textLines.push(isEs ? '--- MATRIZ DE FUERZA G10 FOREX ---' : '--- G10 FOREX STRENGTH MATRIX ---');
+      ['USD', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD', 'NZD', 'CHF', 'CNH'].forEach(ccy => {
+        const net = computedMatrix.totals[ccy] || 0;
+        const prev = globalState.matrixPrev[ccy] || 0;
+        const act = computedMatrix.events[ccy] || 0;
+        textLines.push(`${ccy}: Prior ${prev >= 0 ? '+' : ''}${prev} | Active ${act >= 0 ? '+' : ''}${act} | Net Total: ${net >= 0 ? '+' : ''}${net}`);
+      });
+      textLines.push('');
+      textLines.push(isEs ? '--- INTERMERCADO ---' : '--- INTERMARKET ---');
+      ['VIX', 'Oil', 'Gold'].forEach(asset => {
+        const net = (globalState.matrixTotals[asset] !== undefined) ? globalState.matrixTotals[asset] : (globalState.matrixPrev[asset] || 0) + (globalState.intermarketScores[asset] || 0);
+        textLines.push(`${asset}: Net Score ${net >= 0 ? '+' : ''}${net}`);
+      });
+
+      if (divergences.length > 0) {
+        textLines.push('');
+        textLines.push(isEs ? '--- DIVERGENCIAS DETECTADAS ---' : '--- DETECTED DIVERGENCES ---');
+        divergences.forEach(d => {
+          textLines.push(`${d.actionBadge} (Spread: +${d.diff}) [${d.strong}: +${d.strongScore} vs ${d.weak}: ${d.weakScore}]`);
+        });
+      }
+
+      navigator.clipboard.writeText(textLines.join('\n'));
+      setCopiedReportText(true);
+      showToast(isEs ? 'Resumen copiado al portapapeles.' : 'Summary copied to clipboard.', 'success');
+      setTimeout(() => setCopiedReportText(false), 2500);
+    } catch (err) {
+      console.error(err);
+      showToast(isEs ? 'Error al copiar al portapapeles.' : 'Failed to copy summary to clipboard.', 'error');
+    }
+  };
+
+  const handlePrintReport = () => {
+    try {
+      window.print();
+    } catch (err) {
+      console.warn('window.print() prevented, falling back to HTML download:', err);
+      handleDownloadHTMLReport();
+    }
   };
 
   // Process Spreadsheet Files (CSV, XLSX, XLS)
@@ -662,7 +1017,7 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
 
   const processSpreadsheetRows = (rawRows: any[][]) => {
     if (!rawRows || rawRows.length === 0) {
-      alert(isEs ? 'El archivo no contiene filas legibles.' : 'No readable data rows found in the file.');
+      showToast(isEs ? 'El archivo no contiene filas legibles.' : 'No readable data rows found in the file.', 'error');
       return;
     }
 
@@ -884,13 +1239,19 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
         daysData: filteredDaysData,
         categoryScores: {}
       }));
-      alert(isEs
-        ? `✅ ¡Carga exitosa! Se importaron ${totalEvents} eventos macroeconómicos distribuidos en ${dayCount} jornadas.`
-        : `✅ Upload successful! Imported ${totalEvents} macroeconomic events across ${dayCount} sessions.`);
+      showToast(
+        isEs
+          ? `✅ ¡Carga exitosa! Se importaron ${totalEvents} eventos macroeconómicos distribuidos en ${dayCount} jornadas.`
+          : `✅ Upload successful! Imported ${totalEvents} macroeconomic events across ${dayCount} sessions.`,
+        'success'
+      );
     } else {
-      alert(isEs
-        ? 'No se pudieron extraer eventos con formato macro. Verifica que el archivo provenga de Investing.com (.csv o .xlsx).'
-        : 'Could not extract macroeconomic events. Please ensure the file is from Investing.com (.csv or .xlsx).');
+      showToast(
+        isEs
+          ? 'No se pudieron extraer eventos con formato macro. Verifica que el archivo provenga de Investing.com (.csv o .xlsx).'
+          : 'Could not extract macroeconomic events. Please ensure the file is from Investing.com (.csv or .xlsx).',
+        'error'
+      );
     }
   };
 
@@ -906,7 +1267,7 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
           processSpreadsheetRows(results.data as any[][]);
         },
         error: (err) => {
-          alert((isEs ? 'Error al procesar archivo CSV: ' : 'Error parsing CSV file: ') + err.message);
+          showToast((isEs ? 'Error al procesar archivo CSV: ' : 'Error parsing CSV file: ') + err.message, 'error');
         }
       });
     } else {
@@ -921,9 +1282,12 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
           processSpreadsheetRows(json);
         } catch (err: any) {
           console.error('Excel parse error:', err);
-          alert(isEs
-            ? 'Error al procesar el archivo Excel. Verifica que sea un archivo válido (.xlsx o .xls).'
-            : 'Error parsing Excel spreadsheet. Please ensure it is a valid .xlsx or .xls file.');
+          showToast(
+            isEs
+              ? 'Error al procesar el archivo Excel. Verifica que sea un archivo válido (.xlsx o .xls).'
+              : 'Error parsing Excel spreadsheet. Please ensure it is a valid .xlsx or .xls file.',
+            'error'
+          );
         }
       };
       reader.readAsArrayBuffer(file);
@@ -1037,7 +1401,7 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
 
             <button
               type="button"
-              onClick={() => window.print()}
+              onClick={() => setIsReportModalOpen(true)}
               className="bg-cyan-500 hover:bg-cyan-400 text-black text-xs px-4 py-2 font-bold shadow-md transition cursor-pointer min-h-[36px] flex items-center"
             >
               {isEs ? 'Exportar PDF →' : 'Export PDF →'}
@@ -1675,6 +2039,117 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
         </div>
 
       </div>
+
+      {/* IN-APP CONFIRMATION MODAL (Reliable inside iframes & mobile) */}
+      {confirmModal?.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-[#0b0c10] border border-zinc-800 rounded-xl max-w-md w-full p-5 sm:p-6 shadow-2xl space-y-4 font-sans text-left">
+            <div className="flex items-center gap-3">
+              <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${confirmModal.confirmStyle === 'danger' ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'}`}>
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <h3 className="text-sm font-bold text-white tracking-wide">
+                {confirmModal.title}
+              </h3>
+            </div>
+            <p className="text-xs text-zinc-300 leading-relaxed whitespace-pre-line font-mono bg-[#050608] border border-zinc-800 p-3.5 rounded-lg">
+              {confirmModal.message}
+            </p>
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setConfirmModal(null)}
+                className="px-3.5 py-2 text-xs text-zinc-400 hover:text-white bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded transition cursor-pointer min-h-[36px]"
+              >
+                {confirmModal.cancelText}
+              </button>
+              <button
+                type="button"
+                onClick={confirmModal.onConfirm}
+                className={`px-4 py-2 text-xs font-bold rounded transition cursor-pointer min-h-[36px] ${
+                  confirmModal.confirmStyle === 'danger'
+                    ? 'bg-rose-600 hover:bg-rose-500 text-white'
+                    : 'bg-amber-500 hover:bg-amber-400 text-black'
+                }`}
+              >
+                {confirmModal.confirmText}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* IN-APP NOTIFICATION TOAST */}
+      {toast && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-lg shadow-2xl text-xs font-mono border backdrop-blur-md animate-in slide-in-from-bottom duration-300 bg-[#0c0d12]/95 border-cyan-500/50 text-cyan-200">
+          {toast.type === 'success' && <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />}
+          {toast.type === 'error' && <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />}
+          {toast.type === 'info' && <Info className="w-4 h-4 text-cyan-400 shrink-0" />}
+          <span className="leading-tight">{toast.message}</span>
+          <button
+            type="button"
+            onClick={() => setToast(null)}
+            className="ml-2 text-zinc-400 hover:text-white cursor-pointer"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
+      {/* WEEKLY MACRO RISK REPORT MODAL */}
+      {isReportModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-6 bg-black/90 backdrop-blur-md overflow-y-auto">
+          <div className="bg-[#0b0c10] border border-zinc-800 rounded-xl max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+            {/* Modal Header */}
+            <div className="p-4 border-b border-zinc-800 bg-[#07080c] flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <FileText className="w-4 h-4 text-cyan-400" />
+                <span className="text-xs font-bold text-white uppercase tracking-wider font-mono">
+                  {isEs ? 'Exportación de Reporte Semanal Macro (PDF / Impresión)' : 'Weekly Macro Risk Report Export (PDF / Print)'}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={handlePrintReport}
+                  className="px-3.5 py-1.5 bg-cyan-500 hover:bg-cyan-400 text-black text-xs font-bold rounded flex items-center gap-1.5 transition cursor-pointer shadow-sm min-h-[34px]"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  {isEs ? 'Imprimir / Guardar PDF' : 'Print / Save PDF'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDownloadHTMLReport}
+                  className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-xs rounded flex items-center gap-1.5 transition cursor-pointer min-h-[34px]"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  {isEs ? 'Descargar HTML' : 'Download HTML'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCopyReportText}
+                  className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-xs rounded flex items-center gap-1.5 transition cursor-pointer min-h-[34px]"
+                >
+                  {copiedReportText ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                  {isEs ? (copiedReportText ? 'Copiado' : 'Copiar Texto') : (copiedReportText ? 'Copied' : 'Copy Text')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsReportModalOpen(false)}
+                  className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded transition cursor-pointer ml-1"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Preview Body */}
+            <div className="p-4 sm:p-8 overflow-y-auto bg-white text-slate-900 font-sans text-xs flex-grow">
+              <div dangerouslySetInnerHTML={{ __html: generateReportHTML() }} />
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
