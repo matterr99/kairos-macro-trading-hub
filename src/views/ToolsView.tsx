@@ -1489,30 +1489,41 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
         <div className="max-w-7xl 2xl:max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 flex items-center gap-2 overflow-x-auto no-scrollbar touch-scroll font-mono text-xs">
           {[
             { id: 'all', label: t.tools.subTabs.all },
+            { id: 'quant-desk', label: 'QUANT DESK', href: 'tools/quant-desk.html' },
             { id: 'calendar-filter', label: t.tools.subTabs.calendarFilter, isPrimary: true },
             { id: 'currency-strength', label: t.tools.subTabs.currencyStrength },
             { id: 'volatility', label: t.tools.subTabs.volatility },
             { id: 'calculator', label: t.tools.subTabs.calculator },
             { id: 'central-banks', label: t.tools.subTabs.centralBanks },
             { id: 'consensus', label: t.tools.subTabs.consensus },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => handleTabSwitch(tab.id as ToolSubTab)}
-              className={`px-3.5 py-2 uppercase tracking-wider text-[11px] transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 shrink-0 min-h-[36px] ${
-                activeTab === tab.id
-                  ? 'bg-cyan-500 text-black font-bold shadow-[0_0_12px_rgba(6,182,212,0.4)]'
-                  : tab.isPrimary
-                  ? 'bg-cyan-950/40 text-cyan-300 border border-cyan-700/70 hover:border-cyan-400 hover:text-white font-semibold'
-                  : 'bg-[#0c0c12] text-zinc-400 border border-zinc-800 hover:text-white'
-              }`}
-            >
-              {tab.isPrimary && (
-                <span className="w-1.5 h-1.5 bg-cyan-400 animate-ping"></span>
-              )}
-              {tab.label}
-            </button>
-          ))}
+          ].map((tab) =>
+            tab.href ? (
+              <a
+                key={tab.id}
+                href={tab.href}
+                className="px-3.5 py-2 uppercase tracking-wider text-[11px] transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 shrink-0 min-h-[36px] bg-[#0c0c12] text-zinc-400 border border-zinc-800 hover:text-white"
+              >
+                {tab.label}
+              </a>
+            ) : (
+              <button
+                key={tab.id}
+                onClick={() => handleTabSwitch(tab.id as ToolSubTab)}
+                className={`px-3.5 py-2 uppercase tracking-wider text-[11px] transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 shrink-0 min-h-[36px] ${
+                  activeTab === tab.id
+                    ? 'bg-cyan-500 text-black font-bold shadow-[0_0_12px_rgba(6,182,212,0.4)]'
+                    : tab.isPrimary
+                    ? 'bg-cyan-950/40 text-cyan-300 border border-cyan-700/70 hover:border-cyan-400 hover:text-white font-semibold'
+                    : 'bg-[#0c0c12] text-zinc-400 border border-zinc-800 hover:text-white'
+                }`}
+              >
+                {tab.isPrimary && (
+                  <span className="w-1.5 h-1.5 bg-cyan-400 animate-ping"></span>
+                )}
+                {tab.label}
+              </button>
+            )
+          )}
         </div>
       </div>
 
