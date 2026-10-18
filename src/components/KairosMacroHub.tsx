@@ -760,8 +760,8 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
         events.forEach((item, idx) => {
           currentBlock.push(item);
           const nextItem = events[idx + 1];
-          const currentCategory = getCategorySentimentTitle(item.ccy, item.event);
-          const nextCategory = nextItem ? getCategorySentimentTitle(nextItem.ccy, nextItem.event) : null;
+          const currentCategory = getCategorySentimentTitle(item.ccy, item.event, isEs);
+          const nextCategory = nextItem ? getCategorySentimentTitle(nextItem.ccy, nextItem.event, isEs) : null;
 
           const isCore = item.isCore;
           rowsHtml += `

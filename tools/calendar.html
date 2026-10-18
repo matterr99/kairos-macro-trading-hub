@@ -22,14 +22,23 @@
       overflow-x: hidden !important;
     }
 
-    /* 2. Safe Horizontal Scrolling for Tables */
+    /* 2. Safe Horizontal Scrolling for Tables (Mobile Only) */
     .table-touch-wrapper,
     .overflow-x-auto {
       overflow-x: auto !important;
-      overflow-y: hidden !important;
+      overflow-y: visible !important;
       -webkit-overflow-scrolling: touch !important;
       width: 100%;
-      touch-action: pan-y !important; /* Tells iOS to pass vertical swipes directly to the body */
+      touch-action: auto !important; 
+    }
+
+    /* Destroy the iOS scroll trap completely on iPad and desktop screens */
+    @media (min-width: 768px) {
+      .table-touch-wrapper,
+      .overflow-x-auto {
+        overflow-x: visible !important;
+        overflow: visible !important;
+      }
     }
 
     ::-webkit-scrollbar { width: 6px; height: 6px; }
