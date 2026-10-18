@@ -621,14 +621,13 @@
 
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.style.display = 'none';
+        a.style.position = 'fixed';
+        a.style.top = '-9999px';
+        a.style.left = '-9999px';
+        a.style.opacity = '0';
         a.href = url;
         a.download = fileName;
         a.setAttribute('download', fileName);
-
-        if (typeof a.download === 'undefined') {
-          a.target = '_blank';
-        }
 
         document.body.appendChild(a);
         a.click();

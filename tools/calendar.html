@@ -10,90 +10,90 @@
   
   <!-- External stylesheet link -->
   <link rel="stylesheet" href="../css/styles.css">
-  <style>
-    /* 1. Reset and clean base */
-    html, body {
-      background-color: #030305;
-      color: #d4d4d8;
-      margin: 0;
-      padding: 0;
-      width: 100%;
-      overflow-x: hidden;
-    }
+<style>
+/* 1. Reset and clean base */
+html, body {
+background-color: #030305;
+color: #d4d4d8;
+margin: 0;
+padding: 0;
+width: 100%;
+overflow-x: hidden;
+}
 
-    /* 2. Isolate scrolling ONLY to the horizontal table wrappers */
-    .table-touch-wrapper,
-    .overflow-x-auto {
-      overflow-x: auto !important;
-      -webkit-overflow-scrolling: touch !important;
-      touch-action: auto !important;
-    }
+/* 2. Isolate scrolling ONLY to the horizontal table wrappers */
+.table-touch-wrapper,
+.overflow-x-auto {
+overflow-x: auto !important;
+-webkit-overflow-scrolling: touch !important;
+touch-action: auto !important;
+}
 
-    /* 3. On desktop, disable the horizontal overflow entirely to prevent sub-scrolling */
-    @media (min-width: 768px) {
-      .table-touch-wrapper,
-      .overflow-x-auto {
-        overflow-x: visible !important;
-      }
-    }
+/* 3. On desktop, disable the horizontal overflow entirely to prevent sub-scrolling */
+@media (min-width: 768px) {
+.table-touch-wrapper,
+.overflow-x-auto {
+overflow-x: visible !important;
+}
+}
 
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: #030305; }
-    ::-webkit-scrollbar-thumb { background: #18181b; border-radius: 3px; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #030305; }
+::-webkit-scrollbar-thumb { background: #18181b; border-radius: 3px; }
 
-    /* ESTILOS DE IMPRESIÓN RIGUROSOS */
-    @media screen { #outputContainer { display: none !important; } }
-    @media print {
-      .no-print { display: none !important; }
-      body, html { background: white !important; color: black !important; padding: 0 !important; margin: 0 !important; }
-      #outputContainer { display: block !important; width: 100% !important; background: white !important; color: black !important; }
-      .page-break { page-break-before: always; }
-      table, tr, .report-card, .day-card { break-inside: avoid !important; page-break-inside: avoid !important; }
-      * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-    }
+/* ESTILOS DE IMPRESIÓN RIGUROSOS */
+@media screen { #outputContainer { display: none !important; } }
+@media print {
+.no-print { display: none !important; }
+body, html { background: white !important; color: black !important; padding: 0 !important; margin: 0 !important; }
+#outputContainer { display: block !important; width: 100% !important; background: white !important; color: black !important; }
+.page-break { page-break-before: always; }
+table, tr, .report-card, .day-card { break-inside: avoid !important; page-break-inside: avoid !important; }
+* { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+}
 
-    .badge-USD { background-color: #D9E1F2; color: #1E293B; }
-    .badge-EUR { background-color: #FFF2CC; color: #1E293B; }
-    .badge-GBP { background-color: #E2EFDA; color: #1E293B; }
-    .badge-JPY { background-color: #FCE4D6; color: #1E293B; }
-    .badge-CAD { background-color: #E1D5E7; color: #1E293B; }
-    .badge-AUD { background-color: #D5E8D4; color: #1E293B; }
-    .badge-NZD { background-color: #DAE8FC; color: #1E293B; }
-    .badge-CHF { background-color: #F8CECC; color: #1E293B; }
-    .badge-CNH, .badge-CNY { background-color: #FFE6CC; color: #1E293B; }
-    .badge-DEFAULT { background-color: #E2E8F0; color: #1E293B; }
+.badge-USD { background-color: #D9E1F2; color: #1E293B; }
+.badge-EUR { background-color: #FFF2CC; color: #1E293B; }
+.badge-GBP { background-color: #E2EFDA; color: #1E293B; }
+.badge-JPY { background-color: #FCE4D6; color: #1E293B; }
+.badge-CAD { background-color: #E1D5E7; color: #1E293B; }
+.badge-AUD { background-color: #D5E8D4; color: #1E293B; }
+.badge-NZD { background-color: #DAE8FC; color: #1E293B; }
+.badge-CHF { background-color: #F8CECC; color: #1E293B; }
+.badge-CNH, .badge-CNY { background-color: #FFE6CC; color: #1E293B; }
+.badge-DEFAULT { background-color: #E2E8F0; color: #1E293B; }
 
-    .core-row-highlight {
-      background: linear-gradient(90deg, rgba(245, 158, 11, 0.14) 0%, rgba(6, 182, 212, 0.08) 100%) !important;
-      border-left: 3px solid #f59e0b !important;
-    }
+.core-row-highlight {
+background: linear-gradient(90deg, rgba(245, 158, 11, 0.14) 0%, rgba(6, 182, 212, 0.08) 100%) !important;
+border-left: 3px solid #f59e0b !important;
+}
 
-    .score-btn {
-      width: 2rem !important;
-      height: 1.5rem !important;
-      display: inline-flex !important;
-      align-items: center !important;
-      justify-content: center !important;
-      box-sizing: border-box !important;
-      flex-shrink: 0 !important;
-      font-weight: 700 !important;
-      touch-action: manipulation !important;
-      -webkit-user-select: none;
-      user-select: none;
-    }
+.score-btn {
+width: 2rem !important;
+height: 1.5rem !important;
+display: inline-flex !important;
+align-items: center !important;
+justify-content: center !important;
+box-sizing: border-box !important;
+flex-shrink: 0 !important;
+font-weight: 700 !important;
+touch-action: manipulation !important;
+-webkit-user-select: none;
+user-select: none;
+}
 
-    .score-btn-active-p2 { background-color: #059669 !important; color: white !important; border-color: #10b981 !important; }
-    .score-btn-active-p1 { background-color: #10b981 !important; color: white !important; border-color: #34d399 !important; }
-    .score-btn-active-0  { background-color: #3f3f46 !important; color: white !important; border-color: #71717a !important; }
-    .score-btn-active-m1 { background-color: #f43f5e !important; color: white !important; border-color: #fb7185 !important; }
-    .score-btn-active-m2 { background-color: #be123c !important; color: white !important; border-color: #e11d48 !important; }
+.score-btn-active-p2 { background-color: #059669 !important; color: white !important; border-color: #10b981 !important; }
+.score-btn-active-p1 { background-color: #10b981 !important; color: white !important; border-color: #34d399 !important; }
+.score-btn-active-0 { background-color: #3f3f46 !important; color: white !important; border-color: #71717a !important; }
+.score-btn-active-m1 { background-color: #f43f5e !important; color: white !important; border-color: #fb7185 !important; }
+.score-btn-active-m2 { background-color: #be123c !important; color: white !important; border-color: #e11d48 !important; }
 
-    .score-scale-strong-bullish { background-color: rgba(16, 185, 129, 0.15) !important; color: #34d399 !important; border: 1px solid rgba(16, 185, 129, 0.4) !important; }
-    .score-scale-bullish { background-color: rgba(234, 179, 8, 0.15) !important; color: #facc15 !important; border: 1px solid rgba(234, 179, 8, 0.4) !important; }
-    .score-scale-neutral { background-color: rgba(63, 63, 70, 0.3) !important; color: #a1a1aa !important; border: 1px solid rgba(113, 113, 122, 0.3) !important; }
-    .score-scale-bearish { background-color: rgba(249, 115, 22, 0.15) !important; color: #fb923c !important; border: 1px solid rgba(249, 115, 22, 0.4) !important; }
-    .score-scale-strong-bearish { background-color: rgba(225, 29, 72, 0.15) !important; color: #fb7185 !important; border: 1px solid rgba(225, 29, 72, 0.4) !important; }
-  </style>
+.score-scale-strong-bullish { background-color: rgba(16, 185, 129, 0.15) !important; color: #34d399 !important; border: 1px solid rgba(16, 185, 129, 0.4) !important; }
+.score-scale-bullish { background-color: rgba(234, 179, 8, 0.15) !important; color: #facc15 !important; border: 1px solid rgba(234, 179, 8, 0.4) !important; }
+.score-scale-neutral { background-color: rgba(63, 63, 70, 0.3) !important; color: #a1a1aa !important; border: 1px solid rgba(113, 113, 122, 0.3) !important; }
+.score-scale-bearish { background-color: rgba(249, 115, 22, 0.15) !important; color: #fb923c !important; border: 1px solid rgba(249, 115, 22, 0.4) !important; }
+.score-scale-strong-bearish { background-color: rgba(225, 29, 72, 0.15) !important; color: #fb7185 !important; border: 1px solid rgba(225, 29, 72, 0.4) !important; }
+</style>
 </head>
 <body class="bg-[#020203] text-zinc-300 font-sans antialiased min-h-screen flex flex-col justify-between">
 
@@ -604,14 +604,13 @@
 
         const url = URL.createObjectURL(blob);
         const downloadAnchor = document.createElement('a');
-        downloadAnchor.style.display = 'none';
+        downloadAnchor.style.position = 'fixed';
+        downloadAnchor.style.top = '-9999px';
+        downloadAnchor.style.left = '-9999px';
+        downloadAnchor.style.opacity = '0';
         downloadAnchor.href = url;
         downloadAnchor.download = fileName;
         downloadAnchor.setAttribute('download', fileName);
-
-        if (typeof downloadAnchor.download === 'undefined') {
-          downloadAnchor.target = '_blank';
-        }
 
         document.body.appendChild(downloadAnchor);
         downloadAnchor.click();

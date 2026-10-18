@@ -560,18 +560,31 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
         matrixEvents: computedMatrix.events,
         matrixTotals: computedMatrix.totals
       };
-      const dataStr = JSON.stringify(fullState, null, 2);
-      const blob = new Blob([dataStr], { type: 'application/json' });
+      const cleanState = JSON.parse(JSON.stringify(fullState));
+      const dataStr = JSON.stringify(cleanState, null, 2);
+      const fileName = `kairos_macro_hub_backup_${new Date().toISOString().slice(0, 10)}.json`;
+      const blob = new Blob([dataStr], { type: 'application/json;charset=utf-8;' });
+
+      if ((window.navigator as any)?.msSaveOrOpenBlob) {
+        (window.navigator as any).msSaveOrOpenBlob(blob, fileName);
+        return;
+      }
+
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
+      a.style.position = 'fixed';
+      a.style.top = '-9999px';
+      a.style.left = '-9999px';
+      a.style.opacity = '0';
       a.href = url;
-      a.download = `kairos_macro_hub_backup_${new Date().toISOString().slice(0, 10)}.json`;
+      a.download = fileName;
+      a.setAttribute('download', fileName);
       document.body.appendChild(a);
       a.click();
       setTimeout(() => {
         if (document.body.contains(a)) document.body.removeChild(a);
         URL.revokeObjectURL(url);
-      }, 2000);
+      }, 1500);
     } catch (err) {
       console.error(err);
       alert(isEs ? 'Error al exportar el archivo JSON.' : 'Error exporting JSON backup file.');
@@ -625,6 +638,7 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
       }
     };
     reader.readAsText(file);
+    e.target.value = '';
   };
 
   // Process Spreadsheet Files (CSV, XLSX, XLS)

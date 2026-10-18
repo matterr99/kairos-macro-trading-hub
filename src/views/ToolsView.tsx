@@ -395,36 +395,77 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
   };
 
   const handleExportData = () => {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(currencyIndicators, null, 2));
-    const downloadAnchor = document.createElement('a');
-    downloadAnchor.setAttribute("href", dataStr);
-    downloadAnchor.setAttribute("download", `kairos_macro_valuation_data_${new Date().toISOString().split('T')[0]}.json`);
-    document.body.appendChild(downloadAnchor);
-    downloadAnchor.click();
-    downloadAnchor.remove();
-  };
+    try {
+      const cleanData = JSON.parse(JSON.stringify(currencyIndicators));
+      const jsonStr = JSON.stringify(cleanData, null, 2);
+      const fileName = `kairos_macro_valuation_data_${new Date().toISOString().split('T')[0]}.json`;
+      const blob = new Blob([jsonStr], { type: "application/json;charset=utf-8;" });
 
-  const handleImportData = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const fileReader = new FileReader();
-    if (e.target.files && e.target.files[0]) {
-      fileReader.readAsText(e.target.files[0], "UTF-8");
-      fileReader.onload = (event) => {
-        try {
-          const parsed = JSON.parse(event.target?.result as string);
-          if (parsed && typeof parsed === 'object') {
-            setCurrencyIndicators(parsed);
-            alert("Macro Valuation Data Imported Successfully.");
-          }
-        } catch (err) {
-          alert("Invalid JSON data file format.");
-        }
-      };
+      if ((window.navigator as any)?.msSaveOrOpenBlob) {
+        (window.navigator as any).msSaveOrOpenBlob(blob, fileName);
+        return;
+      }
+
+      const url = URL.createObjectURL(blob);
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.style.position = 'fixed';
+      downloadAnchor.style.top = '-9999px';
+      downloadAnchor.style.left = '-9999px';
+      downloadAnchor.style.opacity = '0';
+      downloadAnchor.href = url;
+      downloadAnchor.download = fileName;
+      downloadAnchor.setAttribute("download", fileName);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      setTimeout(() => {
+        if (document.body.contains(downloadAnchor)) document.body.removeChild(downloadAnchor);
+        URL.revokeObjectURL(url);
+      }, 1500);
+    } catch (err) {
+      console.error("Valuation export error:", err);
+      alert(language === 'es' ? "Error al exportar los datos de valoración." : "Failed to export valuation backup data.");
     }
   };
 
+  const handleImportData = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const fileReader = new FileReader();
+    fileReader.onload = (event) => {
+      try {
+        const parsed = JSON.parse(event.target?.result as string);
+        if (parsed && typeof parsed === 'object') {
+          const cleanParsed = JSON.parse(JSON.stringify(parsed));
+          setCurrencyIndicators(cleanParsed);
+          try {
+            localStorage.setItem('forex_dashboard_data_v2', JSON.stringify(cleanParsed));
+          } catch {}
+          alert(language === 'es' ? "¡Copia de seguridad de valoración importada con éxito!" : "Macro Valuation Data Imported Successfully.");
+        } else {
+          alert(language === 'es' ? "Formato de archivo JSON inválido." : "Invalid JSON data file format.");
+        }
+      } catch (err) {
+        alert(language === 'es' ? "Formato de archivo JSON inválido." : "Invalid JSON data file format.");
+      } finally {
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        e.target.value = '';
+      }
+    };
+    fileReader.readAsText(file, "UTF-8");
+  };
+
   const handleResetData = () => {
-    if (confirm("Reset all valuation dashboard inputs to default baseline?")) {
-      setCurrencyIndicators(DEFAULT_CURRENCY_INDICATORS);
+    const confirmMsg = language === 'es'
+      ? "¿Restablecer todos los datos del panel de valoración a los valores iniciales?"
+      : "Reset all valuation dashboard inputs to default baseline?";
+    if (confirm(confirmMsg)) {
+      const cleanDefaults = JSON.parse(JSON.stringify(DEFAULT_CURRENCY_INDICATORS));
+      setCurrencyIndicators(cleanDefaults);
+      try {
+        localStorage.removeItem('forex_dashboard_data_v2');
+      } catch {}
+      alert(language === 'es' ? "Datos de valoración restablecidos a los valores predeterminados." : "Valuation data reset to baseline defaults.");
     }
   };
 
@@ -1046,15 +1087,36 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
 
   // --- Central Bank Export / Import ---
   const handleExportBankBackup = () => {
-    const jsonStr = JSON.stringify(ratesData, null, 2);
-    const blob = new Blob([jsonStr], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `central_bank_rates_backup_${new Date().toISOString().slice(0, 10)}.json`;
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
+    try {
+      const cleanData = JSON.parse(JSON.stringify(ratesData));
+      const jsonStr = JSON.stringify(cleanData, null, 2);
+      const fileName = `central_bank_rates_backup_${new Date().toISOString().slice(0, 10)}.json`;
+      const blob = new Blob([jsonStr], { type: "application/json;charset=utf-8;" });
+
+      if ((window.navigator as any)?.msSaveOrOpenBlob) {
+        (window.navigator as any).msSaveOrOpenBlob(blob, fileName);
+        return;
+      }
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.position = 'fixed';
+      a.style.top = '-9999px';
+      a.style.left = '-9999px';
+      a.style.opacity = '0';
+      a.href = url;
+      a.download = fileName;
+      a.setAttribute('download', fileName);
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        if (document.body.contains(a)) document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 1500);
+    } catch (err) {
+      console.error("Central bank export error:", err);
+      alert(language === 'es' ? "Error al exportar los datos del banco central." : "Failed to export Central Bank rates backup.");
+    }
   };
 
   const handleImportBankBackup = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1065,21 +1127,35 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
       try {
         const imported = JSON.parse(evt.target?.result as string);
         if (imported && typeof imported === 'object') {
-          setRatesData(imported);
-          alert("Central Bank rates backup restored successfully!");
+          const cleanImported = JSON.parse(JSON.stringify(imported));
+          setRatesData(cleanImported);
+          try {
+            localStorage.setItem('central_bank_terminal_v2', JSON.stringify(cleanImported));
+          } catch {}
+          alert(language === 'es' ? "¡Copia de seguridad de tasas del Banco Central restaurada con éxito!" : "Central Bank rates backup restored successfully!");
+        } else {
+          alert(language === 'es' ? "Archivo JSON de copia de seguridad inválido." : "Invalid backup JSON file.");
         }
       } catch {
-        alert("Invalid backup JSON file.");
+        alert(language === 'es' ? "Archivo JSON de copia de seguridad inválido." : "Invalid backup JSON file.");
+      } finally {
+        e.target.value = '';
       }
     };
-    reader.readAsText(file);
-    e.target.value = '';
+    reader.readAsText(file, "UTF-8");
   };
 
   const handleResetBankDefaults = () => {
-    if (confirm("Reset Central Bank rates to baseline defaults?")) {
-      setRatesData(DEFAULT_RATES_DATA);
-      try { localStorage.removeItem('central_bank_terminal_v2'); } catch {}
+    const confirmMsg = language === 'es'
+      ? "¿Restablecer las tasas del Banco Central a los valores predeterminados?"
+      : "Reset Central Bank rates to baseline defaults?";
+    if (confirm(confirmMsg)) {
+      const cleanDefaults = JSON.parse(JSON.stringify(DEFAULT_RATES_DATA));
+      setRatesData(cleanDefaults);
+      try {
+        localStorage.removeItem('central_bank_terminal_v2');
+      } catch {}
+      alert(language === 'es' ? "Tasas del Banco Central restablecidas a los valores predeterminados." : "Central Bank rates reset to defaults.");
     }
   };
 
