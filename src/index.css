@@ -47,10 +47,29 @@ body {
   background: #27272a;
 }
 
-/* Touch-friendly momentum scrolling for tables and tab bars on iPad & iOS */
+/* 2. Safe Horizontal Scrolling for Tables (Mobile Only) */
+.table-touch-wrapper,
+.overflow-x-auto,
 .touch-scroll {
-  -webkit-overflow-scrolling: touch;
-  touch-action: pan-x;
+  overflow-x: auto !important;
+  overflow-y: visible !important;
+  -webkit-overflow-scrolling: touch !important;
+  width: 100%;
+  touch-action: auto !important; 
+}
+
+/* Destroy the iOS scroll trap completely on iPad and desktop screens */
+@media (min-width: 768px) {
+  .table-touch-wrapper,
+  .overflow-x-auto,
+  .touch-scroll {
+    overflow-x: visible !important;
+    overflow-y: visible !important;
+    overflow: visible !important;
+    -webkit-overflow-scrolling: auto !important; /* Kills the zombie iOS hardware layer */
+    touch-action: pan-y !important; /* Forces vertical touch bubbling */
+    overscroll-behavior: auto !important;
+  }
 }
 
 .no-scrollbar::-webkit-scrollbar {

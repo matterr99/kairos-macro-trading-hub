@@ -37,7 +37,11 @@
       .table-touch-wrapper,
       .overflow-x-auto {
         overflow-x: visible !important;
+        overflow-y: visible !important;
         overflow: visible !important;
+        -webkit-overflow-scrolling: auto !important; /* Kills the zombie iOS hardware layer */
+        touch-action: pan-y !important; /* Forces vertical touch bubbling */
+        overscroll-behavior: auto !important;
       }
     }
 

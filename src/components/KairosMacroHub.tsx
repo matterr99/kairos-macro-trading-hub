@@ -1672,7 +1672,7 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
 
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 2xl:gap-8">
             {/* Section A: Forex Core */}
-            <div className="overflow-x-auto touch-scroll bg-[#05060a] p-3.5 sm:p-4 border border-zinc-800/80">
+            <div className="table-touch-wrapper overflow-x-auto touch-scroll bg-[#05060a] p-3.5 sm:p-4 border border-zinc-800/80">
               <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-wider block mb-2.5 font-mono">
                 {isEs ? '// SECCIÓN A: DIVISAS FOREX CORE' : '// SECTION A: G10 CORE FOREX'}
               </span>
@@ -1721,7 +1721,7 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
             </div>
 
             {/* Section B: Commodities & Cross-Asset Risk */}
-            <div className="overflow-x-auto touch-scroll bg-[#05060a] p-3.5 sm:p-4 border border-zinc-800/80">
+            <div className="table-touch-wrapper overflow-x-auto touch-scroll bg-[#05060a] p-3.5 sm:p-4 border border-zinc-800/80">
               <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-wider block mb-2.5 font-mono">
                 {isEs ? '// SECCIÓN B: MATERIAS PRIMAS Y RIESGO' : '// SECTION B: COMMODITIES & CROSS-ASSET RISK'}
               </span>
@@ -1912,7 +1912,7 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
                 </div>
 
                 {/* Day Table with touch scroll */}
-                <div className="px-3 sm:px-4 overflow-x-auto touch-scroll">
+                <div className="table-touch-wrapper px-3 sm:px-4 overflow-x-auto touch-scroll">
                   <table className="w-full text-left text-xs font-mono border-collapse table-fixed min-w-[620px]">
                     <thead>
                       <tr className="text-zinc-500 text-[10px] border-b border-zinc-800 uppercase tracking-wider">
