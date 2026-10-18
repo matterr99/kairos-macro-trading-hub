@@ -1,0 +1,1499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kairos Global // Fundamental Valuation & Sentiment Dashboard</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- PapaParse for CSV & TSV parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <!-- SheetJS for Excel parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/styles.css">
+    <style>
+        html, body {
+            background-color: #020203;
+            color: #d4d4d8;
+            font-family: 'Inter', system-ui, sans-serif;
+            overflow-y: auto !important;
+            height: auto !important;
+            min-height: 100vh;
+            -webkit-overflow-scrolling: touch !important;
+            touch-action: pan-y !important;
+        }
+        .bg-card { background-color: #040406; }
+        .bg-card-hover:hover { background-color: #09090e; }
+        .border-dark { border-color: #18181b; }
+        .bar-long { background-color: #06b6d4; }
+        .bar-short { background-color: #f43f5e; }
+        
+        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        ::-webkit-calendar-picker-indicator { filter: invert(1); opacity: 0.3; cursor: pointer; }
+    </style>
+</head>
+<body class="bg-[#020203] text-zinc-300 antialiased min-h-screen flex flex-col justify-between selection:bg-cyan-900 selection:text-cyan-100">
+
+    <!-- 1. DYNAMIC HEADER CONTAINER -->
+    <div id="global-header"></div>
+
+    <!-- 2. TICKER TAPE -->
+    <div class="w-full bg-[#020203] border-b border-zinc-900 overflow-hidden h-[46px] flex items-center shrink-0">
+        <div class="flex items-center gap-6 overflow-x-auto w-full px-4 sm:px-6 font-mono text-xs select-none">
+            <span class="text-cyan-500 font-bold uppercase tracking-widest text-[9px] shrink-0 border-r border-zinc-800 pr-3 flex items-center gap-1.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
+                // LIVE TICKER
+            </span>
+            <div class="flex items-center gap-8 flex-nowrap min-w-max">
+                <div class="flex items-center gap-2"><span class="text-zinc-300 font-bold">EUR/USD</span><span class="text-zinc-400">1.0845</span><span class="text-emerald-400 font-bold">+0.12%</span></div>
+                <div class="flex items-center gap-2"><span class="text-zinc-300 font-bold">GBP/USD</span><span class="text-zinc-400">1.2982</span><span class="text-rose-400 font-bold">-0.08%</span></div>
+                <div class="flex items-center gap-2"><span class="text-zinc-300 font-bold">USD/JPY</span><span class="text-zinc-400">154.22</span><span class="text-emerald-400 font-bold">+0.35%</span></div>
+                <div class="flex items-center gap-2"><span class="text-zinc-300 font-bold">USD/CAD</span><span class="text-zinc-400">1.3615</span><span class="text-rose-400 font-bold">-0.15%</span></div>
+                <div class="flex items-center gap-2"><span class="text-zinc-300 font-bold">XAU/USD</span><span class="text-zinc-400">2684.50</span><span class="text-emerald-400 font-bold">+0.88%</span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. HERO / HEADER SECTION -->
+    <section class="relative w-full py-10 sm:py-12 border-b border-zinc-800 bg-[#101626]">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row md:items-end justify-between gap-6 font-mono">
+            <div class="space-y-3">
+                <a href="../tools.html" class="inline-flex items-center gap-2 text-xs text-zinc-400 hover:text-cyan-400 transition-colors uppercase">
+                    &larr; Return to Tools Hub
+                </a>
+                <div class="flex items-center gap-3">
+                    <span class="text-cyan-400 font-bold text-[10px] tracking-widest uppercase">// VALUATION DESK_V2</span>
+                    <span class="text-zinc-600">|</span>
+                    <span class="text-emerald-400 font-bold text-[10px] tracking-wider uppercase">8 CURRENCY LEGS</span>
+                </div>
+                <h1 class="text-2xl sm:text-4xl font-black text-white uppercase tracking-tight">
+                    Fundamental Valuation & Currency Strength
+                </h1>
+                <p class="text-xs sm:text-sm text-zinc-300 font-sans max-w-2xl font-light leading-relaxed">
+                    Calculates economic indicator net changes, relative valuation matrices, and cross-pair directional bias ratios. Supports automated ingestion of Investing.com tables.
+                </p>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex items-center gap-2 flex-wrap font-mono text-xs">
+                <button onclick="exportData()" class="px-3 py-1.5 text-[10px] uppercase tracking-wider bg-cyan-950/40 hover:bg-cyan-900/60 text-cyan-400 rounded-sm border border-cyan-900/60 transition cursor-pointer">
+                    <i class="fa-solid fa-download mr-1"></i> Export Backup
+                </button>
+                <button onclick="triggerImport()" class="px-3 py-1.5 text-[10px] uppercase tracking-wider bg-[#0c0c12] hover:bg-zinc-900 text-zinc-300 rounded-sm border border-zinc-800 transition cursor-pointer">
+                    <i class="fa-solid fa-upload mr-1"></i> Import Backup
+                </button>
+                <input type="file" id="jsonFileInput" accept=".json,application/json" class="hidden" onchange="importData(event)">
+                
+                <!-- Investing.com File Upload Button & Hidden Input -->
+                <button onclick="document.getElementById('investingFileInput').click()" class="px-3 py-1.5 text-[10px] uppercase tracking-wider bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-400 rounded-sm border border-emerald-900/60 transition cursor-pointer">
+                    <i class="fa-solid fa-file-import mr-1"></i> Import Investing.com
+                </button>
+                <input type="file" id="investingFileInput" accept=".csv, .xlsx, .xls, .tsv, .txt" class="hidden" onchange="handleInvestingUpload(event)">
+
+                <!-- Paste Raw Table Button -->
+                <button onclick="openPasteModal()" class="px-3 py-1.5 text-[10px] uppercase tracking-wider bg-purple-950/40 hover:bg-purple-900/60 text-purple-300 rounded-sm border border-purple-800/60 transition cursor-pointer">
+                    <i class="fa-solid fa-paste mr-1"></i> Paste Table
+                </button>
+
+                <button onclick="resetToDefaults()" class="px-3 py-1.5 text-[10px] uppercase tracking-wider bg-[#0c0c12] hover:bg-zinc-900 text-rose-400 rounded-sm border border-zinc-800 transition cursor-pointer">
+                    <i class="fa-solid fa-rotate-left mr-1"></i> Reset
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- 4. MAIN CONTENT WRAPPER -->
+    <main class="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-6">
+        
+        <!-- Dedicated Valuation Drop Zone -->
+        <div id="valuationDropZone" onclick="document.getElementById('investingFileInput').click()" class="bg-[#040406] border border-dashed border-zinc-800 hover:border-cyan-500/60 rounded-xl p-5 sm:p-6 text-center transition-all cursor-pointer group select-none">
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-4 max-w-4xl mx-auto">
+                <div class="flex items-center gap-3.5 text-left">
+                    <div class="w-10 h-10 rounded-lg bg-cyan-950/80 border border-cyan-500/40 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                        <i class="fa-solid fa-file-excel text-cyan-400 text-lg"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-white text-xs sm:text-sm font-bold uppercase tracking-wider">
+                                Load Indicators Excel / CSV Table
+                            </span>
+                            <span class="px-1.5 py-0.5 bg-emerald-950/80 text-emerald-400 border border-emerald-800/60 text-[9px] font-bold uppercase">
+                                Auto-Detect
+                            </span>
+                        </div>
+                        <p class="text-[11px] text-zinc-400 font-sans mt-0.5">
+                            Drag & drop or click to upload Investing.com export (.xlsx, .xls, .csv). You can also press Ctrl+V anywhere to paste.
+                        </p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 shrink-0 font-mono">
+                    <span class="px-2.5 py-1 bg-zinc-900 border border-zinc-700/80 text-[10px] text-zinc-300 font-bold uppercase">.XLSX</span>
+                    <span class="px-2.5 py-1 bg-zinc-900 border border-zinc-700/80 text-[10px] text-zinc-300 font-bold uppercase">.XLS</span>
+                    <span class="px-2.5 py-1 bg-zinc-900 border border-zinc-700/80 text-[10px] text-zinc-300 font-bold uppercase">.CSV</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Currency Summary Score Cards -->
+        <div id="currencySummary" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 font-mono"></div>
+
+        <!-- CURRENCY STRENGTH BAR CHART -->
+        <div class="bg-card rounded-sm border border-zinc-900 p-5 shadow-2xl">
+            <div class="flex justify-between items-center mb-3 border-b border-zinc-900 pb-3 font-mono">
+                <h3 class="text-xs font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-2">
+                    <i class="fa-solid fa-chart-column text-cyan-500"></i> Valuation Ranking Matrix
+                </h3>
+                <span id="lastUpdatedNotice" class="text-[10px] text-zinc-500 uppercase tracking-widest">Data Status: Ready</span>
+            </div>
+            <div class="h-44 w-full mt-4">
+                <canvas id="currencyBarChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="flex flex-wrap gap-1 border-b border-zinc-900 font-mono text-xs mt-8">
+            <button onclick="switchTab('dashboard')" id="tab-dashboard" class="tab-btn px-4 py-2 rounded-t font-semibold transition text-cyan-400 border-t-2 border-cyan-500 bg-[#09090e] cursor-pointer">
+                <i class="fa-solid fa-sliders mr-2"></i> Cross Pairs (28)
+            </button>
+            <button onclick="switchTab('USD')" id="tab-USD" class="tab-btn px-4 py-2 rounded-t font-semibold transition text-zinc-500 hover:text-zinc-300 bg-card cursor-pointer border-t-2 border-transparent">USD</button>
+            <button onclick="switchTab('EUR')" id="tab-EUR" class="tab-btn px-4 py-2 rounded-t font-semibold transition text-zinc-500 hover:text-zinc-300 bg-card cursor-pointer border-t-2 border-transparent">EUR</button>
+            <button onclick="switchTab('GBP')" id="tab-GBP" class="tab-btn px-4 py-2 rounded-t font-semibold transition text-zinc-500 hover:text-zinc-300 bg-card cursor-pointer border-t-2 border-transparent">GBP</button>
+            <button onclick="switchTab('JPY')" id="tab-JPY" class="tab-btn px-4 py-2 rounded-t font-semibold transition text-zinc-500 hover:text-zinc-300 bg-card cursor-pointer border-t-2 border-transparent">JPY</button>
+            <button onclick="switchTab('AUD')" id="tab-AUD" class="tab-btn px-4 py-2 rounded-t font-semibold transition text-zinc-500 hover:text-zinc-300 bg-card cursor-pointer border-t-2 border-transparent">AUD</button>
+            <button onclick="switchTab('NZD')" id="tab-NZD" class="tab-btn px-4 py-2 rounded-t font-semibold transition text-zinc-500 hover:text-zinc-300 bg-card cursor-pointer border-t-2 border-transparent">NZD</button>
+            <button onclick="switchTab('CAD')" id="tab-CAD" class="tab-btn px-4 py-2 rounded-t font-semibold transition text-zinc-500 hover:text-zinc-300 bg-card cursor-pointer border-t-2 border-transparent">CAD</button>
+            <button onclick="switchTab('CHF')" id="tab-CHF" class="tab-btn px-4 py-2 rounded-t font-semibold transition text-zinc-500 hover:text-zinc-300 bg-card cursor-pointer border-t-2 border-transparent">CHF</button>
+        </div>
+
+        <!-- TAB CONTENT: Dashboard (28 Pairs Sentiment Bars) -->
+        <div id="view-dashboard" class="tab-view space-y-4 pt-2">
+            <div class="bg-card rounded-sm border border-zinc-900 p-5 shadow-2xl">
+                
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 pb-3 border-b border-zinc-900 font-mono">
+                    <h2 class="text-xs font-bold text-zinc-300 uppercase tracking-widest flex items-center gap-2">
+                        <i class="fa-solid fa-arrows-left-right-to-line text-cyan-500"></i> Directional Bias Engine
+                    </h2>
+                    <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto font-mono text-xs">
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <button onclick="exportData()" class="px-2 py-1 text-[10px] uppercase tracking-wider bg-cyan-950/40 hover:bg-cyan-900/60 text-cyan-400 rounded-sm border border-cyan-900/60 transition cursor-pointer">
+                                <i class="fa-solid fa-download mr-1"></i> Export
+                            </button>
+                            <button onclick="triggerImport()" class="px-2 py-1 text-[10px] uppercase tracking-wider bg-[#0c0c12] hover:bg-zinc-900 text-zinc-300 rounded-sm border border-zinc-800 transition cursor-pointer">
+                                <i class="fa-solid fa-upload mr-1"></i> Import
+                            </button>
+                            <button onclick="document.getElementById('investingFileInput').click()" class="px-2 py-1 text-[10px] uppercase tracking-wider bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-400 rounded-sm border border-emerald-900/60 transition cursor-pointer">
+                                <i class="fa-solid fa-file-import mr-1"></i> Import Investing.com
+                            </button>
+                            <button onclick="openPasteModal()" class="px-2 py-1 text-[10px] uppercase tracking-wider bg-purple-950/40 hover:bg-purple-900/60 text-purple-300 rounded-sm border border-purple-800/60 transition cursor-pointer">
+                                <i class="fa-solid fa-paste mr-1"></i> Paste
+                            </button>
+                        </div>
+                        <div class="flex items-center gap-1 bg-[#0c0c12] border border-zinc-800 rounded-sm px-2.5 py-1 text-[10px] text-zinc-400 uppercase tracking-wider">
+                            <span class="text-zinc-500 mr-1">Sort:</span>
+                            <select id="sortSelect" onchange="setSort(this.value)" class="bg-transparent text-zinc-300 font-bold focus:outline-none cursor-pointer">
+                                <option value="divergence" class="bg-[#09090c]">Max Divergence (|Diff|)</option>
+                                <option value="bullish" class="bg-[#09090c]">Most Bullish (+Diff)</option>
+                                <option value="bearish" class="bg-[#09090c]">Most Bearish (-Diff)</option>
+                                <option value="default" class="bg-[#09090c]">Default Order</option>
+                            </select>
+                        </div>
+                        <div class="flex items-center gap-1 bg-[#0c0c12] border border-zinc-800 rounded-sm px-2.5 py-1 text-[10px] text-zinc-400 uppercase tracking-wider">
+                            <span class="text-zinc-500 mr-1">Filter:</span>
+                            <select id="filterSelect" onchange="setFilter(this.value)" class="bg-transparent text-zinc-300 font-bold focus:outline-none cursor-pointer">
+                                <option value="all" class="bg-[#09090c]">All Pairs (28)</option>
+                                <option value="strong" class="bg-[#09090c]">Strong Div (≥ 8)</option>
+                                <option value="bullish" class="bg-[#09090c]">Bullish Only</option>
+                                <option value="bearish" class="bg-[#09090c]">Bearish Only</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 28 Pairs List rendered in a single column -->
+                <div id="sentimentBarsContainer" class="grid grid-cols-1 gap-3.5 max-w-3xl mx-auto"></div>
+            </div>
+        </div>
+
+        <!-- TAB CONTENT: Currency Detail Tables (Editable) -->
+        <div id="view-currency" class="tab-view hidden pt-2">
+            <div class="bg-card rounded-sm border border-zinc-900 overflow-hidden shadow-2xl">
+                <div class="p-4 border-b border-zinc-900 flex justify-between items-center bg-[#07080d] font-mono">
+                    <h2 id="currencyDetailTitle" class="text-xs font-bold text-white uppercase tracking-widest">USD Indicators</h2>
+                    <span id="currencyDetailTotal" class="text-xs font-bold text-cyan-400 px-2.5 py-1 bg-cyan-950/40 rounded border border-cyan-900/60">Total: +5</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs whitespace-nowrap font-mono">
+                        <thead class="bg-[#040406] border-b border-zinc-900 text-zinc-500 uppercase text-[10px] tracking-wider">
+                            <tr>
+                                <th class="p-3 pl-4">Indicator</th>
+                                <th class="p-3 w-36">Release Date</th>
+                                <th class="p-3 w-28">Previous</th>
+                                <th class="p-3 w-28">Forecast</th>
+                                <th class="p-3 w-28">Actual</th>
+                                <th class="p-3 text-right">Net Change</th>
+                                <th class="p-3 text-center">Score</th>
+                                <th class="p-3 text-right pr-4">Weight</th>
+                            </tr>
+                        </thead>
+                        <tbody id="currencyTableBody" class="divide-y divide-zinc-900/50"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Paste Table Modal -->
+    <div id="pasteModal" class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-[#0a0a0f] border border-zinc-800 rounded-lg max-w-2xl w-full p-6 space-y-4 shadow-2xl font-mono">
+            <div class="flex items-center justify-between border-b border-zinc-800 pb-3">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-paste text-cyan-400"></i>
+                    <h3 class="text-sm font-bold text-white uppercase tracking-wider">Paste Investing.com Table</h3>
+                </div>
+                <button onclick="closePasteModal()" class="text-zinc-500 hover:text-white transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <p class="text-xs text-zinc-400 font-sans">
+                Copy economic calendar rows directly from Investing.com (or Excel) and paste the raw text below.
+            </p>
+            <textarea id="pasteTextarea" rows="10" placeholder="Paste tab-separated or comma-separated table data here (e.g. Date, Time, Cur., Event, Actual, Forecast, Previous)..." class="w-full bg-[#040406] border border-zinc-800 rounded p-3 text-xs text-zinc-300 font-mono outline-none focus:border-cyan-500 resize-none"></textarea>
+            <div class="flex items-center justify-end gap-3 pt-2">
+                <button onclick="closePasteModal()" class="px-3 py-1.5 text-xs text-zinc-400 hover:text-white border border-zinc-800 rounded transition cursor-pointer">
+                    Cancel
+                </button>
+                <button onclick="processPastedText()" class="px-4 py-1.5 text-xs font-bold bg-cyan-600 hover:bg-cyan-500 text-white rounded transition cursor-pointer">
+                    Parse & Ingest Table
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. DYNAMIC FOOTER CONTAINER -->
+    <div id="global-footer"></div>
+
+    <script src="../js/inject-engine.js"></script>
+
+    <script>
+        const defaultData = {
+            "USD": [
+                { name: "ISM Mfg PMI", date: "2026-08-03", previous: 53.3, forecast: 54.5, actual: 55.6, type: "PMI", weight: "5.0" },
+                { name: "ISM Services PMI", date: "2026-08-05", previous: 54.0, forecast: 54.6, actual: 54.1, type: "PMI", weight: "5.0" },
+                { name: "CPI MoM", date: "2026-08-12", previous: 0.002, forecast: 0.002, actual: 0.001, type: "CPI", weight: "5.0" },
+                { name: "Unemployment Rate", date: "2026-08-07", previous: 0.042, forecast: 0.041, actual: 0.041, type: "UNEMP_RATE", weight: "5.0" },
+                { name: "NFP", date: "2026-08-07", previous: 57, forecast: 145, actual: -23, type: "NFP", weight: "5.0" },
+                { name: "Retail Sales MoM", date: "2026-08-14", previous: 0.002, forecast: 0.004, actual: 0.005, type: "PCT_GROWTH", weight: "4.0" },
+                { name: "CB Consumer Confidence", date: "2026-07-28", previous: 99.5, forecast: 100.2, actual: 100.8, type: "CONFIDENCE", weight: "4.0" },
+                { name: "NFIB Small Business Index", date: "2026-08-11", previous: 93.1, forecast: 93.5, actual: 93.9, type: "INDEX_SMALL", weight: "3.0" },
+                { name: "Atlanta Fed GDPNow", date: "2026-08-19", previous: 0.021, forecast: 0.024, actual: 0.025, type: "PCT_GROWTH", weight: "4.0" }
+            ],
+            "EUR": [
+                { name: "HCOB Mfg PMI", date: "2026-08-21", previous: 51.9, forecast: 51.8, actual: 52.8, type: "PMI", weight: "High" },
+                { name: "HCOB Services PMI", date: "2026-08-05", previous: 52.0, forecast: 51.5, actual: 51.7, type: "PMI", weight: "High" },
+                { name: "CPI MoM", date: "2026-08-18", previous: 0.002, forecast: 0.002, actual: 0.002, type: "CPI", weight: "High" },
+                { name: "Unemployment Rate", date: "2026-08-03", previous: 0.063, forecast: 0.063, actual: 0.063, type: "EUR_UNEMP_FIXED", weight: "Med" },
+                { name: "Germany Unemp Change", date: "2026-08-04", previous: 17, forecast: 15, actual: 18, type: "GER_UNEMP_CHANGE", weight: "Med" },
+                { name: "Retail Sales MoM", date: "2026-08-06", previous: -0.003, forecast: 0.001, actual: 0.003, type: "PCT_GROWTH", weight: "Med" },
+                { name: "Consumer Confidence", date: "2026-08-20", previous: -13.0, forecast: -12.5, actual: -12.2, type: "CONFIDENCE", weight: "Low" },
+                { name: "IFO Business Climate", date: "2026-08-26", previous: 85.5, forecast: 86.0, actual: 86.5, type: "INDEX_SMALL", weight: "Med" },
+                { name: "Industrial Production MoM", date: "2026-08-13", previous: -0.006, forecast: 0.002, actual: 0.005, type: "PCT_GROWTH", weight: "Low" }
+            ],
+            "GBP": [
+                { name: "S&P Mfg PMI", date: "2026-08-21", previous: 52.1, forecast: 51.4, actual: 52.5, type: "PMI", weight: "5.0" },
+                { name: "S&P Services PMI", date: "2026-08-21", previous: 52.1, forecast: 51.6, actual: 52.8, type: "PMI", weight: "5.0" },
+                { name: "CPI MoM", date: "2026-08-19", previous: 0.001, forecast: 0.002, actual: 0.002, type: "CPI", weight: "5.0" },
+                { name: "Unemployment Rate", date: "2026-08-11", previous: 0.044, forecast: 0.044, actual: 0.044, type: "UNEMP_RATE", weight: "5.0" },
+                { name: "Claimant Count", date: "2026-08-11", previous: 13.5, forecast: 22.0, actual: 23.7, type: "GBP_CLAIMANT", weight: "4.0" },
+                { name: "Retail Sales MoM", date: "2026-08-21", previous: 0.005, forecast: -0.002, actual: -0.001, type: "GBP_RETAIL", weight: "4.0" },
+                { name: "GfK Consumer Confidence", date: "2026-08-21", previous: -13, forecast: -12, actual: -11, type: "CONFIDENCE", weight: "4.0" },
+                { name: "CBI Industrial Trends", date: "2026-08-20", previous: -20, forecast: -18, actual: -15, type: "SURVEY_5", weight: "3.0" },
+                { name: "Monthly GDP", date: "2026-08-14", previous: 0.002, forecast: 0.001, actual: 0.001, type: "PCT_GROWTH", weight: "5.0" }
+            ],
+            "JPY": [
+                { name: "Jibun Mfg PMI", date: "2026-08-21", previous: 49.1, forecast: 49.5, actual: 49.8, type: "PMI", weight: "5.0" },
+                { name: "Jibun Services PMI", date: "2026-08-21", previous: 53.7, forecast: 54.0, actual: 54.1, type: "PMI", weight: "5.0" },
+                { name: "Tokyo CPI MoM", date: "2026-07-31", previous: 0.002, forecast: 0.001, actual: 0.002, type: "CPI", weight: "5.0" },
+                { name: "Unemployment Rate", date: "2026-07-31", previous: 0.025, forecast: 0.025, actual: 0.025, type: "UNEMP_RATE", weight: "5.0" },
+                { name: "Cash Earnings MoM", date: "2026-08-06", previous: 0.045, forecast: 0.023, actual: 0.021, type: "PCT_GROWTH", weight: "5.0" },
+                { name: "Retail Sales MoM", date: "2026-07-30", previous: 0.006, forecast: 0.002, actual: 0.004, type: "PCT_GROWTH", weight: "4.0" },
+                { name: "Consumer Survey", date: "2026-08-05", previous: 36.7, forecast: 37.0, actual: 36.4, type: "CONFIDENCE", weight: "4.0" },
+                { name: "Reuters Tankan", date: "2026-08-19", previous: 7, forecast: 9, actual: 10, type: "SURVEY_5", weight: "4.0" },
+                { name: "JCER Monthly GDP", date: "2026-08-17", previous: 0.002, forecast: -0.001, actual: 0.001, type: "PCT_GROWTH", weight: "4.0" }
+            ],
+            "AUD": [
+                { name: "Judo Mfg PMI", date: "2026-08-21", previous: 47.5, forecast: 48.0, actual: 48.2, type: "PMI", weight: "5.0" },
+                { name: "Judo Services PMI", date: "2026-08-21", previous: 50.4, forecast: 50.6, actual: 50.8, type: "AUD_SERVICES", weight: "5.0" },
+                { name: "CPI Indicator MoM", date: "2026-07-31", previous: 0.038, forecast: 0.036, actual: 0.035, type: "CPI", weight: "5.0" },
+                { name: "Unemployment Rate", date: "2026-08-20", previous: 0.044, forecast: 0.044, actual: 0.045, type: "UNEMP_RATE", weight: "5.0" },
+                { name: "Employment Change", date: "2026-08-20", previous: 80.3, forecast: 15.0, actual: -15.8, type: "JOBS_K", weight: "5.0" },
+                { name: "Retail Sales MoM", date: "2026-08-04", previous: 0.005, forecast: 0.003, actual: 0.005, type: "PCT_GROWTH", weight: "4.0" },
+                { name: "Westpac Sentiment", date: "2026-08-11", previous: 82.7, forecast: 83.5, actual: 84.1, type: "CONFIDENCE", weight: "4.0" },
+                { name: "NAB Business Confidence", date: "2026-08-11", previous: 4, forecast: 5, actual: 6, type: "SURVEY_5", weight: "4.0" },
+                { name: "AIG Industry Index", date: "2026-08-17", previous: -6.1, forecast: -5.0, actual: -4.2, type: "SURVEY_5", weight: "3.0" }
+            ],
+            "NZD": [
+                { name: "BusNZ Mfg PMI", date: "2026-08-14", previous: 41.1, forecast: 42.5, actual: 43.0, type: "PMI", weight: "5.0" },
+                { name: "BusNZ Services PMI", date: "2026-08-17", previous: 40.2, forecast: 42.0, actual: 41.5, type: "PMI", weight: "5.0" },
+                { name: "Food Prices MoM", date: "2026-08-13", previous: -0.002, forecast: 0.001, actual: 0.002, type: "CPI", weight: "4.0" },
+                { name: "Unemployment Rate", date: "2026-08-05", previous: 0.046, forecast: 0.047, actual: 0.046, type: "UNEMP_RATE", weight: "5.0" },
+                { name: "MEI Jobs Change", date: "2026-07-29", previous: 0.001, forecast: 0.001, actual: 0.001, type: "PCT_GROWTH", weight: "4.0" },
+                { name: "Card Transactions", date: "2026-08-11", previous: -0.003, forecast: 0.001, actual: 0.002, type: "CARD_TRANS", weight: "4.0" },
+                { name: "ANZ Consumer Confidence", date: "2026-07-31", previous: 87.9, forecast: 89.0, actual: 88.2, type: "CONFIDENCE", weight: "4.0" },
+                { name: "ANZ Business Confidence", date: "2026-07-30", previous: 27.1, forecast: 30.0, actual: 29.5, type: "ANZ_BIZ", weight: "4.0" },
+                { name: "BusNZ Activity Index", date: "2026-08-18", previous: -0.002, forecast: 0.001, actual: 0.001, type: "PCT_GROWTH", weight: "4.0" }
+            ],
+            "CAD": [
+                { name: "S&P Mfg PMI", date: "2026-08-04", previous: 47.8, forecast: 48.5, actual: 48.1, type: "PMI", weight: "5.0" },
+                { name: "Ivey PMI", date: "2026-08-07", previous: 57.6, forecast: 56.5, actual: 57.1, type: "PMI", weight: "5.0" },
+                { name: "CPI MoM", date: "2026-08-18", previous: -0.001, forecast: 0.002, actual: 0.001, type: "CPI", weight: "5.0" },
+                { name: "Unemployment Rate", date: "2026-08-07", previous: 0.064, forecast: 0.064, actual: 0.064, type: "UNEMP_RATE", weight: "5.0" },
+                { name: "Net Employment Change", date: "2026-08-07", previous: -1.4, forecast: 22.0, actual: -2.8, type: "CAD_JOBS", weight: "5.0" },
+                { name: "Retail Sales MoM", date: "2026-08-21", previous: -0.008, forecast: 0.004, actual: 0.003, type: "PCT_GROWTH", weight: "4.0" },
+                { name: "CB Consumer Survey", date: "2026-08-11", previous: 50.15, forecast: 51.0, actual: 50.8, type: "CONFIDENCE", weight: "4.0" },
+                { name: "CFIB Business Barometer", date: "2026-08-06", previous: 55.4, forecast: 56.0, actual: 55.9, type: "CONFIDENCE", weight: "3.0" },
+                { name: "Monthly GDP MoM", date: "2026-07-31", previous: 0.003, forecast: 0.002, actual: 0.002, type: "PCT_GROWTH", weight: "5.0" }
+            ],
+            "CHF": [
+                { name: "Procure Mfg PMI", date: "2026-08-04", previous: 43.1, forecast: 44.5, actual: 43.9, type: "PMI", weight: "5.0" },
+                { name: "Procure Services PMI", date: "2026-08-05", previous: 52.4, forecast: 53.0, actual: 52.7, type: "PMI", weight: "5.0" },
+                { name: "CPI MoM", date: "2026-08-04", previous: -0.002, forecast: 0.001, actual: -0.001, type: "CPI", weight: "5.0" },
+                { name: "Unemp Rate", date: "2026-08-07", previous: 0.024, forecast: 0.024, actual: 0.025, type: "UNEMP_RATE", weight: "5.0" },
+                { name: "Unemp Change", date: "2026-08-07", previous: 1.2, forecast: 1.0, actual: 1.1, type: "CHF_UNEMP_CHANGE", weight: "4.0" },
+                { name: "Retail Sales MoM", date: "2026-07-31", previous: 0.003, forecast: 0.002, actual: 0.001, type: "PCT_GROWTH", weight: "4.0" },
+                { name: "Consumer Sentiment", date: "2026-08-06", previous: -34.0, forecast: -32.0, actual: -33.0, type: "CONFIDENCE", weight: "4.0" },
+                { name: "KOF Indicator", date: "2026-07-30", previous: 101.0, forecast: 101.5, actual: 101.2, type: "CONFIDENCE", weight: "4.0" },
+                { name: "SECO Economic Indicators", date: "2026-08-18", previous: 0.012, forecast: 0.013, actual: 0.013, type: "PCT_GROWTH", weight: "5.0" }
+            ]
+        };
+
+        const pairsList = ["EURUSD", "GBPUSD", "AUDUSD", "NZDUSD", "USDCAD", "USDCHF", "USDJPY", "EURGBP", "EURAUD", "EURNZD", "EURCAD", "EURCHF", "EURJPY", "GBPAUD", "GBPNZD", "GBPCAD", "GBPCHF", "GBPJPY", "AUDNZD", "AUDCAD", "AUDCHF", "AUDJPY", "NZDCAD", "NZDCHF", "NZDJPY", "CADCHF", "CADJPY", "CHFJPY"];
+
+        // Country Tag to Currency Mapping (Investing.com & Multilingual)
+        const countryToCurrency = {
+            "US": "USD", "USA": "USD", "UNITED STATES": "USD", "ESTADOS UNIDOS": "USD", "EEUU": "USD", "USD": "USD",
+            "DE": "EUR", "DEU": "EUR", "GERMANY": "EUR", "ALEMANIA": "EUR",
+            "FR": "EUR", "FRA": "EUR", "FRANCE": "EUR", "FRANCIA": "EUR",
+            "IT": "EUR", "ITA": "EUR", "ITALY": "EUR", "ITALIA": "EUR",
+            "ES": "EUR", "ESP": "EUR", "SPAIN": "EUR", "ESPAÑA": "EUR",
+            "EU": "EUR", "EMU": "EUR", "EURO ZONE": "EUR", "EUROZONE": "EUR", "ZONA EURO": "EUR", "EUR": "EUR",
+            "UK": "GBP", "GB": "GBP", "GBR": "GBP", "UNITED KINGDOM": "GBP", "REINO UNIDO": "GBP", "ENGLAND": "GBP", "INGLATERRA": "GBP", "GBP": "GBP",
+            "JP": "JPY", "JPN": "JPY", "JAPAN": "JPY", "JAPÓN": "JPY", "JAPON": "JPY", "NIPPON": "JPY", "JPY": "JPY",
+            "AU": "AUD", "AUS": "AUD", "AUSTRALIA": "AUD", "AUD": "AUD",
+            "NZ": "NZD", "NZL": "NZD", "NEW ZEALAND": "NZD", "NUEVA ZELANDA": "NZD", "NZD": "NZD",
+            "CA": "CAD", "CAN": "CAD", "CANADA": "CAD", "CANADÁ": "CAD", "CAD": "CAD",
+            "CH": "CHF", "CHE": "CHF", "SWITZERLAND": "CHF", "SUIZA": "CHF", "CONFEDERATION": "CHF", "CHF": "CHF",
+            "CN": "CNH", "CHN": "CNH", "CHINA": "CNH", "CNH": "CNH", "CNY": "CNH"
+        };
+
+        let appData = JSON.parse(JSON.stringify(defaultData));
+        let activeTab = 'dashboard';
+        let currentSort = 'divergence';
+        let currentFilter = 'all';
+        let barChartInstance = null;
+        const STORAGE_KEY = 'forex_dashboard_data_v2';
+
+        function loadFromLocalStorage() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    if (parsed && typeof parsed === 'object') {
+                        Object.keys(parsed).forEach(k => {
+                            if (Array.isArray(parsed[k])) {
+                                parsed[k] = parsed[k].map(item => {
+                                    if (!item) return item;
+                                    let cleanTime = item.time || "—";
+                                    if (typeof cleanTime === 'string' && (cleanTime.includes("1899") || cleanTime.includes("1900"))) {
+                                       const timeMatch = cleanTime.match(/\b(\d{1,2}:\d{2})(:\d{2})?\b/);
+                                       if (timeMatch) cleanTime = timeMatch[1];
+                                       else cleanTime = "—";
+                                    }
+                                    let cleanDate = item.date;
+                                    if (typeof cleanDate === 'string' && (cleanDate.includes("1899") || cleanDate.includes("1900"))) {
+                                       cleanDate = new Date().toISOString().slice(0, 10);
+                                    }
+                                    return {
+                                        ...item,
+                                        time: cleanTime,
+                                        date: cleanDate !== undefined ? cleanDate : item.date
+                                    };
+                                });
+                            }
+                        });
+                        appData = JSON.parse(JSON.stringify(parsed));
+                    }
+                } catch(e) {}
+            }
+            refreshApp();
+        }
+
+        function saveToLocalStorage() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+            } catch(e) {}
+        }
+
+        // ==========================================
+        // 1. DATE NORMALIZATION & SERIAL CONVERSION
+        // ==========================================
+        function formatToYMD(dateVal) {
+            if (dateVal === null || dateVal === undefined || dateVal === '') {
+                return new Date().toISOString().slice(0, 10);
+            }
+
+            if (dateVal instanceof Date) {
+                if (dateVal.getFullYear() <= 1905) {
+                    return new Date().toISOString().slice(0, 10);
+                }
+                const y = dateVal.getFullYear();
+                const m = String(dateVal.getMonth() + 1).padStart(2, '0');
+                const d = String(dateVal.getDate()).padStart(2, '0');
+                return `${y}-${m}-${d}`;
+            }
+
+            // String sanitize
+            let str = String(dateVal).trim().replace(/[\u00A0\u200B\r\n]/g, '');
+            if (str.includes("1899") || str.includes("1900")) {
+                return new Date().toISOString().slice(0, 10);
+            }
+
+            // 1. Excel Serial Date Conversion (Fix Year +046300 Bug)
+            // Handles numbers (e.g. 46297) AND stringified numbers (e.g. "46297" or "+046297")
+            const cleanNumStr = str.replace(/^\+0*/, '');
+            const parsedNum = typeof dateVal === 'number' ? dateVal : parseFloat(cleanNumStr);
+
+            // If the value is a number or numeric string between 25000 and 60000 (Excel serial range for 1968–2064):
+            if (!isNaN(parsedNum) && parsedNum >= 25000 && parsedNum <= 60000) {
+                const epochDate = new Date(Math.round((parsedNum - 25569) * 86400 * 1000));
+                if (!isNaN(epochDate.getTime())) {
+                    return epochDate.toISOString().slice(0, 10);
+                }
+            }
+
+            // Already clean valid ISO format YYYY-MM-DD (1970–2099)
+            if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+                const yr = parseInt(str.slice(0, 4), 10);
+                if (yr >= 1970 && yr <= 2099) {
+                    return str;
+                }
+            }
+
+            // Formats with slashes or dots: DD/MM/YYYY, DD.MM.YYYY, MM/DD/YYYY
+            if (/^\d{1,2}[\/\.]\d{1,2}[\/\.]\d{4}$/.test(str)) {
+                const parts = str.split(/[\/\.]/);
+                const p1 = parseInt(parts[0], 10);
+                const p2 = parseInt(parts[1], 10);
+                const yr = parseInt(parts[2], 10);
+                // Standard Investing.com DD.MM.YYYY
+                if (yr >= 1970 && yr <= 2099 && p2 <= 12 && p1 <= 31) {
+                    const mm = String(p2).padStart(2, '0');
+                    const dd = String(p1).padStart(2, '0');
+                    return `${yr}-${mm}-${dd}`;
+                }
+            }
+
+            // Fallback standard JavaScript Date parse with sanity check
+            // Prevent any output containing year +046xxx or invalid dates
+            const d = new Date(str);
+            if (!isNaN(d.getTime())) {
+                const yr = d.getUTCFullYear();
+                if (yr >= 1970 && yr <= 2099) {
+                    return d.toISOString().slice(0, 10);
+                }
+            }
+
+            return new Date().toISOString().slice(0, 10);
+        }
+
+        // ==========================================
+        // 2. INPUT SANITIZATION & VALUE PARSER
+        // ==========================================
+        function parseInputValue(input, type) {
+            if (input === null || input === undefined || input === '') return null;
+
+            // Clean string, normalize whitespace and non-breaking spaces
+            let strVal = String(input).trim().replace(/[\u00A0\u200B\r\n]/g, '');
+            if (strVal === '-' || strVal === 'N/A' || strVal === 'n/a' || strVal === 'ND' || strVal === '') return null;
+
+            const isExplicitPercent = strVal.includes('%');
+            const hasK = /k$/i.test(strVal) || /k\b/i.test(strVal);
+            const hasM = /m$/i.test(strVal) || /m\b/i.test(strVal);
+            const hasB = /b$/i.test(strVal) || /b\b/i.test(strVal);
+
+            // Thousand commas & European comma decimal sanitization
+            if (strVal.includes(',') && !strVal.includes('.')) {
+                const commaParts = strVal.split(',');
+                if (commaParts.length === 2 && commaParts[1].replace(/[^0-9]/g, '').length === 3 && parseInt(commaParts[0], 10) > 0 && !isExplicitPercent) {
+                    strVal = strVal.replace(/,/g, '');
+                } else {
+                    strVal = strVal.replace(',', '.');
+                }
+            } else if (strVal.includes(',') && strVal.includes('.')) {
+                if (strVal.indexOf('.') < strVal.indexOf(',')) {
+                    strVal = strVal.replace(/\./g, '').replace(',', '.');
+                } else {
+                    strVal = strVal.replace(/,/g, '');
+                }
+            }
+
+            let cleanStr = strVal.replace(/[%+]/g, '').trim();
+
+            // A. Jobs in Thousands (NFP, Jobs changes)
+            const jobsInThousands = ["NFP", "JOBS_K", "CAD_JOBS", "GER_UNEMP_CHANGE", "CHF_UNEMP_CHANGE", "GBP_CLAIMANT"];
+            if (jobsInThousands.includes(type)) {
+                cleanStr = cleanStr.replace(/k/gi, '').trim();
+                let num = parseFloat(cleanStr);
+                if (isNaN(num)) return null;
+                // If user/file provided raw thousands (e.g. 145000 or -23000), scale down to thousands (145)
+                if (Math.abs(num) >= 1000 && !hasK) {
+                    num = num / 1000;
+                }
+                return num;
+            }
+
+            // B. Percentage Indicators (Unemployment Rate, CPI, Retail Sales, GDP)
+            const percentTypes = ["CPI", "UNEMP_RATE", "PCT_GROWTH", "EUR_UNEMP_FIXED", "CARD_TRANS", "GBP_RETAIL"];
+            if (percentTypes.includes(type)) {
+                cleanStr = cleanStr.replace(/k/gi, '').trim();
+                let num = parseFloat(cleanStr);
+                if (isNaN(num)) return null;
+
+                if (isExplicitPercent) {
+                    // If input is a percentage string (e.g., "4.1%" or "4.18%"), convert to decimal (0.041 or 0.0418)
+                    // If already a tiny decimal with accidental % (e.g. "0.041%" or "0.0618%"):
+                    if (Math.abs(num) > 0 && Math.abs(num) <= 0.20 && String(cleanStr).startsWith('0.')) {
+                        return num;
+                    }
+                    return num / 100.0;
+                } else {
+                    // If input is already in standard decimal form (between 0.01 and 0.20, e.g., 0.041 for 4.1%), DO NOT divide by 100 again (prevents 0.00618 bug).
+                    // Also handles small MoM decimal rates (e.g. 0.002 for 0.2%)
+                    if (Math.abs(num) <= 0.20) {
+                        return num;
+                    }
+                    // If input is a whole number above 0.20 (e.g., 4.1 or 6.3), divide by 100 to get decimal (0.041 / 0.063)
+                    return num / 100.0;
+                }
+            }
+
+            // C. Large suffix scales
+            if (hasK) {
+                let num = parseFloat(cleanStr.replace(/k/gi, ''));
+                return isNaN(num) ? null : num * 1000;
+            }
+            if (hasM) {
+                let num = parseFloat(cleanStr.replace(/m/gi, ''));
+                return isNaN(num) ? null : num * 1000000;
+            }
+            if (hasB) {
+                let num = parseFloat(cleanStr.replace(/b/gi, ''));
+                return isNaN(num) ? null : num * 1000000000;
+            }
+
+            // D. Index / Survey / PMI / General numbers
+            let num = parseFloat(cleanStr);
+            return isNaN(num) ? null : num;
+        }
+
+        // ==========================================
+        // 3. INDEX & SURVEY SCALE MATCHING
+        // ==========================================
+        function normalizeIndexIndicatorScales(ind) {
+            if (!ind) return;
+            const indexTypes = ["PMI", "CONFIDENCE", "INDEX_SMALL", "SURVEY_5", "ANZ_BIZ", "AUD_SERVICES"];
+            const isIndexIndicator = indexTypes.includes(ind.type) ||
+                /\b(index|sentiment|confidence|survey|climate|barometer|westpac|ifo|nfib|cfib|tankan|kof|seco|ivey|cbi|gfk|aig)\b/i.test(ind.name);
+            
+            if (!isIndexIndicator) return;
+
+            const fields = ['previous', 'forecast', 'actual'];
+            
+            // Determine if there is a known raw index level (>= 15, e.g. 89.1, 85.5, 93.1)
+            let rawIndexBaseline = null;
+            for (const f of fields) {
+                if (typeof ind[f] === 'number' && Math.abs(ind[f]) >= 15) {
+                    rawIndexBaseline = ind[f];
+                    break;
+                }
+            }
+
+            if (rawIndexBaseline !== null) {
+                // If one value is an index level (e.g. 89.1) and another is a decimal net change (e.g. -0.06),
+                // do not mix them in the same row. Normalize or ignore mismatched scale fields to prevent false -2 max scoring spikes.
+                for (const f of fields) {
+                    const val = ind[f];
+                    if (typeof val === 'number' && Math.abs(val) > 0 && Math.abs(val) < 1.0) {
+                        const normalized = parseFloat((rawIndexBaseline * (1 + val)).toFixed(1));
+                        if (Math.abs(normalized - rawIndexBaseline) < 15) {
+                            ind[f] = normalized;
+                        } else {
+                            ind[f] = null;
+                        }
+                    }
+                }
+
+                // Safety guard: ensure actual and previous are on the exact same scale
+                if (typeof ind.actual === 'number' && typeof ind.previous === 'number') {
+                    const isActualLevel = Math.abs(ind.actual) >= 15;
+                    const isPrevLevel = Math.abs(ind.previous) >= 15;
+                    if (isActualLevel !== isPrevLevel) {
+                        // Prevent mixing raw index total with decimal net change
+                        if (isActualLevel && !isPrevLevel) {
+                            ind.previous = ind.actual;
+                        } else if (!isActualLevel && isPrevLevel) {
+                            ind.actual = ind.previous;
+                        }
+                    }
+                }
+            }
+        }
+
+        function evaluateIndicator(ind) {
+            let netChange = 0;
+            if (ind.actual !== null && ind.previous !== null) netChange = ind.actual - ind.previous;
+            netChange = parseFloat(netChange.toFixed(4));
+            let score = 0;
+            switch(ind.type) {
+                case "PMI":
+                case "AUD_SERVICES":
+                    if (netChange >= 2.0) score = 2; else if (netChange >= 0.5) score = 1; else if (netChange > -0.5) score = 0; else if (netChange > -2.0) score = -1; else score = -2; break;
+                case "CPI":
+                case "PCT_GROWTH":
+                case "GBP_RETAIL":
+                case "CARD_TRANS":
+                    if (netChange >= 0.003) score = 2; else if (netChange >= 0.001) score = 1; else if (netChange > -0.001) score = 0; else if (netChange > -0.003) score = -1; else score = -2; break;
+                case "UNEMP_RATE":
+                case "EUR_UNEMP_FIXED":
+                    if (netChange <= -0.002) score = 2; else if (netChange <= -0.001) score = 1; else if (netChange === 0) score = 0; else if (netChange < 0.002) score = -1; else score = -2; break;
+                case "GBP_CLAIMANT":
+                case "GER_UNEMP_CHANGE":
+                case "CHF_UNEMP_CHANGE":
+                    if (netChange <= -15.0) score = 2; else if (netChange <= -3.0) score = 1; else if (netChange < 3.0) score = 0; else if (netChange < 15.0) score = -1; else score = -2; break;
+                case "JOBS_K":
+                case "CAD_JOBS":
+                    if (netChange >= 40.0) score = 2; else if (netChange >= 10.0) score = 1; else if (netChange > -10.0) score = 0; else if (netChange > -40.0) score = -1; else score = -2; break;
+                case "NFP":
+                    if (netChange >= 50) score = 2; else if (netChange >= 15) score = 1; else if (netChange > -15) score = 0; else if (netChange > -50) score = -1; else score = -2; break;
+                case "CONFIDENCE":
+                case "INDEX_SMALL":
+                case "SURVEY_5":
+                case "ANZ_BIZ":
+                    if (netChange >= 4.0) score = 2; else if (netChange >= 1.0) score = 1; else if (netChange > -1.0) score = 0; else if (netChange > -4.0) score = -1; else score = -2; break;
+                default: score = netChange > 0 ? 1 : netChange < 0 ? -1 : 0;
+            }
+            return { netChange, score };
+        }
+
+        function calculateTotals() {
+            const totals = {};
+            for (const c in appData) {
+                let sum = 0;
+                appData[c].forEach(ind => {
+                    const evalResult = evaluateIndicator(ind);
+                    ind.netChange = evalResult.netChange;
+                    ind.score = evalResult.score;
+                    sum += ind.score;
+                });
+                totals[c] = sum;
+            }
+            return totals;
+        }
+
+        function renderSummaryScores(totals) {
+            const container = document.getElementById('currencySummary');
+            container.innerHTML = '';
+            for (const c in totals) {
+                const score = totals[c];
+                const scoreColor = score > 0 ? 'text-cyan-400' : score < 0 ? 'text-rose-400' : 'text-zinc-500';
+                container.innerHTML += `
+                    <div class="bg-card py-3 px-2 rounded-sm border border-zinc-900 text-center cursor-pointer bg-card-hover transition-colors" onclick="switchTab('${c}')">
+                        <div class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">${c}</div>
+                        <div class="text-xl font-extrabold ${scoreColor} mt-1">${score > 0 ? '+' + score : score}</div>
+                    </div>`;
+            }
+        }
+
+        function renderCurrencyBarChart(totals) {
+            const ctx = document.getElementById('currencyBarChart').getContext('2d');
+            const currencies = Object.keys(totals);
+            const scores = currencies.map(c => totals[c]);
+            const backgroundColors = scores.map(s => s > 0 ? '#06b6d4' : s < 0 ? '#f43f5e' : '#3f3f46');
+
+            if (barChartInstance) {
+                barChartInstance.data.labels = currencies;
+                barChartInstance.data.datasets[0].data = scores;
+                barChartInstance.data.datasets[0].backgroundColor = backgroundColors;
+                barChartInstance.update();
+            } else {
+                barChartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: { labels: currencies, datasets: [{ label: 'Valuation Total', data: scores, backgroundColor: backgroundColors, borderRadius: 2 }] },
+                    options: { 
+                        responsive: true, 
+                        maintainAspectRatio: false, 
+                        plugins: { legend: { display: false } }, 
+                        scales: { 
+                            y: { grid: { color: '#18181b' }, ticks: { color: '#71717a', font: {family: 'JetBrains Mono'} } }, 
+                            x: { grid: { display: false }, ticks: { color: '#d4d4d8', font: { weight: 'bold', family: 'JetBrains Mono' } } } 
+                        } 
+                    }
+                });
+            }
+        }
+
+        function setSort(val) { currentSort = val; refreshApp(); }
+        function setFilter(val) { currentFilter = val; refreshApp(); }
+
+        function renderSentimentBars(totals) {
+            const container = document.getElementById('sentimentBarsContainer');
+            container.innerHTML = '';
+
+            let pairsData = pairsList.map(pair => {
+                const base = pair.substring(0, 3); const quote = pair.substring(3, 6);
+                const diff = (totals[base] || 0) - (totals[quote] || 0);
+                const absDiff = Math.abs(diff);
+                let longPct = Math.max(5, Math.min(95, Math.round(50 + (diff * 2.5))));
+                const shortPct = 100 - longPct;
+
+                let biasText = 'NEUTRAL', badgeBg = 'bg-[#111116] text-zinc-500 border-zinc-800';
+                if (diff >= 8) { biasText = 'STRONG BULL', badgeBg = 'bg-cyan-950/40 text-cyan-400 border-cyan-900/60'; }
+                else if (diff >= 3) { biasText = 'BULLISH', badgeBg = 'bg-emerald-950/30 text-emerald-400 border-emerald-900/40'; }
+                else if (diff <= -8) { biasText = 'STRONG BEAR', badgeBg = 'bg-rose-950/40 text-rose-400 border-rose-900/60'; }
+                else if (diff <= -3) { biasText = 'BEARISH', badgeBg = 'bg-orange-950/30 text-orange-400 border-orange-900/40'; }
+
+                return { pair, diff, absDiff, longPct, shortPct, biasText, badgeBg };
+            });
+
+            if (currentFilter === 'strong') pairsData = pairsData.filter(p => p.absDiff >= 8);
+            else if (currentFilter === 'bullish') pairsData = pairsData.filter(p => p.diff > 0);
+            else if (currentFilter === 'bearish') pairsData = pairsData.filter(p => p.diff < 0);
+
+            if (currentSort === 'divergence') pairsData.sort((a, b) => b.absDiff - a.diff);
+            else if (currentSort === 'bullish') pairsData.sort((a, b) => b.diff - a.diff);
+            else if (currentSort === 'bearish') pairsData.sort((a, b) => a.diff - b.diff);
+
+            pairsData.forEach(p => {
+                const diffFormatted = p.diff > 0 ? '+' + p.diff : p.diff;
+                container.innerHTML += `
+                    <div class="bg-[#020203] p-3.5 rounded-sm border border-zinc-900 space-y-2 font-mono">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="font-bold text-zinc-200 text-sm tracking-wide">${p.pair}</span>
+                                <span class="text-[9px] font-bold px-1.5 py-0.5 rounded border ${p.badgeBg} uppercase tracking-widest">${p.biasText}</span>
+                            </div>
+                            <div class="text-[10px] text-zinc-500 uppercase tracking-wider">Diff: <span class="font-bold text-zinc-300">${diffFormatted}</span></div>
+                        </div>
+                        <div class="flex items-center gap-3 text-xs">
+                            <span class="text-rose-500 font-bold w-8 text-right">${p.shortPct}%</span>
+                            <div class="flex-1 h-2 bg-[#09090c] rounded-full overflow-hidden flex border border-[#18181b]">
+                                <div class="bar-short h-full" style="width: ${p.shortPct}%"></div>
+                                <div class="bar-long h-full" style="width: ${p.longPct}%"></div>
+                            </div>
+                            <span class="text-cyan-500 font-bold w-8">${p.longPct}%</span>
+                        </div>
+                    </div>`;
+            });
+        }
+
+        function renderCurrencyTable(curr) {
+            document.getElementById('currencyDetailTitle').innerText = `${curr} INDICATORS`;
+            const totals = calculateTotals();
+            document.getElementById('currencyDetailTotal').innerText = `TOTAL: ${totals[curr] > 0 ? '+' + totals[curr] : totals[curr]}`;
+            
+            const tbody = document.getElementById('currencyTableBody');
+            tbody.innerHTML = '';
+
+            appData[curr].forEach((ind, idx) => {
+                const scoreColor = ind.score > 0 ? 'text-cyan-400 font-bold' : ind.score < 0 ? 'text-rose-400 font-bold' : 'text-zinc-500';
+                const isPercentType = ["CPI", "UNEMP_RATE", "PCT_GROWTH", "EUR_UNEMP_FIXED", "CARD_TRANS", "GBP_RETAIL"].includes(ind.type);
+                const formatDisplayVal = (val) => (val === null || val === undefined) ? '' : isPercentType ? (val * 100).toFixed(2) + '%' : val;
+                const formatNetChange = (val) => (val === null || val === undefined) ? '-' : isPercentType ? ((val > 0 ? '+' : '') + (val * 100).toFixed(2) + '%') : (val > 0 ? '+' + val : val);
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-zinc-900/30 transition-colors">
+                        <td class="p-3 pl-4 font-mono font-medium text-zinc-200">${ind.name}</td>
+                        <td class="p-3">
+                            <input type="date" value="${ind.date || ''}" onchange="updateValue('${curr}', ${idx}, 'date', this.value)" class="w-full bg-[#020203] border border-zinc-800 rounded px-2 py-1 text-xs text-zinc-400 outline-none focus:border-cyan-500 font-mono">
+                        </td>
+                        <td class="p-3"><input type="text" value="${formatDisplayVal(ind.previous)}" onchange="updateValue('${curr}', ${idx}, 'previous', this.value)" class="w-full bg-[#020203] border border-zinc-800 rounded px-2 py-1 text-xs text-zinc-300 outline-none focus:border-cyan-500 font-mono"></td>
+                        <td class="p-3"><input type="text" value="${formatDisplayVal(ind.forecast)}" onchange="updateValue('${curr}', ${idx}, 'forecast', this.value)" class="w-full bg-[#020203] border border-zinc-800 rounded px-2 py-1 text-xs text-zinc-300 outline-none focus:border-cyan-500 font-mono"></td>
+                        <td class="p-3"><input type="text" value="${formatDisplayVal(ind.actual)}" onchange="updateValue('${curr}', ${idx}, 'actual', this.value)" class="w-full bg-[#020203] border border-zinc-800 rounded px-2 py-1 text-xs text-zinc-300 outline-none focus:border-cyan-500 font-mono"></td>
+                        <td class="p-3 text-right font-mono text-zinc-400">${formatNetChange(ind.netChange)}</td>
+                        <td class="p-3 text-center font-mono ${scoreColor}">${ind.score > 0 ? '+' + ind.score : ind.score}</td>
+                        <td class="p-3 text-right pr-4 text-zinc-500 font-mono">${ind.weight}</td>
+                    </tr>`;
+            });
+        }
+
+        function updateValue(curr, index, field, val) {
+            if (!appData[curr] || !appData[curr][index]) return;
+            // Independent cloned instance so editing never bleeds into other indicators
+            appData[curr][index] = { ...appData[curr][index] };
+            if (field === 'date' || field === 'name') {
+                appData[curr][index][field] = val;
+            } else {
+                appData[curr][index][field] = parseInputValue(val, appData[curr][index].type);
+                normalizeIndexIndicatorScales(appData[curr][index]);
+            }
+            saveToLocalStorage();
+            refreshApp();
+        }
+
+        function switchTab(tab) {
+            activeTab = tab;
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('text-cyan-400', 'border-cyan-500', 'bg-[#09090e]', 'text-zinc-300');
+                btn.classList.add('bg-card', 'text-zinc-500', 'border-transparent');
+            });
+            const activeBtn = document.getElementById(`tab-${tab}`);
+            if (activeBtn) {
+                activeBtn.classList.remove('bg-card', 'text-zinc-500', 'border-transparent');
+                activeBtn.classList.add('text-cyan-400', 'border-cyan-500', 'bg-[#09090e]');
+            }
+
+            if (tab === 'dashboard') {
+                document.getElementById('view-dashboard').classList.remove('hidden');
+                document.getElementById('view-currency').classList.add('hidden');
+            } else {
+                document.getElementById('view-dashboard').classList.add('hidden');
+                document.getElementById('view-currency').classList.remove('hidden');
+                renderCurrencyTable(tab);
+            }
+        }
+
+        function refreshApp() {
+            const totals = calculateTotals();
+            renderSummaryScores(totals);
+            renderCurrencyBarChart(totals);
+            renderSentimentBars(totals);
+            if (activeTab !== 'dashboard') renderCurrencyTable(activeTab);
+        }
+
+        function exportData() {
+            try {
+                // 1. Fix Backup Export Engine: Deep-clone appData before stringifying
+                const cleanData = JSON.parse(JSON.stringify(appData));
+                const jsonStr = JSON.stringify(cleanData, null, 2);
+                const fileName = `kairos_valuation_backup_${new Date().toISOString().slice(0, 10)}.json`;
+                // iOS / Safari compatible Blob download
+                const blob = new Blob([jsonStr], { type: "application/json;charset=utf-8;" });
+
+                if (window.navigator && window.navigator.msSaveOrOpenBlob) {
+                    window.navigator.msSaveOrOpenBlob(blob, fileName);
+                    return;
+                }
+
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.position = 'fixed';
+                a.style.top = '-9999px';
+                a.style.left = '-9999px';
+                a.style.opacity = '0';
+                a.href = url;
+                a.download = fileName;
+                a.setAttribute('download', fileName);
+
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => {
+                    if (document.body.contains(a)) document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 1500);
+            } catch (err) {
+                console.error("Export error:", err);
+                alert("Failed to export backup data.");
+            }
+        }
+
+        function triggerImport() { document.getElementById('jsonFileInput').click(); }
+
+        function importData(event) {
+            const file = event.target && event.target.files && event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const content = e.target.result;
+                    const imported = JSON.parse(content);
+                    if (imported && typeof imported === 'object' && Object.keys(imported).length > 0) {
+                        // Auto-repair 1899 ghost date strings from previous backups
+                        Object.keys(imported).forEach(k => {
+                            if (Array.isArray(imported[k])) {
+                                imported[k] = imported[k].map(item => {
+                                    if (!item) return item;
+                                    let cleanTime = item.time || "—";
+                                    if (typeof cleanTime === 'string' && (cleanTime.includes("1899") || cleanTime.includes("1900"))) {
+                                       const timeMatch = cleanTime.match(/\b(\d{1,2}:\d{2})(:\d{2})?\b/);
+                                       if (timeMatch) cleanTime = timeMatch[1];
+                                       else cleanTime = "—";
+                                    }
+                                    let cleanDate = item.date;
+                                    if (typeof cleanDate === 'string' && (cleanDate.includes("1899") || cleanDate.includes("1900"))) {
+                                       cleanDate = new Date().toISOString().slice(0, 10);
+                                    }
+                                    return {
+                                        ...item,
+                                        time: cleanTime,
+                                        date: cleanDate !== undefined ? cleanDate : item.date
+                                    };
+                                });
+                            }
+                        });
+                        // Independent deep-cloned instance to avoid reference contamination
+                        appData = JSON.parse(JSON.stringify(imported));
+                        saveToLocalStorage();
+                        refreshApp();
+                        if (typeof switchTab === 'function') switchTab(activeTab);
+                        alert('Backup loaded successfully!');
+                    } else {
+                        throw new Error("Invalid backup format");
+                    }
+                } catch(err) {
+                    console.error("Import error:", err);
+                    alert('Invalid JSON backup file. Please verify file format.');
+                }
+            };
+            reader.onerror = function() {
+                alert('Failed to read file.');
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        function importStateJSON(event) {
+            importData(event);
+        }
+
+        function resetToDefaults() {
+            if (confirm("Reset to baseline defaults? Any unsaved changes will be cleared.")) {
+                appData = JSON.parse(JSON.stringify(defaultData));
+                localStorage.removeItem('forex_dashboard_data_v2');
+                saveToLocalStorage();
+                refreshApp();
+                switchTab(activeTab);
+                alert("Dashboard reset to baseline defaults!");
+            }
+        }
+
+        // ==========================================
+        // 4. EVENT NAME & COLUMN SANITIZATION
+        // ==========================================
+        function normalizeEventName(name) {
+            if (!name) return "";
+            let str = String(name).toLowerCase().replace(/[\u00A0\u200B\r\n]/g, ' ');
+            // Remove period/month annotations like (Sep), (Aug), (YoY), (MoM), (QoQ), (Prelim), etc.
+            str = str.replace(/\([^)]*\)/g, ' ');
+            str = str.replace(/\[[^\]]*\]/g, ' ');
+            // Remove known publisher/source prefixes
+            str = str.replace(/\b(s&p global|s&p|hcob eurozone|hcob|jibun bank|judo bank|businessnz|busnz|procure\.ch|procure|the conference board|conference board|cb|ism|reuters|zdf|ifo|gfk|cbi|nfib|cfib|nab|aig|seco|kof|anz|westpac|jcer|atlanta fed)\b/g, ' ');
+            // Standardize synonyms (English & Spanish)
+            str = str.replace(/\bmanufacturing\b|\bmanufacturero\b/g, 'mfg');
+            str = str.replace(/\bnon-manufacturing\b|\bno manufacturero\b|\bservicios\b/g, 'services');
+            str = str.replace(/\bunemployment\b|\bdesempleo\b|\bparo\b|\bjobless\b/g, 'unemp');
+            str = str.replace(/\bnonfarm payrolls\b|\bnon-farm payrolls\b|\bnon farm payrolls\b|\bnóminas no agrícolas\b|\bnominas no agricolas\b/g, 'nfp');
+            str = str.replace(/\bconsumer price\b|\bprecios al consumidor\b|\bindice de precios\b/g, 'cpi');
+            str = str.replace(/\bretail sales\b|\bventas minoristas\b/g, 'retail');
+            str = str.replace(/\bgdp\b|\bpib\b|\bgross domestic\b/g, 'gdp');
+            // Clean non-alphanumeric except whitespace
+            str = str.replace(/[^a-z0-9\s]/g, ' ');
+            return str.replace(/\s+/g, ' ').trim();
+        }
+
+        function inferCurrencyFromText(text) {
+            const s = (text || '').toLowerCase();
+            if (/\b(fed|fomc|ism|nfp|nonfarm|u\.s\.|united states|estados unidos|eeuu|atlanta fed|nfib)\b/.test(s)) return 'USD';
+            if (/\b(ecb|bce|hcob|german|alemania|eurozone|zona euro|ifo|france|francia|italy|italia|spain|españa)\b/.test(s)) return 'EUR';
+            if (/\b(boe|bank of england|banco de inglaterra|uk|u\.k\.|reino unido|claimant|gfk|cbi)\b/.test(s)) return 'GBP';
+            if (/\b(boj|bank of japan|banco de japón|japan|japón|japon|tokyo|tokio|tankan|jibun)\b/.test(s)) return 'JPY';
+            if (/\b(rba|australia|australian|judo|westpac|nab|aig)\b/.test(s)) return 'AUD';
+            if (/\b(rbnz|new zealand|nueva zelanda|businessnz|food price)\b/.test(s)) return 'NZD';
+            if (/\b(boc|bank of canada|banco de canadá|canada|canadá|ivey|cfib)\b/.test(s)) return 'CAD';
+            if (/\b(snb|swiss|suiza|procure|kof|seco)\b/.test(s)) return 'CHF';
+            return null;
+        }
+
+        function findMatchingIndicator(curr, rawEventName) {
+            const indicators = appData[curr];
+            if (!indicators || !indicators.length) return null;
+
+            const clean = normalizeEventName(rawEventName);
+            const ev = String(rawEventName).toLowerCase();
+
+            // 1. Direct exact or normalized match
+            for (const ind of indicators) {
+                if (ind.name.toLowerCase() === ev) return ind;
+                if (normalizeEventName(ind.name) === clean) return ind;
+            }
+
+            // 2. High-precision domain keyword matching
+            for (const ind of indicators) {
+                const iname = ind.name.toLowerCase();
+
+                // PMIs
+                if (iname.includes('mfg pmi') || iname.includes('manufacturing pmi')) {
+                    if ((ev.includes('manufacturing') || ev.includes('manufactur') || clean.includes('mfg')) && (ev.includes('pmi') || clean.includes('pmi'))) return ind;
+                }
+                if (iname.includes('services pmi') || iname.includes('non-mfg') || iname.includes('aud_services')) {
+                    if ((ev.includes('services') || ev.includes('servicio') || ev.includes('non-manufacturing')) && (ev.includes('pmi') || clean.includes('pmi'))) return ind;
+                }
+                if (iname.includes('ivey') && (ev.includes('ivey') || clean.includes('ivey'))) return ind;
+
+                // NFP & Labor Market
+                if (iname === 'nfp' && (clean.includes('nfp') || ev.includes('nonfarm') || ev.includes('non-farm') || ev.includes('nóminas') || ev.includes('nominas'))) return ind;
+                if ((iname.includes('unemployment rate') || iname === 'unemp rate') && !iname.includes('change')) {
+                    if ((ev.includes('unemployment rate') || ev.includes('tasa de desempleo') || ev.includes('tasa de paro') || ev.includes('jobless rate')) && !ev.includes('change') && !ev.includes('cambio')) return ind;
+                }
+                if (iname.includes('unemp change') || iname.includes('unemployment change')) {
+                    if (ev.includes('unemployment change') || ev.includes('cambio del desempleo') || ev.includes('jobless change')) return ind;
+                }
+                if (iname.includes('claimant') && (ev.includes('claimant') || ev.includes('subsidio por desempleo'))) return ind;
+                if ((iname.includes('employment change') || iname.includes('net employment') || iname.includes('jobs change')) && !iname.includes('unemployment')) {
+                    if ((ev.includes('employment change') || ev.includes('net employment') || ev.includes('cambio del empleo') || ev.includes('creación de empleo') || ev.includes('jobs change')) && !ev.includes('unemployment') && !ev.includes('desempleo')) return ind;
+                }
+
+                // Inflation / CPI
+                if (iname.includes('cpi') || iname.includes('food prices')) {
+                    if (iname.includes('tokyo') && (ev.includes('tokyo') || ev.includes('tokio'))) return ind;
+                    if (iname.includes('food') && (ev.includes('food') || ev.includes('alimento'))) return ind;
+                    if (!iname.includes('tokyo') && !iname.includes('food')) {
+                        if (ev.includes('cpi') || ev.includes('ipc') || ev.includes('consumer price') || ev.includes('precios al consumidor') || ev.includes('inflation') || ev.includes('inflación')) return ind;
+                    }
+                }
+
+                // Retail Sales
+                if (iname.includes('retail sales') && (ev.includes('retail') || ev.includes('minorista') || ev.includes('ventas minoristas'))) return ind;
+                if (iname.includes('card transactions') && (ev.includes('card transaction') || ev.includes('tarjetas'))) return ind;
+
+                // GDP
+                if (iname.includes('gdpnow') && (ev.includes('gdpnow') || (ev.includes('atlanta') && ev.includes('gdp')))) return ind;
+                if (iname.includes('jcer') && ev.includes('jcer')) return ind;
+                if (iname.includes('gdp') && !iname.includes('gdpnow') && !iname.includes('jcer')) {
+                    if (ev.includes('gdp') || ev.includes('pib') || ev.includes('gross domestic') || ev.includes('producto interior')) return ind;
+                }
+
+                // Confidence / Business Surveys
+                if (iname.includes('consumer confidence') || iname.includes('consumer sentiment') || iname.includes('consumer survey')) {
+                    if (ev.includes('consumer confidence') || ev.includes('confianza del consumidor') || ev.includes('consumer sentiment') || ev.includes('sentimiento del consumidor') || ev.includes('consumer survey')) return ind;
+                }
+                if (iname.includes('ifo') && (ev.includes('ifo') || ev.includes('business climate') || ev.includes('clima empresarial'))) return ind;
+                if (iname.includes('nfib') && (ev.includes('nfib') || ev.includes('small business'))) return ind;
+                if (iname.includes('cfib') && (ev.includes('cfib') || ev.includes('business barometer'))) return ind;
+                if (iname.includes('westpac') && (ev.includes('westpac') || ev.includes('sentiment'))) return ind;
+                if (iname.includes('nab') && (ev.includes('nab') || ev.includes('business confidence'))) return ind;
+                if (iname.includes('anz') && iname.includes('business') && (ev.includes('anz') && ev.includes('business'))) return ind;
+                if (iname.includes('tankan') && (ev.includes('tankan') || ev.includes('reuters'))) return ind;
+                if (iname.includes('cbi') && (ev.includes('cbi') || ev.includes('industrial trends'))) return ind;
+                if (iname.includes('gfk') && (ev.includes('gfk') || ev.includes('consumer confidence'))) return ind;
+                if (iname.includes('aig') && (ev.includes('aig') || ev.includes('industry index'))) return ind;
+                if (iname.includes('kof') && (ev.includes('kof') || ev.includes('leading indicator'))) return ind;
+                if (iname.includes('seco') && (ev.includes('seco') || ev.includes('economic indicators') || ev.includes('consumer climate'))) return ind;
+                if (iname.includes('industrial production') && (ev.includes('industrial production') || ev.includes('producción industrial') || ev.includes('produccion industrial'))) return ind;
+                if (iname.includes('cash earnings') && (ev.includes('cash earnings') || ev.includes('earnings') || ev.includes('salarios'))) return ind;
+                if (iname.includes('activity index') && (ev.includes('activity index') || ev.includes('busnz'))) return ind;
+            }
+
+            // 3. Normalized substring inclusion
+            for (const ind of indicators) {
+                const inameNorm = normalizeEventName(ind.name);
+                if (inameNorm.length >= 4 && (clean.includes(inameNorm) || inameNorm.includes(clean))) return ind;
+            }
+
+            // 4. Token overlap similarity
+            let bestMatch = null;
+            let bestScore = 0;
+            const cleanWords = clean.split(/\s+/).filter(w => w.length > 2);
+            for (const ind of indicators) {
+                const inameWords = normalizeEventName(ind.name).split(/\s+/).filter(w => w.length > 2);
+                if (!inameWords.length) continue;
+                const common = cleanWords.filter(w => inameWords.includes(w));
+                const score = common.length / Math.max(cleanWords.length, inameWords.length);
+                if (score > bestScore && score >= 0.35) {
+                    bestScore = score;
+                    bestMatch = ind;
+                }
+            }
+            return bestMatch;
+        }
+
+        function parseSpreadsheetData(rows) {
+            return processInvestingRows(rows);
+        }
+
+        function processInvestingRows(rawRows) {
+            const mappedRows = (rawRows || []).map(row => {
+                if (!row) return [];
+                const cleanRow = row.map(cell => {
+                  if (cell === null || cell === undefined) return "";
+                  if (cell instanceof Date) {
+                    // Catch Excel time-only epoch dates (1899/1900)
+                    if (cell.getFullYear() <= 1905) {
+                      return String(cell.getHours()).padStart(2, '0') + ":" + String(cell.getMinutes()).padStart(2, '0');
+                    }
+                    // Safely convert real dates to YYYY-MM-DD
+                    const y = cell.getFullYear();
+                    const m = String(cell.getMonth() + 1).padStart(2, '0');
+                    const d = String(cell.getDate()).padStart(2, '0');
+                    return `${y}-${m}-${d}`;
+                  }
+                  return String(cell).trim();
+                });
+                return cleanRow;
+            });
+            const cleanRows = mappedRows.filter(r => r && r.some(c => c !== ''));
+            if (cleanRows.length === 0) {
+                alert('No readable data rows found.');
+                return;
+            }
+
+            // Detect Header Row across first 25 rows
+            let headerRowIdx = -1;
+            let eventCol = -1;
+            let currCol = -1;
+            let actualCol = -1;
+            let forecastCol = -1;
+            let prevCol = -1;
+            let dateCol = -1;
+
+            for (let r = 0; r < Math.min(cleanRows.length, 25); r++) {
+                const row = cleanRows[r].map(c => String(c || '').trim().toLowerCase().replace(/[\u00A0\u200B\r\n]/g, ''));
+                const hasEventHeader = row.some(c => c === 'event' || c === 'indicator' || c === 'evento' || c === 'indicador' || c === 'acontecimiento' || c.includes('event'));
+                const hasCcyHeader = row.some(c => c === 'cur.' || c === 'cur' || c === 'currency' || c === 'divisa' || c === 'moneda' || c === 'country' || c === 'pais' || c === 'país' || c === 'zone');
+                const hasNumbersHeader = row.some(c => c === 'actual' || c === 'dato actual' || c === 'real' || c === 'forecast' || c === 'previsión' || c === 'prevision' || c === 'previous' || c === 'previo');
+
+                if (hasEventHeader || (hasCcyHeader && hasNumbersHeader)) {
+                    headerRowIdx = r;
+                    row.forEach((cell, idx) => {
+                        if (['date', 'fecha', 'day', 'dia', 'día', 'release date'].some(h => cell === h || cell.includes(h))) {
+                            if (dateCol === -1) dateCol = idx;
+                        }
+                        if (['cur.', 'cur', 'currency', 'div.', 'div', 'divisa', 'moneda', 'country', 'pais', 'país', 'zone', 'zona', 'ccy'].some(h => cell === h || cell.startsWith(h))) {
+                            if (currCol === -1) currCol = idx;
+                        }
+                        if (['event', 'indicator', 'evento', 'indicador', 'acontecimiento', 'title', 'nombre', 'release'].some(h => cell === h || cell.includes(h))) {
+                            if (eventCol === -1) eventCol = idx;
+                        }
+                        if (['actual', 'act', 'dato actual', 'real', 'current'].some(h => cell === h || cell.includes(h))) {
+                            if (actualCol === -1) actualCol = idx;
+                        }
+                        if (['forecast', 'consensus', 'fcst', 'previsión', 'prevision', 'previsto', 'pronóstico', 'pronostico', 'consenso', 'expected', 'estimado'].some(h => cell === h || cell.includes(h))) {
+                            if (forecastCol === -1) forecastCol = idx;
+                        }
+                        if (['previous', 'prev', 'prior', 'previo', 'anterior', 'prev.'].some(h => cell === h || cell.includes(h))) {
+                            if (prevCol === -1) prevCol = idx;
+                        }
+                    });
+                    break;
+                }
+            }
+
+            // Fallback heuristics if no explicit header row was identified
+            if (headerRowIdx === -1) {
+                headerRowIdx = 0;
+                cleanRows[0].forEach((c, idx) => {
+                    const s = String(c || '').trim();
+                    if (s.length >= 3 && /^[A-Z]{2,3}$/.test(s) && currCol === -1) currCol = idx;
+                    else if (s.length > 5 && isNaN(Number(s)) && !s.includes(':') && eventCol === -1) eventCol = idx;
+                });
+            }
+
+            const dataRows = cleanRows.slice(headerRowIdx + 1);
+            if (dataRows.length === 0) {
+                alert('No data rows found below headers.');
+                return;
+            }
+
+            let updatedCount = 0;
+            const updatedCurrencies = new Set();
+            let currentDateHeader = new Date().toISOString().slice(0, 10);
+
+            dataRows.forEach(row => {
+                // Check if row is a date separator
+                const fullText = row.map(c => String(c || '')).join(' ').trim();
+                if (fullText.length > 0 && row.filter(c => String(c || '').trim() !== '').length <= 2) {
+                    const rawDate = row[0] || row[1] || '';
+                    const parsedD = formatToYMD(rawDate);
+                    if (parsedD) {
+                        currentDateHeader = parsedD;
+                        return;
+                    }
+                }
+
+                if (dateCol !== -1 && row[dateCol]) {
+                    const parsedDate = formatToYMD(row[dateCol]);
+                    if (parsedDate) currentDateHeader = parsedDate;
+                }
+
+                let rawEvent = '';
+                if (eventCol !== -1 && row[eventCol] !== undefined) {
+                    rawEvent = String(row[eventCol] || '').trim();
+                } else {
+                    const textCells = row.map(c => String(c || '').trim()).filter(s => s.length > 4 && isNaN(Number(s)) && !s.includes(':'));
+                    if (textCells.length > 0) rawEvent = textCells[0];
+                }
+
+                if (!rawEvent || rawEvent.length < 3) return;
+
+                // Determine target currency
+                let targetCurr = null;
+                if (currCol !== -1 && row[currCol]) {
+                    const cleanCcy = String(row[currCol]).trim().toUpperCase().replace(/[^A-Z]/g, '');
+                    targetCurr = countryToCurrency[cleanCcy] || (appData[cleanCcy] ? cleanCcy : null);
+                }
+                if (!targetCurr) {
+                    targetCurr = inferCurrencyFromText(rawEvent);
+                }
+
+                const searchCurrencies = targetCurr ? [targetCurr] : Object.keys(appData);
+
+                for (const ccy of searchCurrencies) {
+                    const matchedInd = findMatchingIndicator(ccy, rawEvent);
+                    if (matchedInd) {
+                        let hasChanges = false;
+
+                        if (actualCol !== -1 && row[actualCol] !== undefined && row[actualCol] !== '' && row[actualCol] !== '-' && row[actualCol] !== 'N/A') {
+                            const parsed = parseInputValue(row[actualCol], matchedInd.type);
+                            if (parsed !== null) {
+                                matchedInd.actual = parsed;
+                                hasChanges = true;
+                            }
+                        }
+
+                        if (forecastCol !== -1 && row[forecastCol] !== undefined && row[forecastCol] !== '' && row[forecastCol] !== '-' && row[forecastCol] !== 'N/A') {
+                            const parsed = parseInputValue(row[forecastCol], matchedInd.type);
+                            if (parsed !== null) {
+                                matchedInd.forecast = parsed;
+                                hasChanges = true;
+                            }
+                        }
+
+                        if (prevCol !== -1 && row[prevCol] !== undefined && row[prevCol] !== '' && row[prevCol] !== '-' && row[prevCol] !== 'N/A') {
+                            const parsed = parseInputValue(row[prevCol], matchedInd.type);
+                            if (parsed !== null) {
+                                matchedInd.previous = parsed;
+                                hasChanges = true;
+                            }
+                        }
+
+                        if (hasChanges) {
+                            // 3. Enforce Index & Survey Scale Matching (Westpac, IFO, NFIB, Sentiment)
+                            normalizeIndexIndicatorScales(matchedInd);
+
+                            // Format release date with serial number converter
+                            matchedInd.date = (dateCol !== -1 && row[dateCol]) ? formatToYMD(row[dateCol]) : currentDateHeader;
+                            updatedCount++;
+                            updatedCurrencies.add(ccy);
+                            break;
+                        }
+                    }
+                }
+            });
+
+            if (updatedCount > 0) {
+                saveToLocalStorage();
+                refreshApp();
+                const notice = document.getElementById('lastUpdatedNotice');
+                if (notice) {
+                    notice.innerText = `Updated: ${updatedCount} indicators (${Array.from(updatedCurrencies).join(', ')})`;
+                }
+                alert(`Successfully updated ${updatedCount} indicators from Investing.com export!\n(${Array.from(updatedCurrencies).join(', ')})`);
+            } else {
+                alert('Processed data, but no matching indicators could be identified. Please ensure the table contains G10 economic calendar events.');
+            }
+        }
+
+        // Alias for compatibility
+        function processMatrix(rawRows) {
+            processInvestingRows(rawRows);
+        }
+
+        // ==========================================
+        // 6. FILE UPLOAD & PASTE EVENT HANDLERS
+        // ==========================================
+        function processInvestingFile(file) {
+            if (!file) return;
+            const fileName = file.name.toLowerCase();
+
+            if (fileName.endsWith('.json')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const imported = JSON.parse(e.target.result);
+                        if (imported && typeof imported === 'object') {
+                            Object.keys(imported).forEach(k => {
+                                if (Array.isArray(imported[k])) {
+                                    imported[k] = imported[k].map(item => {
+                                        if (!item) return item;
+                                        let cleanTime = item.time || "—";
+                                        if (typeof cleanTime === 'string' && (cleanTime.includes("1899") || cleanTime.includes("1900"))) {
+                                           const timeMatch = cleanTime.match(/\b(\d{1,2}:\d{2})(:\d{2})?\b/);
+                                           if (timeMatch) cleanTime = timeMatch[1];
+                                           else cleanTime = "—";
+                                        }
+                                        let cleanDate = item.date;
+                                        if (typeof cleanDate === 'string' && (cleanDate.includes("1899") || cleanDate.includes("1900"))) {
+                                           cleanDate = new Date().toISOString().slice(0, 10);
+                                        }
+                                        return {
+                                            ...item,
+                                            time: cleanTime,
+                                            date: cleanDate !== undefined ? cleanDate : item.date
+                                        };
+                                    });
+                                }
+                            });
+                            appData = imported;
+                            saveToLocalStorage();
+                            refreshApp();
+                            alert('Backup loaded successfully!');
+                        }
+                    } catch(err) {
+                        alert('Invalid JSON file.');
+                    }
+                };
+                reader.readAsText(file);
+                return;
+            }
+
+            if (fileName.endsWith('.csv') || fileName.endsWith('.tsv') || fileName.endsWith('.txt')) {
+                Papa.parse(file, {
+                    header: false,
+                    skipEmptyLines: 'greedy',
+                    complete: function(results) {
+                        if (results.data && results.data.length > 0) {
+                            processInvestingRows(results.data);
+                        } else {
+                            alert('No data rows found in the CSV/TSV file.');
+                        }
+                    },
+                    error: function(err) {
+                        alert('Error parsing CSV file: ' + err.message);
+                    }
+                });
+            } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+                        const firstSheetName = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[firstSheetName];
+                        // Using raw header:1 to extract 2D matrix
+                        const rawMatrix = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
+                        if (rawMatrix && rawMatrix.length > 0) {
+                            processInvestingRows(rawMatrix);
+                        } else {
+                            alert('No data rows found in the Excel sheet.');
+                        }
+                    } catch(err) {
+                        alert('Error reading Excel spreadsheet: ' + err.message);
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            } else {
+                alert('Unsupported file format. Please upload a .csv, .xlsx, or .xls file.');
+            }
+        }
+
+        function handleInvestingUpload(event) {
+            const file = event.target.files[0];
+            if (file) processInvestingFile(file);
+            event.target.value = '';
+        }
+
+        // Paste Modal Functions
+        function openPasteModal() {
+            document.getElementById('pasteModal').classList.remove('hidden');
+            setTimeout(() => document.getElementById('pasteTextarea').focus(), 50);
+        }
+
+        function closePasteModal() {
+            document.getElementById('pasteModal').classList.add('hidden');
+            document.getElementById('pasteTextarea').value = '';
+        }
+
+        function processPastedText() {
+            const text = document.getElementById('pasteTextarea').value.trim();
+            if (!text) {
+                alert('Please paste table content first.');
+                return;
+            }
+            closePasteModal();
+            Papa.parse(text, {
+                header: false,
+                skipEmptyLines: 'greedy',
+                complete: function(results) {
+                    if (results.data && results.data.length > 0) {
+                        processInvestingRows(results.data);
+                    } else {
+                        alert('Could not parse any table rows from the pasted text.');
+                    }
+                },
+                error: function(err) {
+                    alert('Error parsing pasted table: ' + err.message);
+                }
+            });
+        }
+
+        // Setup drop zone drag listeners
+        const dropZoneEl = document.getElementById('valuationDropZone');
+        if (dropZoneEl) {
+            dropZoneEl.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZoneEl.classList.add('border-cyan-400', 'bg-cyan-950/40');
+            });
+            dropZoneEl.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZoneEl.classList.remove('border-cyan-400', 'bg-cyan-950/40');
+            });
+            dropZoneEl.addEventListener('drop', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZoneEl.classList.remove('border-cyan-400', 'bg-cyan-950/40');
+                if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) {
+                    processInvestingFile(e.dataTransfer.files[0]);
+                }
+            });
+        }
+
+        window.addEventListener('dragover', (e) => { e.preventDefault(); e.stopPropagation(); });
+        window.addEventListener('drop', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) {
+                processInvestingFile(e.dataTransfer.files[0]);
+            }
+        });
+
+        // Window-level Paste Listener for direct copy-pasting tables from Investing.com
+        window.addEventListener('paste', (e) => {
+            // Ignore if active element is an input or textarea
+            const tag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+            if (tag === 'input' || tag === 'textarea') return;
+
+            const clipboardText = (e.clipboardData || window.clipboardData)?.getData('text');
+            if (clipboardText && clipboardText.length > 10 && (clipboardText.includes('\t') || clipboardText.includes('\n'))) {
+                e.preventDefault();
+                Papa.parse(clipboardText, {
+                    header: false,
+                    skipEmptyLines: 'greedy',
+                    complete: function(results) {
+                        if (results.data && results.data.length > 0) {
+                            processInvestingRows(results.data);
+                        }
+                    }
+                });
+            }
+        });
+
+        window.addEventListener('DOMContentLoaded', loadFromLocalStorage);
+    </script>
+</body>
+</html>

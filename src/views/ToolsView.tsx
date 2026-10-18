@@ -436,6 +436,28 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
       try {
         const parsed = JSON.parse(event.target?.result as string);
         if (parsed && typeof parsed === 'object') {
+          Object.keys(parsed).forEach(k => {
+            if (Array.isArray(parsed[k])) {
+              parsed[k] = parsed[k].map((item: any) => {
+                if (!item) return item;
+                let cleanTime = item.time || "—";
+                if (typeof cleanTime === 'string' && (cleanTime.includes("1899") || cleanTime.includes("1900"))) {
+                   const timeMatch = cleanTime.match(/\b(\d{1,2}:\d{2})(:\d{2})?\b/);
+                   if (timeMatch) cleanTime = timeMatch[1];
+                   else cleanTime = "—";
+                }
+                let cleanDate = item.date;
+                if (typeof cleanDate === 'string' && (cleanDate.includes("1899") || cleanDate.includes("1900"))) {
+                   cleanDate = new Date().toISOString().slice(0, 10);
+                }
+                return {
+                  ...item,
+                  time: cleanTime,
+                  date: cleanDate !== undefined ? cleanDate : item.date
+                };
+              });
+            }
+          });
           const cleanParsed = JSON.parse(JSON.stringify(parsed));
           setCurrencyIndicators(cleanParsed);
           try {
@@ -649,12 +671,23 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
     return bestIdx;
   };
 
-  // Excel Serial Date Converter (Fix Year +046300 Bug)
   const formatSpreadsheetDate = (dateVal: any): string => {
     if (dateVal === null || dateVal === undefined || dateVal === '') {
       return new Date().toISOString().slice(0, 10);
     }
+    if (dateVal instanceof Date) {
+      if (dateVal.getFullYear() <= 1905) {
+        return new Date().toISOString().slice(0, 10);
+      }
+      const y = dateVal.getFullYear();
+      const m = String(dateVal.getMonth() + 1).padStart(2, '0');
+      const d = String(dateVal.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
     const str = String(dateVal).trim().replace(/[\u00A0\u200B\r\n]/g, '');
+    if (str.includes('1899') || str.includes('1900')) {
+      return new Date().toISOString().slice(0, 10);
+    }
     if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
       return str;
     }
@@ -793,7 +826,26 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
 
     // 2. Core Matrix Processor for CSV / XLSX / XLS
     const processMatrix = (rawRows: any[][]) => {
-      const cleanRows = (rawRows || []).filter(r => r && r.some((c: any) => c !== null && c !== undefined && String(c).trim() !== ''));
+      const mappedRows = (rawRows || []).map(row => {
+        if (!row) return [];
+        const cleanRow = row.map((cell: any) => {
+          if (cell === null || cell === undefined) return '';
+          if (cell instanceof Date) {
+            // Catch Excel time-only epoch dates (1899/1900)
+            if (cell.getFullYear() <= 1905) {
+              return String(cell.getHours()).padStart(2, '0') + ':' + String(cell.getMinutes()).padStart(2, '0');
+            }
+            // Safely convert real dates to YYYY-MM-DD
+            const y = cell.getFullYear();
+            const m = String(cell.getMonth() + 1).padStart(2, '0');
+            const d = String(cell.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+          }
+          return String(cell).trim();
+        });
+        return cleanRow;
+      });
+      const cleanRows = mappedRows.filter(r => r && r.some((c: any) => c !== ''));
       if (cleanRows.length === 0) {
         alert(language === 'es' ? "El archivo no contiene filas legibles." : "No readable data rows found in uploaded file.");
         return;

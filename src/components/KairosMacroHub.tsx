@@ -274,8 +274,22 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed && typeof parsed === 'object') {
+          const rawDaysData = parsed.daysData || {};
+          const repairedDaysData: Record<string, MacroEvent[]> = {};
+          Object.keys(rawDaysData).forEach(day => {
+            repairedDaysData[day] = (rawDaysData[day] || []).map((item: any) => {
+              let cleanTime = item.time || "—";
+              if (typeof cleanTime === 'string' && (cleanTime.includes("1899") || cleanTime.includes("1900"))) {
+                const timeMatch = cleanTime.match(/\b(\d{1,2}:\d{2})(:\d{2})?\b/);
+                if (timeMatch) cleanTime = timeMatch[1];
+                else cleanTime = "—";
+              }
+              return { ...item, time: cleanTime };
+            });
+          });
+
           return {
-            daysData: parsed.daysData || {},
+            daysData: repairedDaysData,
             categoryScores: parsed.categoryScores || {},
             matrixEvents: parsed.matrixEvents || {},
             matrixTotals: parsed.matrixTotals || {},
@@ -700,9 +714,17 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
             Object.keys(parsed.daysData).forEach(day => {
               const events = parsed.daysData[day] || [];
               reevaluatedDaysData[day] = events.map((item: any) => {
+                let cleanTime = item.time || "—";
+                if (typeof cleanTime === 'string' && (cleanTime.includes("1899") || cleanTime.includes("1900"))) {
+                   const timeMatch = cleanTime.match(/\b(\d{1,2}:\d{2})(:\d{2})?\b/);
+                   if (timeMatch) cleanTime = timeMatch[1];
+                   else cleanTime = "—";
+                }
+
                 const ruleId = getCoreRuleId(item.ccy, item.event);
                 return {
                   ...item,
+                  time: cleanTime,
                   coreRuleId: ruleId,
                   isCore: Boolean(ruleId)
                 };
@@ -1067,7 +1089,21 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
 
     rawRows.forEach((row, rowIndex) => {
       if (!row || row.length === 0 || rowIndex === headerRowIdx) return;
-      const cleanRow = row.map(c => String(c !== null && c !== undefined ? c : '').trim());
+      const cleanRow = row.map((cell: any) => {
+        if (cell === null || cell === undefined) return '';
+        if (cell instanceof Date) {
+          // Catch Excel time-only epoch dates (1899/1900)
+          if (cell.getFullYear() <= 1905) {
+            return String(cell.getHours()).padStart(2, '0') + ':' + String(cell.getMinutes()).padStart(2, '0');
+          }
+          // Safely convert real dates to YYYY-MM-DD
+          const y = cell.getFullYear();
+          const m = String(cell.getMonth() + 1).padStart(2, '0');
+          const d = String(cell.getDate()).padStart(2, '0');
+          return `${y}-${m}-${d}`;
+        }
+        return String(cell).trim();
+      });
       const fullRowText = cleanRow.join(' ').toLowerCase();
       if (!fullRowText) return;
 

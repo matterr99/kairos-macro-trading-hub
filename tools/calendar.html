@@ -641,11 +641,20 @@
           
           // Ensure every event item has a unique string id and isolated memory reference
           Object.keys(clonedDaysData).forEach((day, dIdx) => {
-            clonedDaysData[day] = (clonedDaysData[day] || []).map((evt, eIdx) => ({
-              ...evt,
-              id: evt.id || `evt_${dIdx}_${eIdx}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-              score: typeof evt.score === 'number' ? evt.score : 0
-            }));
+            clonedDaysData[day] = (clonedDaysData[day] || []).map((evt, eIdx) => {
+              let cleanTime = evt.time || "—";
+              if (typeof cleanTime === 'string' && (cleanTime.includes("1899") || cleanTime.includes("1900"))) {
+                const timeMatch = cleanTime.match(/\b(\d{1,2}:\d{2})(:\d{2})?\b/);
+                if (timeMatch) cleanTime = timeMatch[1];
+                else cleanTime = "—";
+              }
+              return {
+                ...evt,
+                time: cleanTime,
+                id: evt.id || `evt_${dIdx}_${eIdx}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+                score: typeof evt.score === 'number' ? evt.score : 0
+              };
+            });
           });
 
           globalState.daysData = clonedDaysData;
@@ -715,6 +724,13 @@
               Object.keys(parsed.daysData).forEach((day, dIdx) => {
                 const events = parsed.daysData[day] || [];
                 reevaluatedDaysData[day] = events.map((item, idx) => {
+                  let cleanTime = item.time || "—";
+                  if (typeof cleanTime === 'string' && (cleanTime.includes("1899") || cleanTime.includes("1900"))) {
+                     const timeMatch = cleanTime.match(/\b(\d{1,2}:\d{2})(:\d{2})?\b/);
+                     if (timeMatch) cleanTime = timeMatch[1];
+                     else cleanTime = "—";
+                  }
+
                   const ruleId = getCoreRuleId(item.ccy, item.event);
                   let isCore = false;
 
@@ -724,6 +740,7 @@
 
                   return {
                     ...item,
+                    time: cleanTime,
                     id: item.id || `evt_${dIdx}_${idx}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
                     score: typeof item.score === 'number' ? item.score : 0,
                     coreRuleId: ruleId,
@@ -773,10 +790,17 @@
                   });
                   ccyTotal += scoreVal;
 
+                  let cleanTime = item.time || "—";
+                  if (typeof cleanTime === 'string' && (cleanTime.includes("1899") || cleanTime.includes("1900"))) {
+                     const timeMatch = cleanTime.match(/\b(\d{1,2}:\d{2})(:\d{2})?\b/);
+                     if (timeMatch) cleanTime = timeMatch[1];
+                     else cleanTime = "—";
+                  }
+
                   globalState.daysData[backupBlockName].push({
                     id: item.id || `evt_${ccy}_${idx}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
                     score: scoreVal,
-                    time: item.time || "—",
+                    time: cleanTime,
                     ccy: ccy,
                     event: evName,
                     actual: actVal,
@@ -1373,7 +1397,21 @@
 
       rows.forEach((row, rowIndex) => {
         if (!row || row.length === 0 || rowIndex === headerRowIdx) return;
-        const cleanRow = row.map(cell => cell === null || cell === undefined ? "" : String(cell).trim());
+        const cleanRow = row.map(cell => {
+          if (cell === null || cell === undefined) return "";
+          if (cell instanceof Date) {
+            // Catch Excel time-only epoch dates (1899/1900)
+            if (cell.getFullYear() <= 1905) {
+              return String(cell.getHours()).padStart(2, '0') + ":" + String(cell.getMinutes()).padStart(2, '0');
+            }
+            // Safely convert real dates to YYYY-MM-DD
+            const y = cell.getFullYear();
+            const m = String(cell.getMonth() + 1).padStart(2, '0');
+            const d = String(cell.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+          }
+          return String(cell).trim();
+        });
         const rowString = cleanRow.join(" ").trim();
         if (!rowString) return;
 
