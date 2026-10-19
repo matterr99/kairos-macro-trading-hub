@@ -157,6 +157,7 @@ export interface Translations {
     subtitle: string;
     subTabs: {
       all: string;
+      quantDesk: string;
       calendarFilter: string;
       currencyStrength: string;
       volatility: string;
@@ -270,6 +271,7 @@ export const TRANSLATIONS: Record<Language, Translations> = {
       subtitle: 'Institutional macroeconomic models, currency valuation ranking engines, and mathematical risk management frameworks.',
       subTabs: {
         all: 'Suite Hub',
+        quantDesk: 'Quant Desk',
         calendarFilter: 'Calendar Filtering Tool',
         currencyStrength: 'Currency Strength Engine',
         volatility: 'Volatility Matrix',
@@ -381,6 +383,7 @@ export const TRANSLATIONS: Record<Language, Translations> = {
       subtitle: 'Modelos macroeconómicos institucionales, motores de clasificación de valoración de divisas y marcos matemáticos de gestión de riesgo.',
       subTabs: {
         all: 'Centro de Herramientas',
+        quantDesk: 'Mesa Cuantitativa',
         calendarFilter: 'Filtro de Calendario',
         currencyStrength: 'Fuerza de Divisas',
         volatility: 'Matriz de Volatilidad',

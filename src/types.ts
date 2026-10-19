@@ -4,7 +4,7 @@ export type Theme = 'dark' | 'light';
 
 export type NavigationTab = 'console' | 'research' | 'academy' | 'tools';
 
-export type ToolSubTab = 'all' | 'calendar-filter' | 'currency-strength' | 'volatility' | 'calculator' | 'central-banks' | 'consensus';
+export type ToolSubTab = 'all' | 'quant-desk' | 'calendar-filter' | 'currency-strength' | 'volatility' | 'calculator' | 'central-banks' | 'consensus';
 
 export interface ResearchArticle {
   id: string;

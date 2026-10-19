@@ -1364,41 +1364,41 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
   return (
     <div className="w-full bg-[#020203] text-zinc-300 font-sans antialiased min-h-screen space-y-6 pb-16 selection:bg-cyan-900 selection:text-cyan-100">
       
-      {/* 1. TOP HEADER & COMMAND TOOLBAR */}
-      <div className="macro-panel p-4 sm:p-6 relative overflow-hidden">
-        <div className="max-w-7xl 2xl:max-w-[1536px] mx-auto flex flex-col lg:flex-row justify-between items-start lg:items-center gap-5 relative z-10">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="w-2 h-2 bg-cyan-400 animate-pulse" />
-              <span className="font-mono text-[10px] sm:text-xs text-cyan-400 font-bold uppercase tracking-widest">
-                {isEs ? '// MOTOR CUANTITATIVO DE CALENDARIO' : '// QUANTITATIVE CALENDAR ENGINE'}
-              </span>
+      {/* 1. TOP HERO / HEADER SECTION */}
+      <section className="relative w-full py-10 sm:py-12 border-b border-zinc-900 bg-[#020203]">
+        <div className="max-w-7xl 2xl:max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 flex flex-col md:flex-row md:items-end justify-between gap-6 font-mono">
+          <div className="space-y-3">
+            {onReturnToHub && (
+              <button 
+                type="button"
+                onClick={onReturnToHub} 
+                className="inline-flex items-center gap-2 text-xs text-zinc-500 hover:text-cyan-400 transition-colors uppercase cursor-pointer"
+              >
+                &larr; {isEs ? 'Volver al Centro de Herramientas' : 'Return to Tools Hub'}
+              </button>
+            )}
+            <div className="flex items-center gap-3">
+              <span className="text-cyan-500 font-bold text-[10px] tracking-widest uppercase">// CALENDAR FILTER_V2</span>
+              <span className="text-zinc-700">|</span>
+              <span className="text-emerald-400 font-bold text-[10px] tracking-wider uppercase">11 ECONOMIES</span>
+              <span className="text-zinc-700">|</span>
+              <span className="text-cyan-400 font-bold text-[10px] tracking-wider uppercase">TIER-1 MACRO</span>
             </div>
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tight text-white flex items-center gap-2.5">
-              <span>⚡</span> {isEs ? 'Kairos Macro Hub' : 'Kairos Macro Hub'}
+            <h1 className="text-2xl sm:text-4xl font-black text-white uppercase tracking-tight">
+              {isEs ? 'Herramienta de Filtrado de Calendario' : 'Calendar Filtering Tool'}
             </h1>
-            <p className="text-zinc-400 text-xs sm:text-sm mt-1 max-w-2xl font-light">
+            <p className="text-xs text-zinc-400 font-sans max-w-2xl font-light leading-relaxed">
               {isEs 
-                ? 'Motor Unificado de Riesgo, Divergencias y Filtrado Cuantitativo de Calendario Económico'
-                : 'Unified Event Risk, Macro Divergence Scanner & Quantitative Economic Calendar Engine'}
+                ? 'Filtro programático de canales por país a través de 11 economías principales. Filtra dinámicamente eventos Tier-1, periodos de silencio y desviaciones del consenso.'
+                : 'Programmatic country channel filter across 11 major global economies. Dynamically filters high-impact tier-1 releases, blackout windows, and consensus deviations.'}
             </p>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap text-xs font-mono w-full lg:w-auto">
-            {onReturnToHub && (
-              <button
-                type="button"
-                onClick={onReturnToHub}
-                className="text-[11px] text-zinc-400 hover:text-cyan-300 transition-colors border border-zinc-800 hover:border-cyan-500/40 bg-[#0c0d12] px-3 py-2 cursor-pointer min-h-[36px] flex items-center"
-              >
-                {isEs ? '← Volver al Centro' : '← Return to Hub'}
-              </button>
-            )}
-            
+          <div className="flex items-center gap-2 flex-wrap font-mono text-xs">
             <button
               type="button"
               onClick={lockCurrentAsPreviousWeek}
-              className="bg-amber-950/40 hover:bg-amber-900/60 text-amber-300 border border-amber-500/40 text-xs px-3.5 py-2 font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer min-h-[36px]"
+              className="px-3 py-1.5 text-[10px] uppercase tracking-wider bg-amber-950/40 hover:bg-amber-900/60 text-amber-300 rounded-sm border border-amber-600/60 transition font-bold cursor-pointer min-h-[36px] flex items-center gap-1.5"
               title={isEs ? 'Congelar semana actual como base previa' : 'Lock current week as baseline factors'}
             >
               <span>📌</span> {isEs ? 'Fijar como Semana Previa' : 'Lock as Prior Week'}
@@ -1407,7 +1407,7 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
             <button
               type="button"
               onClick={exportStateJSON}
-              className="bg-[#0c0d12] hover:bg-zinc-800 text-zinc-200 border border-zinc-800 hover:border-zinc-700 text-xs px-3 py-2 transition cursor-pointer min-h-[36px] flex items-center"
+              className="px-3 py-1.5 text-[10px] uppercase tracking-wider bg-cyan-950/40 hover:bg-cyan-900/60 text-cyan-400 rounded-sm border border-cyan-800/80 transition cursor-pointer min-h-[36px] flex items-center gap-1.5 font-bold"
             >
               <span>📥</span> {isEs ? 'Exportar Backup' : 'Export JSON'}
             </button>
@@ -1415,7 +1415,7 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
             <button
               type="button"
               onClick={() => jsonInputRef.current?.click()}
-              className="bg-[#0c0d12] hover:bg-zinc-800 text-zinc-200 border border-zinc-800 hover:border-zinc-700 text-xs px-3 py-2 transition cursor-pointer min-h-[36px] flex items-center"
+              className="px-3 py-1.5 text-[10px] uppercase tracking-wider bg-[#0c0c12] hover:bg-zinc-900 text-zinc-300 rounded-sm border border-zinc-800 transition cursor-pointer min-h-[36px] flex items-center gap-1.5"
             >
               <span>📤</span> {isEs ? 'Cargar Backup' : 'Load JSON'}
             </button>
@@ -1430,21 +1430,21 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
             <button
               type="button"
               onClick={resetAllScores}
-              className="bg-rose-950/30 hover:bg-rose-900/50 text-rose-300 border border-rose-900/40 text-xs px-3 py-2 transition cursor-pointer min-h-[36px] flex items-center"
+              className="px-3 py-1.5 text-[10px] uppercase tracking-wider bg-[#0c0c12] hover:bg-zinc-900 text-rose-400 rounded-sm border border-zinc-800 transition cursor-pointer min-h-[36px] flex items-center gap-1.5"
             >
-              <span>🗑️</span> {isEs ? 'Reiniciar Todo' : 'Reset All'}
+              <span>🗑️</span> {isEs ? 'Reiniciar' : 'Reset'}
             </button>
 
             <button
               type="button"
               onClick={() => setIsReportModalOpen(true)}
-              className="bg-cyan-500 hover:bg-cyan-400 text-black text-xs px-4 py-2 font-bold shadow-md transition cursor-pointer min-h-[36px] flex items-center"
+              className="px-3.5 py-1.5 text-[10px] uppercase tracking-wider bg-cyan-500 hover:bg-cyan-400 text-black rounded-sm font-black transition cursor-pointer min-h-[36px] flex items-center gap-1.5 shadow-[0_0_12px_rgba(6,182,212,0.3)]"
             >
-              {isEs ? 'Exportar PDF →' : 'Export PDF →'}
+              <span>📄</span> {isEs ? 'Exportar PDF →' : 'Export PDF →'}
             </button>
           </div>
         </div>
-      </div>
+      </section>
 
       <div className="max-w-7xl 2xl:max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 space-y-6">
 

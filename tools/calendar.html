@@ -107,44 +107,81 @@
   <!-- 1. DYNAMIC HEADER CONTAINER -->
   <div id="global-header"></div>
 
-  <!-- 2. MAIN CONTENT BODY -->
-  <main class="flex-grow w-full max-w-6xl mx-auto px-3 md:px-6 py-6">
-    <div class="space-y-6 no-print">
-      
-      <!-- Encabezado Principal -->
-      <div class="bg-[#090a10] p-5 md:p-6 rounded-2xl border border-zinc-800 shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-            <span>⚡</span> Kairos Macro Hub
-          </h1>
-          <p class="text-zinc-400 text-xs mt-1">Motor de análisis macro con restauración inteligente de respaldos JSON y filtros rigurosos</p>
-        </div>
-        <div class="flex items-center gap-2 flex-wrap">
-          <a href="../tools.html" class="font-mono text-[11px] text-zinc-400 hover:text-cyan-400 transition-colors border border-zinc-800 bg-[#08080c] px-3 py-2 rounded-lg">
-            &larr; VOLVER AL CENTRO DE HERRAMIENTAS
-          </a>
-          <button type="button" id="adminLoginBtn" onclick="promptAdminLogin()" class="bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-xs px-3 py-2 rounded-lg font-bold transition cursor-pointer">
-            🔑 Admin Login
-          </button>
-          <button type="button" onclick="lockCurrentAsPreviousWeek()" class="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs px-3 py-2 rounded-lg font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer">
-            📌 Fijar como Semana Previa
-          </button>
-          <button type="button" onclick="exportStateJSON()" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-xs px-3 py-2 rounded-lg transition cursor-pointer">
-            📥 Exportar Backup Total
-          </button>
-          <button type="button" onclick="document.getElementById('jsonInput').click()" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-xs px-3 py-2 rounded-lg transition cursor-pointer">
-            📤 Cargar Backup
-          </button>
-          <input type="file" id="jsonInput" accept=".json" class="hidden" onchange="importStateJSON(event)" />
-          
-          <button type="button" onclick="resetAllScores()" class="bg-rose-950/20 hover:bg-rose-900/40 text-rose-300 border border-rose-900/40 text-xs px-3 py-2 rounded-lg transition cursor-pointer">
-            🗑️ Reiniciar Todo
-          </button>
-          <button type="button" onclick="triggerPrint()" class="bg-cyan-500 hover:bg-cyan-400 text-black text-xs px-4 py-2 rounded-lg font-bold shadow-md transition cursor-pointer">
-            Exportar PDF &rarr;
-          </button>
-        </div>
+  <!-- 2. TICKER TAPE -->
+  <div class="ticker-tape-container w-full bg-[#020203] border-b border-zinc-900 overflow-hidden h-[46px] flex items-center shrink-0 no-print">
+      <div class="flex items-center gap-6 overflow-x-auto w-full px-4 sm:px-6 font-mono text-xs select-none">
+          <span class="text-cyan-500 font-bold uppercase tracking-widest text-[9px] shrink-0 border-r border-zinc-800 pr-3 flex items-center gap-1.5">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
+              // LIVE TICKER
+          </span>
+          <div class="flex items-center gap-8 flex-nowrap min-w-max">
+              <div class="flex items-center gap-2"><span class="text-zinc-300 font-bold">EUR/USD</span><span class="text-zinc-400">1.0845</span><span class="text-emerald-400 font-bold">+0.12%</span></div>
+              <div class="flex items-center gap-2"><span class="text-zinc-300 font-bold">GBP/USD</span><span class="text-zinc-400">1.2982</span><span class="text-rose-400 font-bold">-0.08%</span></div>
+              <div class="flex items-center gap-2"><span class="text-zinc-300 font-bold">USD/JPY</span><span class="text-zinc-400">154.22</span><span class="text-emerald-400 font-bold">+0.35%</span></div>
+              <div class="flex items-center gap-2"><span class="text-zinc-300 font-bold">USD/CAD</span><span class="text-zinc-400">1.3615</span><span class="text-rose-400 font-bold">-0.15%</span></div>
+              <div class="flex items-center gap-2"><span class="text-zinc-300 font-bold">AUD/USD</span><span class="text-zinc-400">0.6540</span><span class="text-rose-400 font-bold">-0.22%</span></div>
+              <div class="flex items-center gap-2"><span class="text-zinc-300 font-bold">USD/CHF</span><span class="text-zinc-400">0.8810</span><span class="text-rose-400 font-bold">-0.15%</span></div>
+              <div class="flex items-center gap-2"><span class="text-zinc-300 font-bold">NZD/USD</span><span class="text-zinc-400">0.5910</span><span class="text-zinc-400 font-bold">0.00%</span></div>
+              <div class="flex items-center gap-2"><span class="text-zinc-300 font-bold">US 10Y</span><span class="text-zinc-400">4.28%</span><span class="text-emerald-400 font-bold">+3.2 bps</span></div>
+              <div class="flex items-center gap-2"><span class="text-zinc-300 font-bold">BRENT</span><span class="text-zinc-400">$74.50</span><span class="text-rose-400 font-bold">-0.85%</span></div>
+              <div class="flex items-center gap-2"><span class="text-zinc-300 font-bold">GOLD</span><span class="text-zinc-400">$2,735</span><span class="text-emerald-400 font-bold">+0.45%</span></div>
+              <div class="flex items-center gap-2"><span class="text-zinc-300 font-bold">DXY</span><span class="text-zinc-400">104.15</span><span class="text-emerald-400 font-bold">+0.18%</span></div>
+              <div class="flex items-center gap-2"><span class="text-zinc-300 font-bold">VIX</span><span class="text-zinc-400">18.42</span><span class="text-rose-400 font-bold">-1.20%</span></div>
+          </div>
       </div>
+  </div>
+
+  <!-- 3. HERO / HEADER SECTION -->
+  <section class="relative w-full py-10 sm:py-12 border-b border-zinc-800 bg-[#101626] no-print">
+    <div class="max-w-7xl 2xl:max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 flex flex-col md:flex-row md:items-end justify-between gap-6 font-mono">
+      <div class="space-y-3">
+        <a href="../tools.html" class="inline-flex items-center gap-2 text-xs text-zinc-400 hover:text-cyan-400 transition-colors uppercase">
+          &larr; Return to Tools Hub
+        </a>
+        <div class="flex items-center gap-3">
+          <span class="text-cyan-400 font-bold text-[10px] tracking-widest uppercase">// CALENDAR FILTER_V2</span>
+          <span class="text-zinc-600">|</span>
+          <span class="text-emerald-400 font-bold text-[10px] tracking-wider uppercase">11 ECONOMIES</span>
+          <span class="text-zinc-600">|</span>
+          <span class="text-cyan-400 font-bold text-[10px] tracking-wider uppercase">TIER-1 MACRO</span>
+        </div>
+        <h1 class="text-2xl sm:text-4xl font-black text-white uppercase tracking-tight">
+          Calendar Filtering Tool
+        </h1>
+        <p class="text-xs sm:text-sm text-zinc-300 font-sans max-w-2xl font-light leading-relaxed">
+          Programmatic country channel filter across 11 major global economies. Dynamically filters high-impact tier-1 releases, blackout windows, and consensus deviations.
+        </p>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex items-center gap-2 flex-wrap font-mono text-xs">
+        <button type="button" id="adminLoginBtn" onclick="promptAdminLogin()" class="px-3 py-1.5 text-[10px] uppercase tracking-wider bg-cyan-950/40 hover:bg-cyan-900/60 text-cyan-400 rounded-sm border border-cyan-800/80 transition font-bold cursor-pointer flex items-center gap-1.5">
+          <i class="fa-solid fa-key"></i> Admin Login
+        </button>
+        <button type="button" onclick="lockCurrentAsPreviousWeek()" class="px-3 py-1.5 text-[10px] uppercase tracking-wider bg-amber-950/40 hover:bg-amber-900/60 text-amber-300 rounded-sm border border-amber-600/60 transition font-bold cursor-pointer flex items-center gap-1.5">
+          <i class="fa-solid fa-thumbtack"></i> Lock as Prior Week
+        </button>
+        <button type="button" onclick="exportStateJSON()" class="px-3 py-1.5 text-[10px] uppercase tracking-wider bg-[#0c0c12] hover:bg-zinc-900 text-zinc-300 rounded-sm border border-zinc-800 transition cursor-pointer flex items-center gap-1.5">
+          <i class="fa-solid fa-download"></i> Export Backup
+        </button>
+        <button type="button" onclick="document.getElementById('jsonInput').click()" class="px-3 py-1.5 text-[10px] uppercase tracking-wider bg-[#0c0c12] hover:bg-zinc-900 text-zinc-300 rounded-sm border border-zinc-800 transition cursor-pointer flex items-center gap-1.5">
+          <i class="fa-solid fa-upload"></i> Import Backup
+        </button>
+        <input type="file" id="jsonInput" accept=".json" class="hidden" onchange="importStateJSON(event)" />
+        
+        <button type="button" onclick="resetAllScores()" class="px-3 py-1.5 text-[10px] uppercase tracking-wider bg-[#0c0c12] hover:bg-zinc-900 text-rose-400 rounded-sm border border-zinc-800 transition cursor-pointer flex items-center gap-1.5">
+          <i class="fa-solid fa-rotate-left"></i> Reset
+        </button>
+        <button type="button" onclick="triggerPrint()" class="px-3.5 py-1.5 text-[10px] uppercase tracking-wider bg-cyan-500 hover:bg-cyan-400 text-black rounded-sm font-black transition cursor-pointer flex items-center gap-1.5 shadow-[0_0_12px_rgba(6,182,212,0.3)]">
+          <i class="fa-solid fa-file-pdf"></i> Export PDF &rarr;
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. MAIN CONTENT BODY -->
+  <main class="flex-grow w-full max-w-7xl 2xl:max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-8 space-y-6">
+    <div class="space-y-6 no-print">
 
       <!-- Carga de Archivos Excel y CSV -->
       <div id="dropZone" class="bg-[#07080d] border border-dashed border-zinc-800 hover:border-cyan-500/60 rounded-2xl p-6 text-center transition cursor-pointer group">

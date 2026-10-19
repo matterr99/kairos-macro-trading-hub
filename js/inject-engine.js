@@ -38,7 +38,8 @@ async function loadLayoutComponents() {
         // Highlight active page link
         const currentFileName = window.location.pathname.split("/").pop() || "index.html";
         document.querySelectorAll('[data-page]').forEach(link => {
-            if (link.getAttribute('data-page') === currentFileName) {
+            const page = link.getAttribute('data-page') || '';
+            if (page === currentFileName || page.endsWith('/' + currentFileName) || page.split('/').pop() === currentFileName) {
                 link.classList.add('text-white', 'font-bold', 'border-b-2', 'border-cyan-500', 'pb-1');
                 link.classList.remove('text-zinc-400');
             }

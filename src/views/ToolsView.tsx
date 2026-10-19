@@ -25,6 +25,7 @@ import {
 } from '../data/macroData';
 import { TRANSLATIONS } from '../locales/translations';
 import { KairosMacroHub } from '../components/KairosMacroHub';
+import { QuantDesk } from '../components/QuantDesk';
 import { ValuationRankingChart } from '../components/ValuationRankingChart';
 import { CurrencyIndicatorChart } from '../components/CurrencyIndicatorChart';
 import { SectionDivider } from '../components/SectionDivider';
@@ -1489,41 +1490,31 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
         <div className="max-w-7xl 2xl:max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 flex items-center gap-2 overflow-x-auto no-scrollbar touch-scroll font-mono text-xs">
           {[
             { id: 'all', label: t.tools.subTabs.all },
-            { id: 'quant-desk', label: 'QUANT DESK', href: 'tools/quant-desk.html' },
+            { id: 'quant-desk', label: t.tools.subTabs.quantDesk },
             { id: 'calendar-filter', label: t.tools.subTabs.calendarFilter, isPrimary: true },
             { id: 'currency-strength', label: t.tools.subTabs.currencyStrength },
             { id: 'volatility', label: t.tools.subTabs.volatility },
             { id: 'calculator', label: t.tools.subTabs.calculator },
             { id: 'central-banks', label: t.tools.subTabs.centralBanks },
             { id: 'consensus', label: t.tools.subTabs.consensus },
-          ].map((tab) =>
-            tab.href ? (
-              <a
-                key={tab.id}
-                href={tab.href}
-                className="px-3.5 py-2 uppercase tracking-wider text-[11px] transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 shrink-0 min-h-[36px] bg-[#0c0c12] text-zinc-400 border border-zinc-800 hover:text-white"
-              >
-                {tab.label}
-              </a>
-            ) : (
-              <button
-                key={tab.id}
-                onClick={() => handleTabSwitch(tab.id as ToolSubTab)}
-                className={`px-3.5 py-2 uppercase tracking-wider text-[11px] transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 shrink-0 min-h-[36px] ${
-                  activeTab === tab.id
-                    ? 'bg-cyan-500 text-black font-bold shadow-[0_0_12px_rgba(6,182,212,0.4)]'
-                    : tab.isPrimary
-                    ? 'bg-cyan-950/40 text-cyan-300 border border-cyan-700/70 hover:border-cyan-400 hover:text-white font-semibold'
-                    : 'bg-[#0c0c12] text-zinc-400 border border-zinc-800 hover:text-white'
-                }`}
-              >
-                {tab.isPrimary && (
-                  <span className="w-1.5 h-1.5 bg-cyan-400 animate-ping"></span>
-                )}
-                {tab.label}
-              </button>
-            )
-          )}
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => handleTabSwitch(tab.id as ToolSubTab)}
+              className={`px-3.5 py-2 uppercase tracking-wider text-[11px] transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 shrink-0 min-h-[36px] ${
+                activeTab === tab.id
+                  ? 'bg-cyan-500 text-black font-bold shadow-[0_0_12px_rgba(6,182,212,0.4)]'
+                  : (tab as any).isPrimary
+                  ? 'bg-cyan-950/40 text-cyan-300 border border-cyan-700/70 hover:border-cyan-400 hover:text-white font-semibold'
+                  : 'bg-[#0c0c12] text-zinc-400 border border-zinc-800 hover:text-white'
+              }`}
+            >
+              {(tab as any).isPrimary && (
+                <span className="w-1.5 h-1.5 bg-cyan-400 animate-ping"></span>
+              )}
+              {tab.label}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -1550,8 +1541,38 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
                 
+                {/* 0. QUANT DESK / SENTIMENT DEFINER */}
+                <div
+                  onClick={() => handleTabSwitch('quant-desk')}
+                  className="group macro-card p-6 sm:p-8 cursor-pointer flex flex-col justify-between relative overflow-hidden border border-zinc-800 hover:border-cyan-500/50"
+                >
+                  <div className="space-y-4 font-mono">
+                    <div className="flex items-center justify-between text-[10px]">
+                      <span className="text-zinc-400 uppercase tracking-widest">// QUANT_DESK_V2</span>
+                      <span className="bg-zinc-900 text-cyan-400 border border-cyan-900/50 px-2.5 py-0.5 font-bold uppercase">
+                        5-PILLAR MODEL
+                      </span>
+                    </div>
+
+                    <h3 className="text-lg sm:text-xl font-bold text-white group-hover:text-cyan-400 transition-colors uppercase tracking-wide">
+                      Currency Sentiment Definer
+                    </h3>
+
+                    <p className="text-xs sm:text-sm text-zinc-400 font-sans leading-relaxed font-light">
+                      {language === 'es' 
+                        ? 'Mesa de definición cuantitativa de sentimiento. Evalúa catalizadores de noticias, filtro minorista contrario (SSI), ponderación macro, apetito por riesgo y bancos centrales.'
+                        : 'Quantitative multi-factor sentiment verification desk. Evaluates Tier-1 news catalysts, retail crowd positioning (SSI), macro multi-factor weights, risk appetite, and central bank trajectory.'}
+                    </p>
+                  </div>
+
+                  <div className="mt-6 sm:mt-8 pt-4 border-t border-zinc-800 flex justify-between items-center font-mono text-xs text-cyan-400 font-bold uppercase tracking-wider">
+                    <span>{language === 'es' ? 'Abrir Quant Desk' : 'Open Quant Desk'}</span>
+                    <span className="group-hover:translate-x-2 transition-transform text-base">&rarr;</span>
+                  </div>
+                </div>
+
                 {/* 1. CALENDAR FILTER TOOL */}
                 <div
                   onClick={() => handleTabSwitch('calendar-filter')}
@@ -1754,6 +1775,14 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
             </div>
           </section>
         </>
+      )}
+
+      {/* SUB-VIEW: QUANT DESK / CURRENCY SENTIMENT DEFINER */}
+      {activeTab === 'quant-desk' && (
+        <div className="w-full space-y-0">
+          <SectionDivider label={language === 'es' ? '// DIVISIÓN 01 • DEFINIDOR DE SENTIMIENTO DE DIVISAS (5 PILARES)' : '// DIVISION 01 • CURRENCY SENTIMENT DEFINER (5 PILLARS)'} />
+          <QuantDesk onReturnToHub={() => handleTabSwitch('all')} language={language} />
+        </div>
       )}
 
       {/* SUB-VIEW: CALENDAR FILTER TOOL */}
