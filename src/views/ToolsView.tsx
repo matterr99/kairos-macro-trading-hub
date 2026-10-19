@@ -27,8 +27,8 @@ import { TRANSLATIONS } from '../locales/translations';
 import { KairosMacroHub } from '../components/KairosMacroHub';
 import { QuantDesk } from '../components/QuantDesk';
 import { ValuationRankingChart } from '../components/ValuationRankingChart';
-import { CurrencyIndicatorChart } from '../components/CurrencyIndicatorChart';
 import { SectionDivider } from '../components/SectionDivider';
+import { CentralBankTerminal } from '../components/CentralBankTerminal';
 
 export interface CentralBankTerminalItem {
   code: string;
