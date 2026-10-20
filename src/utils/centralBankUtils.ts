@@ -9,7 +9,7 @@ export const G10_CENTRAL_BANK_CONFIGS: CentralBankSeriesConfig[] = [
     secondarySeriesId: 'FEDFUNDS',
     fallbackRate: 3.63,
     fallbackPreviousRate: 3.88,
-    nextMeeting: '2026-10-14T14:00:00',
+    nextMeeting: '2026-11-04T14:00:00',
     step: 0.25,
     impliedOffset: 0.15,
   },
@@ -44,7 +44,7 @@ export const G10_CENTRAL_BANK_CONFIGS: CentralBankSeriesConfig[] = [
     seriesId: 'IRSTCB01AUM156N', // Cash Rate Target for Australia
     fallbackRate: 4.35,
     fallbackPreviousRate: 4.35,
-    nextMeeting: '2026-10-06T14:30:00',
+    nextMeeting: '2026-11-03T14:30:00',
     step: 0.25,
     impliedOffset: 0.18,
   },
@@ -66,7 +66,7 @@ export const G10_CENTRAL_BANK_CONFIGS: CentralBankSeriesConfig[] = [
     seriesId: 'IRSTCB01NZM156N', // Official Cash Rate for New Zealand
     fallbackRate: 2.50,
     fallbackPreviousRate: 2.75,
-    nextMeeting: '2026-10-07T14:00:00',
+    nextMeeting: '2026-11-25T14:00:00',
     step: 0.25,
     impliedOffset: 0.14,
   },

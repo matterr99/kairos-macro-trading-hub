@@ -73,6 +73,7 @@ export function useCentralBankRates(): UseCentralBankRatesResult {
   /**
    * Fetches latest observations for a given central bank through the secure backend proxy
    * Endpoint: /api/fred?series_id={seriesId}
+   * Supports graceful fallbacks when hosted statically (e.g. GitHub Pages returning 404).
    */
   const fetchSingleSeries = async (
     config: CentralBankSeriesConfig
@@ -82,13 +83,17 @@ export function useCentralBankRates(): UseCentralBankRatesResult {
       seriesList.push(config.secondarySeriesId);
     }
 
+    const isDaily = config.seriesId === 'DFF';
+    // Request up to 35 observations to ensure at least 20 trading days are available for daily series
+    const limitParam = isDaily ? '&limit=35' : '&limit=10';
+
     for (const sid of seriesList) {
       try {
-        const res = await fetch(`/api/fred?series_id=${encodeURIComponent(sid)}`, {
+        const res = await fetch(`/api/fred?series_id=${encodeURIComponent(sid)}${limitParam}`, {
           headers: { Accept: 'application/json' },
         });
 
-        // If backend proxy returns non-200 (e.g. 503 if no server key, or 429), skip and fallback
+        // If backend proxy returns non-200 (e.g. 404 on GitHub Pages, 503 if no server key, or 429), skip and fallback
         if (!res.ok) {
           continue;
         }
@@ -103,14 +108,21 @@ export function useCentralBankRates(): UseCentralBankRatesResult {
           if (valid.length > 0) {
             const latestRate = parseFloat(valid[0].value);
             const latestDate = valid[0].date;
-            const previousRate = valid.length > 1 ? parseFloat(valid[1].value) : null;
-            const previousDate = valid.length > 1 ? valid[1].date : null;
+
+            // For daily series (DFF), select an observation offset by ~20 trading days (~1 month)
+            // For monthly series, valid[1] is already the previous month
+            const prevIdx = isDaily
+              ? (valid.length > 20 ? 20 : valid.length - 1)
+              : 1;
+
+            const previousRate = valid.length > prevIdx && prevIdx > 0 ? parseFloat(valid[prevIdx].value) : null;
+            const previousDate = valid.length > prevIdx && prevIdx > 0 ? valid[prevIdx].date : null;
 
             return { latestRate, previousRate, latestDate, previousDate };
           }
         }
       } catch {
-        // Fallback gracefully on network failure
+        // Silently catch and fail over for static hosting (e.g. GitHub Pages)
       }
     }
 
@@ -162,8 +174,8 @@ export function useCentralBankRates(): UseCentralBankRatesResult {
               isLive = true;
               successfulFetches++;
             }
-          } catch (bankErr) {
-            console.warn(`[useCentralBankRates] Fallback applied for ${config.code}:`, bankErr);
+          } catch {
+            // Fail silently on static hosts (e.g. GitHub Pages) and preserve baseline fallbacks
           }
 
           const impliedRate = Number((latestRate + config.impliedOffset).toFixed(2));
@@ -203,26 +215,25 @@ export function useCentralBankRates(): UseCentralBankRatesResult {
       const now = new Date();
       setLastUpdated(now);
 
-      // Save to cache
-      try {
-        sessionStorage.setItem(
-          CACHE_KEY,
-          JSON.stringify({
-            timestamp: now.getTime(),
-            cachedData: updatedMap,
-            cachedLiveCount: successfulFetches,
-          })
-        );
-      } catch {}
-
-      if (successfulFetches === 0) {
-        // Backend returned non-200 or no key configured - fallback benchmark active
-        setIsError(false);
+      // Save to cache if successful
+      if (successfulFetches > 0) {
+        try {
+          sessionStorage.setItem(
+            CACHE_KEY,
+            JSON.stringify({
+              timestamp: now.getTime(),
+              cachedData: updatedMap,
+              cachedLiveCount: successfulFetches,
+            })
+          );
+        } catch {}
       }
-    } catch (err) {
-      console.error('[useCentralBankRates] Error fetching FRED rates:', err);
-      setIsError(true);
-      setError(err instanceof Error ? err.message : 'Failed to fetch rates from backend proxy');
+
+      setIsError(false);
+    } catch {
+      // Fail silently on static hosts (e.g., GitHub Pages 404), keeping baseline fallback data intact
+      setIsError(false);
+      setError(null);
     } finally {
       setIsLoading(false);
       isFetchingRef.current = false;

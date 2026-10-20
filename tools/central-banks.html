@@ -3,44 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Kairos Global // G10 Central Bank Terminal</title>
+  <title>Kairos Macro Hub // G10 Central Bank Terminal</title>
   
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   
-  <!-- FontAwesome Icons -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  
   <!-- Google Fonts: Inter & JetBrains Mono -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  
-  <!-- Plotly.js CDN -->
-  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
-  
-  <!-- PapaParse for CSV parsing -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-  
-  <!-- SheetJS for Excel parsing -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;700;800&display=swap" rel="stylesheet">
   
   <link rel="stylesheet" href="../css/styles.css">
   <style>
-    html, body {
-      background-color: #020203;
-      color: #d4d4d8;
-      font-family: 'Inter', system-ui, sans-serif;
-      overflow-y: auto !important;
-      height: auto !important;
-      min-height: 100vh;
-      -webkit-overflow-scrolling: touch !important;
-      touch-action: pan-y !important;
-    }
-    th.sortable { cursor: pointer; user-select: none; }
-    th.sortable:hover { color: #22d3ee; }
-    .bg-card { background-color: #040406; }
-    .bg-card-hover:hover { background-color: #08080f; }
-    input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-    ::-webkit-calendar-picker-indicator { filter: invert(1); opacity: 0.35; cursor: pointer; }
+    body { background-color: #020203; color: #d4d4d8; font-family: 'Inter', sans-serif; }
+    .badge-hawkish { background-color: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .badge-dovish { background-color: rgba(244, 63, 94, 0.15); color: #fb7185; border: 1px solid rgba(244, 63, 94, 0.3); }
+    .badge-neutral { background-color: rgba(113, 113, 122, 0.2); color: #d4d4d8; border: 1px solid rgba(113, 113, 122, 0.4); }
   </style>
 </head>
 <body class="bg-[#020203] text-zinc-300 antialiased min-h-screen flex flex-col justify-between selection:bg-cyan-900 selection:text-cyan-100">
@@ -66,73 +42,36 @@
   </div>
 
   <!-- 3. HERO / HEADER SECTION -->
-  <section class="relative w-full py-10 sm:py-12 border-b border-zinc-900 bg-[#020203]">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row md:items-end justify-between gap-6 font-mono">
+  <section class="relative w-full py-10 sm:py-12 border-b border-zinc-800 bg-[#101626]">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6 font-mono">
       <div class="space-y-3">
-        <a href="../tools.html" class="inline-flex items-center gap-2 text-xs text-zinc-500 hover:text-cyan-400 transition-colors uppercase">
+        <a href="../tools.html" class="inline-flex items-center gap-2 text-xs text-zinc-400 hover:text-cyan-400 transition-colors uppercase">
           &larr; Return to Tools Hub
         </a>
-        <div class="flex items-center gap-3 flex-wrap">
-          <span class="text-cyan-500 font-bold text-[10px] tracking-widest uppercase">// POLICY RADAR_V2</span>
-          <span class="text-zinc-700">|</span>
+        <div class="flex items-center gap-3">
+          <span class="text-cyan-400 font-bold text-[10px] tracking-widest uppercase">// POLICY RADAR_V2</span>
+          <span class="text-zinc-600">|</span>
           <span class="text-emerald-400 font-bold text-[10px] tracking-wider uppercase">G10 COCKPIT</span>
-          <span class="text-zinc-700">|</span>
-          <span id="fredLiveStatus" class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-sm text-[10px] font-mono tracking-wider uppercase bg-[#0c0c12] border border-zinc-800 text-zinc-400">
-            <span id="fredStatusDot" class="w-1.5 h-1.5 rounded-full bg-zinc-500"></span>
-            <span id="fredStatusText">SOURCE: STANDALONE BENCHMARK</span>
-          </span>
         </div>
         <h1 class="text-2xl sm:text-4xl font-black text-white uppercase tracking-tight">
           G10 Central Bank Terminal
         </h1>
-        <p class="text-xs text-zinc-400 font-sans max-w-2xl font-light leading-relaxed">
+        <p class="text-xs sm:text-sm text-zinc-300 font-sans max-w-2xl font-light leading-relaxed">
           Real-time monetary policy expectations, automated tone classification, decision countdowns, and implied trajectory curves.
         </p>
       </div>
 
-      <!-- Hero Action Controls -->
-      <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3 flex-wrap">
-        <div class="flex items-center gap-2 flex-wrap text-xs">
-          <button onclick="exportBackupData()" class="px-3 py-1.5 text-[10px] uppercase tracking-wider bg-cyan-950/40 hover:bg-cyan-900/60 text-cyan-400 rounded-sm border border-cyan-900/60 transition cursor-pointer">
-            <i class="fa-solid fa-download mr-1"></i> Export Backup
-          </button>
-          <button onclick="document.getElementById('jsonBackupInput').click()" class="px-3 py-1.5 text-[10px] uppercase tracking-wider bg-[#0c0c12] hover:bg-zinc-900 text-zinc-300 rounded-sm border border-zinc-800 transition cursor-pointer">
-            <i class="fa-solid fa-upload mr-1"></i> Import Backup
-          </button>
-          <input type="file" id="jsonBackupInput" accept=".json,application/json" class="hidden" onchange="importBackupData(event)">
-
-          <button onclick="document.getElementById('investingFileInput').click()" class="px-3 py-1.5 text-[10px] uppercase tracking-wider bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-400 rounded-sm border border-emerald-900/60 transition cursor-pointer">
-            <i class="fa-solid fa-file-import mr-1"></i> Import Investing.com Export
-          </button>
-          <input type="file" id="investingFileInput" accept=".csv, .xlsx, .xls" class="hidden" onchange="handleInvestingUpload(event)">
-
-          <button onclick="resetToDefaults()" class="px-3 py-1.5 text-[10px] uppercase tracking-wider bg-[#0c0c12] hover:bg-zinc-900 text-rose-400 rounded-sm border border-zinc-800 transition cursor-pointer">
-            <i class="fa-solid fa-rotate-left mr-1"></i> Reset Defaults
-          </button>
-        </div>
-
-        <!-- Bank Selector Dropdown -->
-        <div class="flex items-center gap-2 w-full sm:w-auto">
-          <label for="bankSelect" class="text-xs font-mono text-zinc-500 uppercase">View:</label>
-          <select id="bankSelect" onchange="switchBankView(this.value)" class="bg-[#0c0c12] border border-zinc-800 text-white text-xs rounded-sm px-3 py-1.5 font-mono focus:outline-none focus:border-cyan-400 cursor-pointer">
-            <option value="Overview">Overview (All Banks)</option>
-            <option value="FED">Federal Reserve (FED)</option>
-            <option value="ECB">European Central Bank (ECB)</option>
-            <option value="BOE">Bank of England (BOE)</option>
-            <option value="RBA">Reserve Bank of Australia (RBA)</option>
-            <option value="BOC">Bank of Canada (BOC)</option>
-            <option value="RBNZ">Reserve Bank of NZ (RBNZ)</option>
-            <option value="BOJ">Bank of Japan (BOJ)</option>
-            <option value="SNB">Swiss National Bank (SNB)</option>
-          </select>
-        </div>
+      <div class="flex items-center gap-2">
+        <span class="text-xs font-mono text-zinc-400 bg-[#040406] border border-zinc-800 px-3 py-1.5 rounded-sm">
+          CYCLE: NOVEMBER 2026
+        </span>
       </div>
     </div>
   </section>
 
-  <!-- 4. MAIN TERMINAL VIEW -->
-  <main class="flex-grow w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-8">
-    <div id="terminalViewContainer" class="space-y-6"></div>
+  <!-- 4. MAIN CONTAINER FOR INJECT ENGINE -->
+  <main class="flex-grow max-w-7xl mx-auto px-4 py-10 w-full">
+    <div id="central-bank-root"></div>
   </main>
 
   <!-- 5. DYNAMIC FOOTER CONTAINER -->
@@ -140,928 +79,307 @@
 
   <script src="../js/inject-engine.js"></script>
 
+  <!-- CENTRAL BANK CLIENT SCRIPT -->
   <script>
-    // G10 CENTRAL BANK DATA MODEL
-    const defaultRatesData = {
-      FED: { code: "FED", name: "Federal Reserve (FED)", rate: 3.63, nextMeeting: "2026-10-14T14:00:00", step: 0.25, implied: 3.78, trajectory: [3.63, 3.78, 3.91, 4.03, 3.88] },
-      ECB: { code: "ECB", name: "European Central Bank (ECB)", rate: 2.40, nextMeeting: "2026-10-22T14:15:00", step: 0.25, implied: 2.63, trajectory: [2.40, 2.63, 2.85, 2.95, 2.80] },
-      BOE: { code: "BOE", name: "Bank of England (BOE)", rate: 3.75, nextMeeting: "2026-11-05T12:00:00", step: 0.25, implied: 3.87, trajectory: [3.75, 3.87, 4.00, 4.10, 3.95] },
-      RBA: { code: "RBA", name: "Reserve Bank of Australia (RBA)", rate: 4.35, nextMeeting: "2026-10-06T14:30:00", step: 0.25, implied: 4.53, trajectory: [4.35, 4.53, 4.70, 4.80, 4.65] },
-      BOC: { code: "BOC", name: "Bank of Canada (BOC)", rate: 2.25, nextMeeting: "2026-10-28T10:00:00", step: 0.25, implied: 2.33, trajectory: [2.25, 2.33, 2.40, 2.50, 2.35] },
-      RBNZ: { code: "RBNZ", name: "Reserve Bank of NZ (RBNZ)", rate: 2.50, nextMeeting: "2026-10-07T14:00:00", step: 0.25, implied: 2.64, trajectory: [2.50, 2.64, 2.78, 2.92, 2.75] },
-      BOJ: { code: "BOJ", name: "Bank of Japan (BOJ)", rate: 1.00, nextMeeting: "2026-10-30T12:00:00", step: 0.10, implied: 1.20, trajectory: [1.00, 1.20, 1.35, 1.50, 1.60] },
-      SNB: { code: "SNB", name: "Swiss National Bank (SNB)", rate: 0.00, nextMeeting: "2026-12-10T09:30:00", step: 0.25, implied: 0.05, trajectory: [0.00, 0.05, 0.10, 0.15, 0.05] }
+    const G10_BANKS = {
+      FED: { code: 'FED', name: 'Federal Reserve (FED)', seriesId: 'DFF', rate: 3.63, nextMeeting: '2026-11-04T14:00:00', step: 0.25, implied: 3.78, trajectory: [3.63, 3.78, 3.91, 4.03, 3.88] },
+      ECB: { code: 'ECB', name: 'European Central Bank (ECB)', seriesId: 'IRSTCB01EZM156N', rate: 2.40, nextMeeting: '2026-10-22T14:15:00', step: 0.25, implied: 2.63, trajectory: [2.40, 2.63, 2.85, 2.95, 2.80] },
+      BOE: { code: 'BOE', name: 'Bank of England (BOE)', seriesId: 'IRSTCB01GBM156N', rate: 3.75, nextMeeting: '2026-11-05T12:00:00', step: 0.25, implied: 3.87, trajectory: [3.75, 3.87, 4.00, 4.10, 3.95] },
+      RBA: { code: 'RBA', name: 'Reserve Bank of Australia (RBA)', seriesId: 'IRSTCB01AUM156N', rate: 4.35, nextMeeting: '2026-11-03T14:30:00', step: 0.25, implied: 4.53, trajectory: [4.35, 4.53, 4.70, 4.80, 4.65] },
+      BOC: { code: 'BOC', name: 'Bank of Canada (BOC)', seriesId: 'IRSTCB01CAM156N', rate: 2.25, nextMeeting: '2026-10-28T10:00:00', step: 0.25, implied: 2.33, trajectory: [2.25, 2.33, 2.40, 2.50, 2.35] },
+      RBNZ: { code: 'RBNZ', name: 'Reserve Bank of NZ (RBNZ)', seriesId: 'IRSTCB01NZM156N', rate: 2.50, nextMeeting: '2026-11-25T14:00:00', step: 0.25, implied: 2.64, trajectory: [2.50, 2.64, 2.78, 2.92, 2.75] },
+      BOJ: { code: 'BOJ', name: 'Bank of Japan (BOJ)', seriesId: 'IRSTCB01JPM156N', rate: 1.00, nextMeeting: '2026-10-30T12:00:00', step: 0.10, implied: 1.20, trajectory: [1.00, 1.20, 1.35, 1.50, 1.60] },
+      SNB: { code: 'SNB', name: 'Swiss National Bank (SNB)', seriesId: 'IRSTCB01CHM156N', rate: 0.00, nextMeeting: '2026-12-10T09:30:00', step: 0.25, implied: 0.05, trajectory: [0.00, 0.05, 0.10, 0.15, 0.05] }
     };
 
-    const STORAGE_KEY = 'central_bank_terminal_v2';
-    let ratesData = JSON.parse(JSON.stringify(defaultRatesData));
-    let currentView = 'Overview';
-    let currentSortColumn = 'nextMeeting';
-    let sortAscending = true;
+    let bankData = JSON.parse(JSON.stringify(G10_BANKS));
+    let activeView = 'Overview';
+    let sortCol = 'nextMeeting';
+    let sortAsc = true;
+    let simOffsetBps = 0;
 
-    // Load state from localStorage
-    function loadFromLocalStorage() {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          if (parsed && typeof parsed === 'object') {
-            ratesData = JSON.parse(JSON.stringify(parsed));
-          }
-        } catch(e) {}
-      }
-    }
-
-    function saveToLocalStorage() {
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(ratesData));
-      } catch(e) {}
-    }
-
-    // POLICY TONE CLASSIFIER
-    function classifyPolicyTone(deltaBps, outcome) {
-      if (deltaBps >= 20) {
-        return { label: "Strongly Hawkish", class: "text-emerald-300 bg-emerald-950/80 border-emerald-500/50", weight: 4 };
-      } else if (deltaBps >= 10 && outcome === "HIKE") {
-        return { label: "Hawkish / Hike Bias", class: "text-emerald-400 bg-emerald-950/50 border-emerald-500/30", weight: 3 };
-      } else if (outcome === "HOLD" && deltaBps > 5) {
-        return { label: "Hawkish Hold", class: "text-teal-300 bg-teal-950/50 border-teal-500/30", weight: 2 };
-      } else if (Math.abs(deltaBps) <= 5) {
-        return { label: "Neutral / Data-Dependent", class: "text-zinc-300 bg-zinc-800/60 border-zinc-700", weight: 1 };
-      } else if (outcome === "HOLD" && deltaBps < -5) {
-        return { label: "Dovish Hold", class: "text-amber-300 bg-amber-950/50 border-amber-500/30", weight: -1 };
-      } else if (deltaBps <= -6 && deltaBps > -18) {
-        return { label: "Dovish Pivot", class: "text-rose-300 bg-rose-950/50 border-rose-500/30", weight: -2 };
-      } else {
-        return { label: "Strongly Dovish", class: "text-rose-400 bg-rose-950/80 border-rose-500/50", weight: -3 };
-      }
-    }
-
-    // Trajectory Curve Projection
-    function calculateTrajectory(rate, implied, step) {
-      const delta = implied - rate;
-      const p0 = rate;
-      const p1 = implied;
-      const p2 = Number((p1 + delta * 0.75).toFixed(2));
-      const p3 = Number((p2 + delta * 0.50).toFixed(2));
-      const p4 = Number((p3 + delta * 0.20).toFixed(2));
-      return [Number(p0.toFixed(2)), Number(p1.toFixed(2)), p2, p3, p4];
-    }
-
-    // COUNTDOWN CALCULATOR
-    function getDaysRemaining(nextMeetingStr) {
-      const target = new Date(nextMeetingStr);
+    function getCountdown(dateStr) {
+      const target = new Date(dateStr);
       const now = new Date();
-      if (isNaN(target.getTime())) return { days: 0, text: "--", badgeClass: "bg-zinc-800 text-zinc-500" };
+      if (isNaN(target.getTime())) return { text: '--', badge: 'bg-zinc-800 text-zinc-500' };
       const diffMs = target - now;
       const diffHours = Math.round(diffMs / (1000 * 60 * 60));
       const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-      
-      if (diffHours < 0) {
-        return { days: diffDays, text: "Passed", badgeClass: "bg-zinc-900 text-zinc-500 border border-zinc-800" };
-      } else if (diffHours <= 24) {
-        return { days: 0, text: `<${diffHours}h left`, badgeClass: "bg-rose-950/80 text-rose-300 border border-rose-800 animate-pulse font-bold" };
-      } else if (diffDays <= 7) {
-        return { days: diffDays, text: `${diffDays}d left`, badgeClass: "bg-amber-950/50 text-amber-300 border border-amber-700 font-bold" };
-      } else {
-        return { days: diffDays, text: `${diffDays}d left`, badgeClass: "bg-cyan-950/40 text-cyan-300 border border-cyan-800 font-bold" };
-      }
+
+      if (diffHours < 0) return { text: 'Passed', badge: 'bg-zinc-900 text-zinc-500 border border-zinc-800' };
+      if (diffHours <= 24) return { text: `<${diffHours}h left`, badge: 'bg-rose-950/80 text-rose-300 border border-rose-800 animate-pulse font-bold' };
+      if (diffDays <= 7) return { text: `${diffDays}d left`, badge: 'bg-amber-950/50 text-amber-300 border border-amber-700 font-bold' };
+      return { text: `${diffDays}d left`, badge: 'bg-cyan-950/50 text-cyan-300 border border-cyan-800/60 font-mono' };
     }
 
-    function getDetailedCountdown(nextMeetingStr) {
-      const target = new Date(nextMeetingStr);
-      const now = new Date();
-      if (isNaN(target.getTime())) return "--";
-      const diffMs = target - now;
-      if (diffMs <= 0) return "Decision Concluded";
-      const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-      const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      return `${days}d ${hours}h remaining`;
+    function classifyTone(deltaBps, outcome) {
+      if (deltaBps >= 20) return { label: 'Strongly Hawkish', badge: 'badge-hawkish font-bold' };
+      if (deltaBps >= 10 && outcome === 'HIKE') return { label: 'Hawkish Bias', badge: 'badge-hawkish' };
+      if (outcome === 'HOLD' && deltaBps > 5) return { label: 'Hawkish Hold', badge: 'badge-hawkish' };
+      if (Math.abs(deltaBps) <= 5) return { label: 'Data-Dependent', badge: 'badge-neutral' };
+      if (outcome === 'HOLD' && deltaBps < -5) return { label: 'Dovish Hold', badge: 'badge-dovish' };
+      if (deltaBps <= -6 && deltaBps > -18) return { label: 'Dovish Pivot', badge: 'badge-dovish' };
+      return { label: 'Strongly Dovish', badge: 'badge-dovish font-bold' };
     }
 
-    // SWITCH VIEW
-    function switchBankView(view) {
-      currentView = view;
-      const select = document.getElementById('bankSelect');
-      if (select && select.value !== view) select.value = view;
+    function renderTerminal() {
+      const root = document.getElementById('central-bank-root');
+      if (!root) return;
 
-      const container = document.getElementById('terminalViewContainer');
-      if (view === "Overview") {
-        renderOverview(container);
-      } else {
-        renderDrilldown(container, view);
-      }
-    }
-
-    // SORT HANDLER
-    function handleSort(col) {
-      if (currentSortColumn === col) {
-        sortAscending = !sortAscending;
-      } else {
-        currentSortColumn = col;
-        sortAscending = true;
-      }
-      renderOverview(document.getElementById('terminalViewContainer'));
-    }
-
-    // RENDER OVERVIEW MATRIX
-    function renderOverview(container) {
-      let rows = Object.values(ratesData).map(b => {
-        const deltaBps = Number(((b.implied - b.rate) * 100).toFixed(1));
-        const step = b.step || 0.25;
-        const prob = Math.min(100, Math.round(Math.abs(deltaBps) / (step * 100) * 100));
-        const outcome = deltaBps > (step * 50) ? "HIKE" : (deltaBps < -(step * 50) ? "CUT" : "HOLD");
-        const tone = classifyPolicyTone(deltaBps, outcome);
-        const countdown = getDaysRemaining(b.nextMeeting);
-        return { ...b, deltaBps, prob, outcome, tone, countdown };
-      });
-
-      // Sort rows
-      rows.sort((a, b) => {
-        let valA, valB;
-        switch(currentSortColumn) {
-          case 'name': valA = a.name; valB = b.name; break;
-          case 'rate': valA = a.rate; valB = b.rate; break;
-          case 'implied': valA = a.implied; valB = b.implied; break;
-          case 'deltaBps': valA = a.deltaBps; valB = b.deltaBps; break;
-          case 'prob': valA = a.prob; valB = b.prob; break;
-          case 'tone': valA = a.tone.weight; valB = b.tone.weight; break;
-          case 'nextMeeting':
-          default:
+      if (activeView === 'Overview') {
+        const banksList = Object.values(bankData).map(b => {
+          const deltaBps = Number(((b.implied - b.rate) * 100).toFixed(1));
+          const step = b.step || 0.25;
+          const prob = Math.min(100, Math.round(Math.abs(deltaBps) / (step * 100) * 100));
+          const outcome = deltaBps > (step * 50) ? 'HIKE' : (deltaBps < -(step * 50) ? 'CUT' : 'HOLD');
+          const tone = classifyTone(deltaBps, outcome);
+          const countdown = getCountdown(b.nextMeeting);
+          return { ...b, deltaBps, prob, outcome, tone, countdown };
+        }).sort((a, b) => {
+          let valA = a[sortCol];
+          let valB = b[sortCol];
+          if (sortCol === 'nextMeeting') {
             valA = new Date(a.nextMeeting).getTime();
             valB = new Date(b.nextMeeting).getTime();
-            break;
-        }
-        if (valA < valB) return sortAscending ? -1 : 1;
-        if (valA > valB) return sortAscending ? 1 : -1;
-        return 0;
-      });
-
-      const sortIcon = (col) => {
-        if (currentSortColumn !== col) return '<i class="fa-solid fa-sort text-zinc-700 ml-1"></i>';
-        return sortAscending ? '<i class="fa-solid fa-sort-up text-cyan-400 ml-1"></i>' : '<i class="fa-solid fa-sort-down text-cyan-400 ml-1"></i>';
-      };
-
-      let html = `
-        <div class="bg-card border border-zinc-900 rounded-sm p-5 sm:p-6 shadow-2xl space-y-6">
-          <div class="flex flex-col md:flex-row justify-between md:items-center gap-3 font-mono">
-            <div>
-              <h3 class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                <i class="fa-solid fa-landmark text-cyan-500"></i> G10 Policy Rate Expectations Matrix
-              </h3>
-              <p class="text-[11px] text-zinc-500 font-sans mt-0.5">Click any central bank row for detailed trajectory curve and rate simulator.</p>
-            </div>
-            <div class="flex items-center gap-2 flex-wrap text-xs">
-              <button onclick="exportBackupData()" class="px-2.5 py-1 text-[10px] uppercase tracking-wider bg-cyan-950/40 hover:bg-cyan-900/60 text-cyan-400 rounded-sm border border-cyan-900/60 transition cursor-pointer">
-                <i class="fa-solid fa-download mr-1"></i> Export Backup
-              </button>
-              <button onclick="document.getElementById('jsonBackupInput').click()" class="px-2.5 py-1 text-[10px] uppercase tracking-wider bg-[#0c0c12] hover:bg-zinc-900 text-zinc-300 rounded-sm border border-zinc-800 transition cursor-pointer">
-                <i class="fa-solid fa-upload mr-1"></i> Import Backup
-              </button>
-              <button onclick="document.getElementById('investingFileInput').click()" class="px-2.5 py-1 text-[10px] uppercase tracking-wider bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-400 rounded-sm border border-emerald-900/60 transition cursor-pointer">
-                <i class="fa-solid fa-file-import mr-1"></i> Import Investing.com
-              </button>
-              <button onclick="resetToDefaults()" class="px-2.5 py-1 text-[10px] uppercase tracking-wider bg-[#0c0c12] hover:bg-zinc-900 text-rose-400 rounded-sm border border-zinc-800 transition cursor-pointer">
-                <i class="fa-solid fa-rotate-left mr-1"></i> Reset
-              </button>
-            </div>
-          </div>
-
-          <div class="overflow-x-auto">
-            <table class="w-full text-xs text-left font-mono whitespace-nowrap">
-              <thead>
-                <tr class="text-zinc-500 text-[10px] border-b border-zinc-900 uppercase tracking-wider bg-[#07080d]">
-                  <th onclick="handleSort('nextMeeting')" class="sortable p-3.5 pl-4">Next Decision ${sortIcon('nextMeeting')}</th>
-                  <th onclick="handleSort('name')" class="sortable p-3.5">Central Bank ${sortIcon('name')}</th>
-                  <th onclick="handleSort('rate')" class="sortable p-3.5 text-center">Benchmark Rate ${sortIcon('rate')}</th>
-                  <th onclick="handleSort('implied')" class="sortable p-3.5 text-center">Implied Forward ${sortIcon('implied')}</th>
-                  <th onclick="handleSort('deltaBps')" class="sortable p-3.5 text-center">Delta (bps) ${sortIcon('deltaBps')}</th>
-                  <th onclick="handleSort('prob')" class="sortable p-3.5 text-center">Move Probability ${sortIcon('prob')}</th>
-                  <th onclick="handleSort('tone')" class="sortable p-3.5 text-center">Evaluated Policy Tone ${sortIcon('tone')}</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-zinc-900/60">
-      `;
-
-      rows.forEach(b => {
-        const deltaColor = b.deltaBps > 0 ? 'text-emerald-400 font-bold' : (b.deltaBps < 0 ? 'text-rose-400 font-bold' : 'text-zinc-400');
-        const probBarColor = b.outcome === 'HIKE' ? 'bg-emerald-500' : (b.outcome === 'CUT' ? 'bg-rose-500' : 'bg-cyan-500');
-
-        html += `
-          <tr onclick="switchBankView('${b.code}')" class="bg-card-hover transition cursor-pointer">
-            <td class="p-3.5 pl-4 text-zinc-300 font-bold">
-              <div class="flex items-center gap-2">
-                <span>${b.nextMeeting.split('T')[0]}</span>
-                <span class="px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider ${b.countdown.badgeClass}">${b.countdown.text}</span>
-              </div>
-            </td>
-            <td class="p-3.5 font-bold text-white hover:text-cyan-400 transition-colors">
-              <div class="flex items-center gap-2">
-                <span class="w-1.5 h-1.5 rounded-full ${b.deltaBps > 5 ? 'bg-emerald-500' : (b.deltaBps < -5 ? 'bg-rose-500' : 'bg-zinc-600')}"></span>
-                <span>${b.name}</span>
-              </div>
-            </td>
-            <td class="p-3.5 text-center text-zinc-300 tabular-nums">${b.rate.toFixed(2)}%</td>
-            <td class="p-3.5 text-center text-cyan-400 font-bold tabular-nums">${b.implied.toFixed(2)}%</td>
-            <td class="p-3.5 text-center tabular-nums ${deltaColor}">${b.deltaBps > 0 ? '+' : ''}${b.deltaBps.toFixed(1)}</td>
-            <td class="p-3.5 text-center tabular-nums">
-              <div class="flex flex-col items-center gap-1 w-24 mx-auto">
-                <span class="font-bold text-zinc-200">${b.prob}% <span class="text-[9px] text-zinc-500">${b.outcome}</span></span>
-                <div class="w-full h-1 bg-zinc-800 rounded-full overflow-hidden">
-                  <div class="h-full ${probBarColor}" style="width: ${b.prob}%"></div>
-                </div>
-              </div>
-            </td>
-            <td class="p-3.5 text-center">
-              <span class="px-2.5 py-1 rounded border text-[10px] font-bold tracking-wide ${b.tone.class}">${b.tone.label}</span>
-            </td>
-          </tr>
-        `;
-      });
-
-      html += `</tbody></table></div></div>`;
-      container.innerHTML = html;
-    }
-
-    // RENDER DRILLDOWN VIEW
-    function renderDrilldown(container, bankCode) {
-      const b = ratesData[bankCode];
-      if (!b) {
-        switchBankView('Overview');
-        return;
-      }
-
-      const deltaBps = Number(((b.implied - b.rate) * 100).toFixed(1));
-      const step = b.step || 0.25;
-      const prob = Math.min(100, Math.round(Math.abs(deltaBps) / (step * 100) * 100));
-      const outcome = deltaBps > (step * 50) ? "HIKE" : (deltaBps < -(step * 50) ? "CUT" : "HOLD");
-      const tone = classifyPolicyTone(deltaBps, outcome);
-      const countdownDetailed = getDetailedCountdown(b.nextMeeting);
-      const countdownBadge = getDaysRemaining(b.nextMeeting);
-
-      container.innerHTML = `
-        <div class="space-y-6">
-          <!-- Back button & Bank title banner -->
-          <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 bg-card border border-zinc-900 rounded-sm p-4 font-mono">
-            <div class="flex items-center gap-3">
-              <button onclick="switchBankView('Overview')" class="text-xs text-zinc-400 hover:text-cyan-400 flex items-center gap-1.5 transition cursor-pointer">
-                <i class="fa-solid fa-arrow-left"></i> All Banks
-              </button>
-              <span class="text-zinc-700">|</span>
-              <h2 class="text-sm font-black text-white uppercase tracking-wider">${b.name}</h2>
-              <span class="text-[10px] text-zinc-500 uppercase">Step: ${b.step.toFixed(2)}%</span>
-            </div>
-            <div class="flex items-center gap-2 text-xs">
-              <span class="text-zinc-500 text-[10px]">TIME TO DECISION:</span>
-              <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase ${countdownBadge.badgeClass}">${countdownDetailed}</span>
-            </div>
-          </div>
-
-          <!-- 4 PRIMARY METRIC CARDS -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 font-mono">
-            <!-- Next Meeting -->
-            <div class="bg-card border border-zinc-900 rounded-sm p-5 shadow-xl flex flex-col justify-between">
-              <div class="flex justify-between items-center text-[10px] text-zinc-500 uppercase tracking-widest font-bold">
-                <span>Next Meeting</span>
-                <i class="fa-regular fa-calendar text-cyan-500"></i>
-              </div>
-              <div class="my-3">
-                <div class="text-2xl font-black text-cyan-400 tracking-tight">${b.nextMeeting.split('T')[0]}</div>
-                <div class="text-[10px] text-zinc-400 mt-1">${b.nextMeeting.split('T')[1] ? b.nextMeeting.split('T')[1].slice(0,5) + ' UTC' : '12:00 UTC'}</div>
-              </div>
-              <div class="pt-2 border-t border-zinc-900 text-[10px] text-zinc-500">
-                Decision: <span class="text-zinc-300 font-bold">${countdownDetailed}</span>
-              </div>
-            </div>
-
-            <!-- Current Rate -->
-            <div class="bg-card border border-zinc-900 rounded-sm p-5 shadow-xl flex flex-col justify-between">
-              <div class="flex justify-between items-center text-[10px] text-zinc-500 uppercase tracking-widest font-bold">
-                <span>Benchmark Rate</span>
-                <i class="fa-solid fa-percent text-zinc-400"></i>
-              </div>
-              <div class="my-3">
-                <div class="text-3xl font-black text-white tracking-tight">${b.rate.toFixed(2)}%</div>
-                <div class="text-[10px] text-zinc-500 mt-1">Base Target Corridor</div>
-              </div>
-              <div class="pt-2 border-t border-zinc-900 text-[10px] text-zinc-500">
-                Min. Rate Step: <span class="text-zinc-300 font-bold">${b.step.toFixed(2)}%</span>
-              </div>
-            </div>
-
-            <!-- Implied Forward Rate -->
-            <div class="bg-card border border-zinc-900 rounded-sm p-5 shadow-xl flex flex-col justify-between">
-              <div class="flex justify-between items-center text-[10px] text-zinc-500 uppercase tracking-widest font-bold">
-                <span>Implied Forward</span>
-                <i class="fa-solid fa-chart-line text-emerald-400"></i>
-              </div>
-              <div class="my-3">
-                <div class="text-3xl font-black text-emerald-400 tracking-tight">${b.implied.toFixed(2)}%</div>
-                <div class="text-[10px] ${deltaBps >= 0 ? 'text-emerald-400' : 'text-rose-400'} font-bold mt-1">
-                  Delta: ${deltaBps > 0 ? '+' : ''}${deltaBps.toFixed(1)} bps
-                </div>
-              </div>
-              <div class="pt-2 border-t border-zinc-900 text-[10px] text-zinc-500">
-                Bias: <span class="text-zinc-300 font-bold">${outcome} (${prob}%)</span>
-              </div>
-            </div>
-
-            <!-- Evaluated Policy Tone -->
-            <div class="bg-card border border-zinc-900 rounded-sm p-5 shadow-xl flex flex-col justify-between">
-              <div class="flex justify-between items-center text-[10px] text-zinc-500 uppercase tracking-widest font-bold">
-                <span>Evaluated Tone</span>
-                <i class="fa-solid fa-compass text-amber-400"></i>
-              </div>
-              <div class="my-3">
-                <span class="inline-block px-3 py-1.5 rounded border text-xs font-bold tracking-wide ${tone.class}">
-                  ${tone.label}
-                </span>
-                <div class="text-[10px] text-zinc-500 mt-2">Weight Factor: ${tone.weight > 0 ? '+' + tone.weight : tone.weight}</div>
-              </div>
-              <div class="pt-2 border-t border-zinc-900 text-[10px] text-zinc-500">
-                Trajectory: <span class="text-cyan-400 font-bold">${b.trajectory[b.trajectory.length - 1].toFixed(2)}%</span> final
-              </div>
-            </div>
-          </div>
-
-          <!-- PLOTLY TRAJECTORY CURVE CHART -->
-          <div class="bg-card border border-zinc-900 rounded-sm p-5 sm:p-6 shadow-2xl space-y-4">
-            <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-2 font-mono border-b border-zinc-900 pb-3">
-              <div>
-                <h3 class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                  <i class="fa-solid fa-bezier-curve text-cyan-400"></i> Implied Forward Policy Trajectory Curve
-                </h3>
-                <p class="text-[11px] text-zinc-500 font-sans mt-0.5">5-point project path based on swap futures & baseline Taylor-rule differentials.</p>
-              </div>
-              <div class="flex items-center gap-2 text-[10px] font-mono text-zinc-400">
-                <span class="w-2.5 h-0.5 bg-cyan-400 inline-block"></span> Projected Path
-              </div>
-            </div>
-
-            <div id="trajectoryPlotContainer" class="w-full h-72 sm:h-80"></div>
-          </div>
-
-          <!-- MANUAL RATE ADJUSTER & SCENARIO OVERRIDE -->
-          <div class="bg-card border border-zinc-900 rounded-sm p-5 shadow-xl font-mono text-xs space-y-4">
-            <div class="flex justify-between items-center border-b border-zinc-900 pb-2">
-              <span class="font-bold text-zinc-300 uppercase tracking-wider text-[11px]">
-                <i class="fa-solid fa-sliders text-cyan-500 mr-1.5"></i> Interactive Scenario Override
-              </span>
-              <span class="text-[10px] text-zinc-500">Real-time Recalculation Engine</span>
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div>
-                <label class="block text-[10px] text-zinc-500 uppercase mb-1">Benchmark Rate (%)</label>
-                <input type="number" step="0.01" value="${b.rate}" id="editRateInput" class="w-full bg-[#0c0c12] border border-zinc-800 text-white rounded px-3 py-1.5 text-xs outline-none focus:border-cyan-500 font-mono">
-              </div>
-              <div>
-                <label class="block text-[10px] text-zinc-500 uppercase mb-1">Implied Forward Rate (%)</label>
-                <input type="number" step="0.01" value="${b.implied}" id="editImpliedInput" class="w-full bg-[#0c0c12] border border-zinc-800 text-white rounded px-3 py-1.5 text-xs outline-none focus:border-cyan-500 font-mono">
-              </div>
-              <div>
-                <label class="block text-[10px] text-zinc-500 uppercase mb-1">Next Meeting Date & Time</label>
-                <input type="datetime-local" value="${b.nextMeeting.slice(0, 16)}" id="editMeetingInput" class="w-full bg-[#0c0c12] border border-zinc-800 text-white rounded px-3 py-1.5 text-xs outline-none focus:border-cyan-500 font-mono">
-              </div>
-            </div>
-
-            <div class="flex justify-end gap-2 pt-2">
-              <button onclick="saveBankOverride('${bankCode}')" class="px-4 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-black font-bold uppercase tracking-wider text-[11px] rounded transition cursor-pointer">
-                <i class="fa-solid fa-floppy-disk mr-1"></i> Apply & Recalculate Trajectory
-              </button>
-            </div>
-          </div>
-        </div>
-      `;
-
-      // Render Plotly curve
-      renderPlotlyTrajectory(b);
-    }
-
-    // RENDER PLOTLY TRAJECTORY
-    function renderPlotlyTrajectory(bank) {
-      const xLabels = ['Current Rate', 'Next Decision (M1)', 'Meeting +2', 'Meeting +3', 'Meeting +4'];
-      const yValues = bank.trajectory;
-
-      const trace = {
-        x: xLabels,
-        y: yValues,
-        mode: 'lines+markers+text',
-        text: yValues.map(v => v.toFixed(2) + '%'),
-        textposition: 'top center',
-        textfont: { family: 'JetBrains Mono', size: 11, color: '#38bdf8' },
-        line: { color: '#06b6d4', width: 3, shape: 'spline' },
-        marker: { color: '#22d3ee', size: 8, symbol: 'diamond-dot', line: { color: '#0891b2', width: 2 } },
-        fill: 'tozeroy',
-        fillcolor: 'rgba(6, 182, 212, 0.08)',
-        type: 'scatter',
-        hoverinfo: 'x+y'
-      };
-
-      const layout = {
-        paper_bgcolor: 'transparent',
-        plot_bgcolor: 'transparent',
-        margin: { l: 45, r: 25, t: 30, b: 50 },
-        xaxis: {
-          color: '#71717a',
-          gridcolor: '#18181b',
-          tickfont: { family: 'JetBrains Mono', size: 10, color: '#a1a1aa' }
-        },
-        yaxis: {
-          color: '#71717a',
-          gridcolor: '#18181b',
-          ticksuffix: '%',
-          tickfont: { family: 'JetBrains Mono', size: 10, color: '#a1a1aa' }
-        },
-        hoverlabel: {
-          bgcolor: '#0c0d11',
-          bordercolor: '#06b6d4',
-          font: { family: 'JetBrains Mono', color: '#ffffff' }
-        },
-        showlegend: false
-      };
-
-      const config = {
-        responsive: true,
-        displayModeBar: false
-      };
-
-      Plotly.newPlot('trajectoryPlotContainer', [trace], layout, config);
-    }
-
-    // SAVE BANK OVERRIDE
-    function saveBankOverride(bankCode) {
-      const r = parseFloat(document.getElementById('editRateInput').value);
-      const imp = parseFloat(document.getElementById('editImpliedInput').value);
-      const meet = document.getElementById('editMeetingInput').value;
-
-      if (isNaN(r) || isNaN(imp)) {
-        alert('Please enter valid numeric rates.');
-        return;
-      }
-
-      ratesData[bankCode].rate = r;
-      ratesData[bankCode].implied = imp;
-      if (meet) {
-        ratesData[bankCode].nextMeeting = meet.length === 16 ? meet + ':00' : meet;
-      }
-      ratesData[bankCode].trajectory = calculateTrajectory(r, imp, ratesData[bankCode].step);
-
-      saveToLocalStorage();
-      switchBankView(bankCode);
-    }
-
-    // EXPORT & IMPORT BACKUP (JSON)
-    function exportBackupData() {
-      try {
-        const cleanData = JSON.parse(JSON.stringify(ratesData));
-        const jsonStr = JSON.stringify(cleanData, null, 2);
-        const fileName = `central_bank_rates_backup_${new Date().toISOString().slice(0, 10)}.json`;
-        const blob = new Blob([jsonStr], { type: "application/json;charset=utf-8;" });
-
-        if (window.navigator && window.navigator.msSaveOrOpenBlob) {
-          window.navigator.msSaveOrOpenBlob(blob, fileName);
-          return;
-        }
-
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.style.position = 'fixed';
-        a.style.top = '-9999px';
-        a.style.left = '-9999px';
-        a.style.opacity = '0';
-        a.href = url;
-        a.download = fileName;
-        a.setAttribute('download', fileName);
-
-        document.body.appendChild(a);
-        a.click();
-        setTimeout(() => {
-          if (document.body.contains(a)) document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-        }, 1500);
-      } catch (err) {
-        console.error("Export error:", err);
-        alert("Failed to export backup data.");
-      }
-    }
-
-    function importBackupData(event) {
-      const file = event.target && event.target.files && event.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        try {
-          const imported = JSON.parse(e.target.result);
-          if (imported && typeof imported === 'object' && Object.keys(imported).length > 0) {
-            ratesData = JSON.parse(JSON.stringify(imported));
-            // Recalculate trajectories
-            Object.keys(ratesData).forEach(code => {
-              if (ratesData[code].rate !== undefined && ratesData[code].implied !== undefined) {
-                ratesData[code].trajectory = calculateTrajectory(ratesData[code].rate, ratesData[code].implied, ratesData[code].step || 0.25);
-              }
-            });
-            saveToLocalStorage();
-            updateOverviewCards();
-            renderTrajectoryChart();
-            renderRateRankingTable();
-            renderUpcomingCalendar();
-            switchBankView(currentView);
-            alert('Central Bank rates backup restored successfully!');
-          } else {
-            throw new Error("Invalid backup structure");
           }
-        } catch(err) {
-          console.error("Import error:", err);
-          alert('Invalid backup JSON file.');
-        }
-      };
-      reader.onerror = function() {
-        alert('Failed to read file.');
-      };
-      reader.readAsText(file);
-      event.target.value = '';
-    }
-
-    function resetToDefaults() {
-      if (!confirm("Reset Central Bank rates to baseline defaults?")) return;
-      ratesData = JSON.parse(JSON.stringify(defaultRatesData));
-      localStorage.removeItem(STORAGE_KEY);
-      saveToLocalStorage();
-      // Recalculate trajectories
-      Object.keys(ratesData).forEach(code => {
-        ratesData[code].trajectory = calculateTrajectory(ratesData[code].rate, ratesData[code].implied, ratesData[code].step || 0.25);
-      });
-      updateOverviewCards();
-      renderTrajectoryChart();
-      renderRateRankingTable();
-      renderUpcomingCalendar();
-      switchBankView(currentView);
-      alert("Central Bank rates reset to baseline defaults!");
-    }
-
-    // ==========================================
-    // INVESTING.COM EXPORT PARSER (.csv, .xlsx, .xls)
-    // ==========================================
-
-    function matchCentralBankEvent(eventName, countryOrCurrency) {
-      const ev = (eventName || '').toLowerCase();
-      const ccy = (countryOrCurrency || '').toUpperCase();
-
-      // 1. Direct event keyword matching
-      if (ev.includes('fomc') || ev.includes('fed interest rate') || ev.includes('fed funds') || ev.includes('federal reserve interest rate')) return 'FED';
-      if (ev.includes('ecb interest rate') || ev.includes('ecb main refinancing') || ev.includes('deposit facility rate')) return 'ECB';
-      if (ev.includes('boe interest rate') || ev.includes('bank of england interest rate') || ev.includes('boe bank rate')) return 'BOE';
-      if (ev.includes('rba interest rate') || ev.includes('rba rate decision') || ev.includes('rba cash rate')) return 'RBA';
-      if (ev.includes('boc interest rate') || ev.includes('boc rate decision') || ev.includes('boc overnight rate') || ev.includes('bank of canada interest rate')) return 'BOC';
-      if (ev.includes('rbnz interest rate') || ev.includes('rbnz rate decision') || ev.includes('rbnz official cash rate')) return 'RBNZ';
-      if (ev.includes('boj interest rate') || ev.includes('boj policy rate') || ev.includes('bank of japan interest rate')) return 'BOJ';
-      if (ev.includes('snb interest rate') || ev.includes('snb policy rate') || ev.includes('swiss national bank interest rate')) return 'SNB';
-
-      // 2. Generic rate decision matching combined with country/currency
-      if (ev.includes('interest rate') || ev.includes('rate decision') || ev.includes('policy rate')) {
-        if (ccy === 'USD' || ccy === 'US' || ev.includes('united states')) return 'FED';
-        if (ccy === 'EUR' || ccy === 'EU' || ccy === 'DE' || ev.includes('eurozone') || ev.includes('euro zone')) return 'ECB';
-        if (ccy === 'GBP' || ccy === 'UK' || ccy === 'GB' || ev.includes('united kingdom')) return 'BOE';
-        if (ccy === 'AUD' || ccy === 'AU' || ev.includes('australia')) return 'RBA';
-        if (ccy === 'CAD' || ccy === 'CA' || ev.includes('canada')) return 'BOC';
-        if (ccy === 'NZD' || ccy === 'NZ' || ev.includes('new zealand')) return 'RBNZ';
-        if (ccy === 'JPY' || ccy === 'JP' || ev.includes('japan')) return 'BOJ';
-        if (ccy === 'CHF' || ccy === 'CH' || ev.includes('switzerland')) return 'SNB';
-      }
-
-      return null;
-    }
-
-    function parseRateNumber(val) {
-      if (val === null || val === undefined || val === '') return null;
-      let s = val.toString().trim().replace(/,/g, '');
-      if (s === '-' || s === 'N/A' || s === 'n/a' || s === '') return null;
-      const isBps = s.toLowerCase().includes('bps');
-      s = s.replace(/%/g, '').replace(/bps/i, '').trim();
-      let num = parseFloat(s);
-      if (isNaN(num)) return null;
-      if (isBps) {
-        num = num / 100.0;
-      }
-      // Preserve standard percentage rates (e.g. 3.63 for 3.63%), do NOT divide by 100 again
-      return num;
-    }
-
-    function parseMeetingDateTime(dateVal, timeVal) {
-      if (dateVal === null || dateVal === undefined || dateVal === '') return null;
-      let d = null;
-      const str = String(dateVal).trim().replace(/^\+0*/, '');
-      const parsedNum = typeof dateVal === 'number' ? dateVal : parseFloat(str);
-
-      // Convert Excel serial dates (25000 to 60000 range) using Excel epoch offset
-      if (!isNaN(parsedNum) && parsedNum >= 25000 && parsedNum <= 60000) {
-        d = new Date(Math.round((parsedNum - 25569) * 86400 * 1000));
-      } else {
-        if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
-          d = new Date(str.slice(0, 10));
-        } else {
-          d = new Date(str);
-        }
-      }
-
-      if (!d || isNaN(d.getTime())) return null;
-
-      let y = d.getFullYear();
-      // Eliminate +046xxx years or pre-2020 artifacts
-      if (y < 2020 || y > 2060) {
-        y = 2026;
-      }
-      const m = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      
-      let timeStr = "12:00:00";
-      if (timeVal && typeof timeVal === 'string' && /^\d{1,2}:\d{2}/.test(timeVal.trim())) {
-        const parts = timeVal.trim().split(':');
-        timeStr = `${parts[0].padStart(2, '0')}:${parts[1].padStart(2, '0')}:00`;
-      }
-      return `${y}-${m}-${day}T${timeStr}`;
-    }
-
-    function findRowKeys(row) {
-      const keys = Object.keys(row);
-      let eventKey = null, actualKey = null, forecastKey = null, prevKey = null, dateKey = null, timeKey = null, currKey = null;
-
-      for (const k of keys) {
-        const clean = k.trim().toLowerCase();
-        if (!eventKey && (clean === 'event' || clean === 'indicator' || clean === 'event name' || clean === 'title')) eventKey = k;
-        else if (!actualKey && (clean === 'actual' || clean === 'act')) actualKey = k;
-        else if (!forecastKey && (clean === 'forecast' || clean === 'consensus' || clean === 'fcst' || clean === 'expected')) forecastKey = k;
-        else if (!prevKey && (clean === 'previous' || clean === 'prev' || clean === 'prior')) prevKey = k;
-        else if (!dateKey && (clean === 'date' || clean === 'day' || clean === 'release date')) dateKey = k;
-        else if (!timeKey && (clean === 'time')) timeKey = k;
-        else if (!currKey && (clean === 'cur.' || clean === 'cur' || clean === 'currency' || clean === 'country' || clean === 'zone')) currKey = k;
-      }
-      return { eventKey, actualKey, forecastKey, prevKey, dateKey, timeKey, currKey };
-    }
-
-    function processInvestingRows(rows) {
-      if (!rows || rows.length === 0) {
-        alert('No data rows found in the uploaded file.');
-        return;
-      }
-
-      const { eventKey, actualKey, forecastKey, prevKey, dateKey, timeKey, currKey } = findRowKeys(rows[0]);
-      if (!eventKey) {
-        alert('Could not identify an "Event" column in the uploaded file. Please verify standard Investing.com columns.');
-        return;
-      }
-
-      let updatedCount = 0;
-      const updatedBanks = new Set();
-      let currentDate = null;
-
-      rows.forEach(row => {
-        if (dateKey && row[dateKey]) {
-          currentDate = row[dateKey];
-        }
-
-        const rawEvent = (row[eventKey] || '').toString().trim();
-        if (!rawEvent) return;
-
-        const rawCurr = currKey && row[currKey] ? row[currKey].toString().trim() : '';
-        const targetBankCode = matchCentralBankEvent(rawEvent, rawCurr);
-
-        if (targetBankCode && ratesData[targetBankCode]) {
-          const bank = ratesData[targetBankCode];
-          let updated = false;
-
-          // Benchmark Rate from Previous
-          if (prevKey && row[prevKey] !== undefined && row[prevKey] !== '' && row[prevKey] !== '-' && row[prevKey] !== 'N/A') {
-            const parsedPrev = parseRateNumber(row[prevKey]);
-            if (parsedPrev !== null) {
-              bank.rate = parsedPrev;
-              updated = true;
-            }
-          }
-
-          // Implied Rate from Forecast / Consensus
-          if (forecastKey && row[forecastKey] !== undefined && row[forecastKey] !== '' && row[forecastKey] !== '-' && row[forecastKey] !== 'N/A') {
-            const parsedForecast = parseRateNumber(row[forecastKey]);
-            if (parsedForecast !== null) {
-              bank.implied = parsedForecast;
-              updated = true;
-            }
-          } else if (actualKey && row[actualKey] !== undefined && row[actualKey] !== '' && row[actualKey] !== '-' && row[actualKey] !== 'N/A') {
-            // Fallback to Actual if forecast not present
-            const parsedActual = parseRateNumber(row[actualKey]);
-            if (parsedActual !== null) {
-              bank.implied = parsedActual;
-              updated = true;
-            }
-          }
-
-          // Meeting Date & Time
-          const meetingDate = (dateKey && row[dateKey]) ? row[dateKey] : currentDate;
-          const meetingTime = timeKey && row[timeKey] ? row[timeKey] : null;
-          if (meetingDate) {
-            const isoMeeting = parseMeetingDateTime(meetingDate, meetingTime);
-            if (isoMeeting) {
-              bank.nextMeeting = isoMeeting;
-              updated = true;
-            }
-          }
-
-          if (updated) {
-            bank.trajectory = calculateTrajectory(bank.rate, bank.implied, bank.step);
-            updatedCount++;
-            updatedBanks.add(bank.name);
-          }
-        }
-      });
-
-      if (updatedCount > 0) {
-        saveToLocalStorage();
-        switchBankView(currentView);
-        alert(`Successfully updated ${updatedBanks.size} central bank(s) from Investing.com export!\n(${Array.from(updatedBanks).join(', ')})`);
-      } else {
-        alert('Processed export, but no matching G10 Central Bank interest rate decisions were found. Please check that the export includes interest rate decision events.');
-      }
-    }
-
-    function processInvestingFile(file) {
-      if (!file) return;
-      const fileName = file.name.toLowerCase();
-
-      if (fileName.endsWith('.json')) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          try {
-            const imported = JSON.parse(e.target.result);
-            if (imported && typeof imported === 'object') {
-              ratesData = imported;
-              saveToLocalStorage();
-              refreshUI();
-              alert("Central Bank rates backup restored successfully!");
-            }
-          } catch(err) {
-            alert("Invalid backup JSON file.");
-          }
-        };
-        reader.readAsText(file);
-        return;
-      }
-
-      if (fileName.endsWith('.csv') || fileName.endsWith('.tsv') || fileName.endsWith('.txt')) {
-        Papa.parse(file, {
-          header: true,
-          skipEmptyLines: true,
-          complete: function(results) {
-            if (results.data && results.data.length > 0) {
-              processInvestingRows(results.data);
-            } else {
-              alert('No data rows found in the CSV file.');
-            }
-          },
-          error: function(err) {
-            alert('Error parsing CSV file: ' + err.message);
-          }
+          if (valA < valB) return sortAsc ? -1 : 1;
+          if (valA > valB) return sortAsc ? 1 : -1;
+          return 0;
         });
-      } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          try {
-            const data = new Uint8Array(e.target.result);
-            const workbook = XLSX.read(data, { type: 'array' });
-            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-            const rows = XLSX.utils.sheet_to_json(firstSheet, { defval: "" });
-            if (rows && rows.length > 0) {
-              processInvestingRows(rows);
-            } else {
-              alert('No data rows found in the Excel sheet.');
-            }
-          } catch(err) {
-            alert('Error reading Excel spreadsheet: ' + err.message);
-          }
-        };
-        reader.readAsArrayBuffer(file);
+
+        root.innerHTML = `
+          <div class="space-y-6 font-mono">
+            <!-- Action Bar -->
+            <div class="bg-[#040406] border border-zinc-900 p-4 rounded-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 text-xs">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="text-cyan-400 font-bold uppercase tracking-wider text-[11px]">8 Central Banks</span>
+                <span class="text-zinc-600">|</span>
+                <span class="text-zinc-400 text-[10px]">Sortable Policy Spread Matrix</span>
+              </div>
+              <div class="flex items-center gap-2 w-full sm:w-auto">
+                <label class="text-zinc-500 uppercase text-[10px]">Filter View:</label>
+                <select id="bankSelect" onchange="switchBank(this.value)" class="bg-[#0c0c12] border border-zinc-800 text-white text-xs px-2.5 py-1.5 rounded-sm outline-none focus:border-cyan-400 cursor-pointer">
+                  <option value="Overview">Overview (All Banks)</option>
+                  ${Object.values(bankData).map(b => `<option value="${b.code}">${b.name}</option>`).join('')}
+                </select>
+              </div>
+            </div>
+
+            <!-- Matrix Table -->
+            <div class="bg-[#040406] border border-zinc-900 rounded-sm overflow-x-auto shadow-2xl">
+              <table class="w-full text-left font-mono text-xs select-none min-w-[760px]">
+                <thead>
+                  <tr class="text-zinc-500 text-[10px] border-b border-zinc-900 uppercase tracking-wider bg-[#07080d]">
+                    <th onclick="sortTable('nextMeeting')" class="p-3.5 pl-6 cursor-pointer hover:text-cyan-400">Next Decision</th>
+                    <th onclick="sortTable('name')" class="p-3.5 cursor-pointer hover:text-cyan-400">Central Bank</th>
+                    <th onclick="sortTable('rate')" class="p-3.5 text-center cursor-pointer hover:text-cyan-400">Policy Rate</th>
+                    <th onclick="sortTable('implied')" class="p-3.5 text-center cursor-pointer hover:text-cyan-400">Implied Forward</th>
+                    <th onclick="sortTable('deltaBps')" class="p-3.5 text-center cursor-pointer hover:text-cyan-400">Spread (bps)</th>
+                    <th onclick="sortTable('prob')" class="p-3.5 text-center cursor-pointer hover:text-cyan-400">Probability</th>
+                    <th class="p-3.5 text-center pr-6">Evaluated Policy Tone</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-zinc-900/60">
+                  ${banksList.map(b => `
+                    <tr onclick="switchBank('${b.code}')" class="hover:bg-[#0c0c16] transition-colors cursor-pointer group">
+                      <td class="p-3.5 pl-6 text-zinc-300 font-bold">
+                        <div class="flex items-center gap-2">
+                          <span>${b.nextMeeting.split('T')[0]}</span>
+                          <span class="px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider ${b.countdown.badge}">
+                            ${b.countdown.text}
+                          </span>
+                        </div>
+                      </td>
+                      <td class="p-3.5 font-bold text-white group-hover:text-cyan-400 transition-colors">
+                        <div class="flex items-center gap-2">
+                          <span class="w-1.5 h-1.5 rounded-full ${b.deltaBps > 5 ? 'bg-emerald-400' : (b.deltaBps < -5 ? 'bg-rose-400' : 'bg-zinc-600')}"></span>
+                          <span>${b.name}</span>
+                        </div>
+                      </td>
+                      <td class="p-3.5 text-center text-zinc-200 tabular-nums">${b.rate.toFixed(2)}%</td>
+                      <td class="p-3.5 text-center text-cyan-400 font-bold tabular-nums">${b.implied.toFixed(2)}%</td>
+                      <td class="p-3.5 text-center tabular-nums ${b.deltaBps > 0 ? 'text-emerald-400 font-bold' : (b.deltaBps < 0 ? 'text-rose-400 font-bold' : 'text-zinc-400')}">
+                        ${b.deltaBps > 0 ? '+' : ''}${b.deltaBps.toFixed(1)}
+                      </td>
+                      <td class="p-3.5 text-center tabular-nums">
+                        <div class="flex flex-col items-center gap-1 w-24 mx-auto">
+                          <span class="font-bold text-zinc-200">${b.prob}% <span class="text-[9px] text-zinc-500">${b.outcome}</span></span>
+                          <div class="w-full h-1 bg-zinc-800 rounded-full overflow-hidden">
+                            <div class="h-full ${b.outcome === 'HIKE' ? 'bg-emerald-500' : (b.outcome === 'CUT' ? 'bg-rose-500' : 'bg-cyan-500')}" style="width: ${b.prob}%"></div>
+                          </div>
+                        </div>
+                      </td>
+                      <td class="p-3.5 text-center pr-6">
+                        <span class="px-2.5 py-1 text-[10px] font-bold border tracking-wide inline-block ${b.tone.badge}">
+                          ${b.tone.label}
+                        </span>
+                      </td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `;
       } else {
-        alert('Unsupported file format. Please upload a .csv, .xlsx, or .xls file.');
+        // Deep Dive View
+        const b = bankData[activeView];
+        if (!b) return;
+
+        const simRate = Number((b.rate + simOffsetBps / 100).toFixed(2));
+        const simImplied = Number((b.implied + simOffsetBps / 100).toFixed(2));
+        const deltaBps = Number(((simImplied - simRate) * 100).toFixed(1));
+        const prob = Math.min(100, Math.round(Math.abs(deltaBps) / (b.step * 100) * 100));
+        const outcome = deltaBps > (b.step * 50) ? 'HIKE' : (deltaBps < -(b.step * 50) ? 'CUT' : 'HOLD');
+        const tone = classifyTone(deltaBps, outcome);
+        const countdown = getCountdown(b.nextMeeting);
+
+        const yVals = (b.trajectory || [b.rate, b.implied, b.implied + 0.1, b.implied + 0.2, b.implied + 0.15]).map(v => Number((v + simOffsetBps / 100).toFixed(2)));
+        const minY = Math.min(...yVals) - 0.25;
+        const maxY = Math.max(...yVals) + 0.25;
+        const rangeY = maxY - minY || 1;
+        const chartW = 560;
+        const chartH = 160;
+        const padX = 45;
+        const padY = 25;
+        const stepX = (chartW - padX * 2) / (yVals.length - 1);
+
+        const points = yVals.map((val, idx) => ({
+          x: padX + idx * stepX,
+          y: chartH - padY - ((val - minY) / rangeY) * (chartH - padY * 2),
+          val
+        }));
+        const polyPoints = points.map(p => `${p.x},${p.y}`).join(' ');
+        const areaPoints = `${points[0].x},${chartH - padY} ${polyPoints} ${points[points.length - 1].x},${chartH - padY}`;
+        const xLabels = ['Current', 'Meeting 1', 'Meeting 2', 'Meeting 3', 'Meeting 4'];
+
+        root.innerHTML = `
+          <div class="space-y-6 font-mono">
+            <div class="flex items-center justify-between">
+              <button onclick="switchBank('Overview')" class="px-3.5 py-1.5 bg-[#0c0c12] hover:bg-zinc-800 text-zinc-300 border border-zinc-800 text-xs uppercase tracking-wider flex items-center gap-2 transition cursor-pointer font-bold">
+                &larr; Return to Overview Matrix
+              </button>
+              <span class="text-xs text-cyan-400 font-bold uppercase tracking-wider">${b.name}</span>
+            </div>
+
+            <!-- Metric Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div class="bg-[#040406] border border-zinc-900 p-5 space-y-2 border-l-2 border-l-cyan-500 rounded-sm">
+                <span class="text-[10px] text-zinc-500 uppercase tracking-widest block">Next Decision</span>
+                <div class="text-xl font-bold text-white tracking-tight">${b.nextMeeting.split('T')[0]}</div>
+                <div class="text-xs text-cyan-400 font-bold">${countdown.text}</div>
+              </div>
+              <div class="bg-[#040406] border border-zinc-900 p-5 space-y-2 border-l-2 border-l-emerald-500 rounded-sm">
+                <span class="text-[10px] text-zinc-500 uppercase tracking-widest block">Benchmark Rate</span>
+                <div class="text-xl font-bold text-white tracking-tight">${simRate.toFixed(2)}%</div>
+                <div class="text-[11px] text-zinc-400">Step: ${b.step.toFixed(2)}%</div>
+              </div>
+              <div class="bg-[#040406] border border-zinc-900 p-5 space-y-2 border-l-2 border-l-purple-500 rounded-sm">
+                <span class="text-[10px] text-zinc-500 uppercase tracking-widest block">Implied Forward</span>
+                <div class="text-xl font-bold text-cyan-400 tracking-tight">${simImplied.toFixed(2)}%</div>
+                <div class="text-[11px] text-zinc-400">Spread: ${deltaBps > 0 ? '+' : ''}${deltaBps} bps</div>
+              </div>
+              <div class="bg-[#040406] border border-zinc-900 p-5 space-y-2 border-l-2 border-l-amber-500 rounded-sm">
+                <span class="text-[10px] text-zinc-500 uppercase tracking-widest block">Evaluated Tone</span>
+                <div class="text-xl font-bold text-white tracking-tight">${prob}% ${outcome}</div>
+                <div class="text-[11px] text-zinc-400">${tone.label}</div>
+              </div>
+            </div>
+
+            <!-- Trajectory & Simulator -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div class="lg:col-span-2 bg-[#040406] border border-zinc-900 p-5 space-y-4 rounded-sm">
+                <div class="flex items-center justify-between">
+                  <h4 class="text-xs font-bold text-white uppercase tracking-wider">Implied Trajectory Curve</h4>
+                  <span class="text-[10px] text-zinc-500 font-mono">Horizon: Next 4 Decisions</span>
+                </div>
+                <div class="w-full bg-[#020203] border border-zinc-800/80 p-4 rounded-sm">
+                  <svg viewBox="0 0 ${chartW} ${chartH}" class="w-full h-auto max-h-[200px]">
+                    <defs>
+                      <linearGradient id="gradPath" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.35" />
+                        <stop offset="100%" stop-color="#06b6d4" stop-opacity="0.0" />
+                      </linearGradient>
+                    </defs>
+                    <polygon points="${areaPoints}" fill="url(#gradPath)" />
+                    <polyline points="${polyPoints}" fill="none" stroke="#22d3ee" stroke-width="2.5" />
+                    ${points.map((p, idx) => `
+                      <circle cx="${p.x}" cy="${p.y}" r="4" fill="#020203" stroke="#22d3ee" stroke-width="2"></circle>
+                      <text x="${p.x}" y="${p.y - 8}" fill="#ffffff" font-size="10" font-family="monospace" font-weight="bold" text-anchor="middle">${p.val.toFixed(2)}%</text>
+                      <text x="${p.x}" y="${chartH - 6}" fill="#71717a" font-size="9" font-family="monospace" text-anchor="middle">${xLabels[idx]}</text>
+                    `).join('')}
+                  </svg>
+                </div>
+              </div>
+
+              <!-- Stress Simulator -->
+              <div class="bg-[#040406] border border-zinc-900 p-5 space-y-4 rounded-sm">
+                <h4 class="text-xs font-bold text-white uppercase tracking-wider">Stress Simulator</h4>
+                <div class="space-y-3 pt-2 text-xs">
+                  <div class="flex justify-between">
+                    <span class="text-zinc-400">Shift Curve:</span>
+                    <span class="font-bold ${simOffsetBps > 0 ? 'text-emerald-400' : (simOffsetBps < 0 ? 'text-rose-400' : 'text-zinc-300')}">
+                      ${simOffsetBps > 0 ? '+' : ''}${simOffsetBps} bps
+                    </span>
+                  </div>
+                  <input type="range" min="-100" max="100" step="25" value="${simOffsetBps}" oninput="setSimOffset(parseInt(this.value, 10))" class="w-full accent-cyan-400 cursor-pointer" />
+                  <div class="grid grid-cols-3 gap-2 pt-2">
+                    <button onclick="setSimOffset(-25)" class="px-2 py-1.5 text-[10px] bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 border border-rose-800/60 rounded-sm font-bold">-25 bps</button>
+                    <button onclick="setSimOffset(0)" class="px-2 py-1.5 text-[10px] bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800 rounded-sm font-bold">0 bps</button>
+                    <button onclick="setSimOffset(25)" class="px-2 py-1.5 text-[10px] bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-300 border border-emerald-800/60 rounded-sm font-bold">+25 bps</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
       }
     }
 
-    function handleInvestingUpload(event) {
-      const file = event.target.files[0];
-      if (file) processInvestingFile(file);
-      event.target.value = '';
+    function switchBank(key) {
+      activeView = key;
+      simOffsetBps = 0;
+      renderTerminal();
     }
 
-    window.addEventListener('dragover', (e) => { e.preventDefault(); e.stopPropagation(); });
-    window.addEventListener('drop', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) {
-        processInvestingFile(e.dataTransfer.files[0]);
-      }
-    });
-
-    // =========================================================================
-    // FRED API INTEGRATION FOR CENTRAL BANK INTEREST RATES
-    // =========================================================================
-    const FRED_SERIES_MAP = {
-      FED: { seriesId: 'FEDFUNDS', fallbackRate: 3.63, name: 'Federal Reserve' },
-      ECB: { seriesId: 'ECBDFR', fallbackRate: 2.40, name: 'European Central Bank' },
-      BOE: { seriesId: 'IUDSOIA', fallbackRate: 3.75, name: 'Bank of England' },
-      RBA: { seriesId: 'IRSTCB01AUM156N', fallbackRate: 4.35, name: 'Reserve Bank of Australia' },
-      BOC: { seriesId: 'IRSTCB01CAM156N', fallbackRate: 2.25, name: 'Bank of Canada' },
-      RBNZ: { seriesId: 'IRSTCB01NZM156N', fallbackRate: 2.50, name: 'Reserve Bank of NZ' },
-      BOJ: { seriesId: 'IRSTCB01JPM156N', fallbackRate: 1.00, name: 'Bank of Japan' },
-      SNB: { seriesId: 'IRSTCB01CHM156N', fallbackRate: 0.00, name: 'Swiss National Bank' }
-    };
-
-    function updateFredStatusUI(state, message) {
-      const dot = document.getElementById('fredStatusDot');
-      const text = document.getElementById('fredStatusText');
-      const badge = document.getElementById('fredLiveStatus');
-      if (!dot || !text || !badge) return;
-
-      if (state === 'loading') {
-        dot.className = 'w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping';
-        badge.className = 'inline-flex items-center gap-1.5 px-2 py-0.5 rounded-sm text-[10px] font-mono tracking-wider uppercase bg-cyan-950/40 border border-cyan-800/60 text-cyan-300';
-        text.textContent = message || 'FRED API: SYNCING LIVE RATES...';
-      } else if (state === 'live') {
-        dot.className = 'w-1.5 h-1.5 rounded-full bg-emerald-400';
-        badge.className = 'inline-flex items-center gap-1.5 px-2 py-0.5 rounded-sm text-[10px] font-mono tracking-wider uppercase bg-emerald-950/40 border border-emerald-800/60 text-emerald-300';
-        text.textContent = message || 'FRED API: LIVE CONNECTED';
-      } else {
-        dot.className = 'w-1.5 h-1.5 rounded-full bg-amber-400';
-        badge.className = 'inline-flex items-center gap-1.5 px-2 py-0.5 rounded-sm text-[10px] font-mono tracking-wider uppercase bg-[#0c0c12] border border-zinc-800 text-zinc-400';
-        text.textContent = message || 'FRED API: BENCHMARK FALLBACK ACTIVE';
-      }
+    function sortTable(col) {
+      if (sortCol === col) sortAsc = !sortAsc;
+      else { sortCol = col; sortAsc = true; }
+      renderTerminal();
     }
 
-    async function fetchSingleFredSeries(seriesId) {
-      const urls = [
-        `/api/fred?series_id=${encodeURIComponent(seriesId)}`,
-        `/api/fred/series/observations?series_id=${encodeURIComponent(seriesId)}&file_type=json&sort_order=desc&limit=5`
-      ];
-
-      for (const url of urls) {
-        try {
-          const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
-          if (!res.ok) continue;
-          const data = await res.json();
-          if (data && Array.isArray(data.observations)) {
-            const validObs = data.observations.find(o => o.value && o.value !== '.' && !isNaN(parseFloat(o.value)));
-            if (validObs) {
-              return parseFloat(validObs.value);
-            }
-          }
-        } catch (err) {
-          // Continue to next URL candidate
-        }
-      }
-      return null;
+    function setSimOffset(val) {
+      simOffsetBps = val;
+      renderTerminal();
     }
 
-    async function fetchLiveCentralBankRates() {
-      updateFredStatusUI('loading', 'FRED API: SYNCING LIVE RATES...');
-
-      let updatedCount = 0;
-      const bankCodes = Object.keys(FRED_SERIES_MAP);
-
+    // Silent background fetch from backend proxy
+    async function syncFredRates() {
       try {
-        await Promise.all(bankCodes.map(async (code) => {
-          const { seriesId } = FRED_SERIES_MAP[code];
+        const codes = Object.keys(bankData);
+        await Promise.all(codes.map(async (code) => {
+          const b = bankData[code];
           try {
-            const liveRate = await fetchSingleFredSeries(seriesId);
-            if (liveRate !== null && !isNaN(liveRate)) {
-              if (ratesData[code]) {
-                ratesData[code].rate = Number(liveRate.toFixed(2));
-                ratesData[code].trajectory = calculateTrajectory(ratesData[code].rate, ratesData[code].implied, ratesData[code].step);
-                ratesData[code].isLiveFred = true;
-                updatedCount++;
+            const isDaily = b.seriesId === 'DFF';
+            const limit = isDaily ? 35 : 10;
+            const res = await fetch(`/api/fred?series_id=${encodeURIComponent(b.seriesId)}&limit=${limit}`);
+            if (!res.ok) return;
+            const json = await res.json();
+            if (json && Array.isArray(json.observations)) {
+              const valid = json.observations.filter(o => o.value && o.value !== '.' && !isNaN(parseFloat(o.value)));
+              if (valid.length > 0) {
+                b.rate = parseFloat(valid[0].value);
+                renderTerminal();
               }
             }
-          } catch (e) {
-            console.warn(`FRED fetch failed for ${code} (${seriesId}):`, e);
-          }
+          } catch {}
         }));
-
-        if (updatedCount > 0) {
-          saveToLocalStorage();
-          updateFredStatusUI('live', `FRED API: ${updatedCount}/${bankCodes.length} LIVE RATES CONNECTED`);
-          switchBankView(currentView);
-        } else {
-          updateFredStatusUI('fallback', 'FRED API: BENCHMARK FALLBACK (LIMIT/TIMEOUT)');
-        }
-      } catch (globalErr) {
-        console.error('FRED global error:', globalErr);
-        updateFredStatusUI('fallback', 'FRED API: BENCHMARK FALLBACK ACTIVE');
-      }
+      } catch {}
     }
 
-    // INITIALIZATION
-    document.addEventListener("DOMContentLoaded", () => {
-      loadFromLocalStorage();
-      switchBankView("Overview");
-      // Trigger live FRED rate sync with automated benchmark fallback
-      fetchLiveCentralBankRates();
+    document.addEventListener('DOMContentLoaded', () => {
+      renderTerminal();
+      syncFredRates();
     });
   </script>
 </body>
