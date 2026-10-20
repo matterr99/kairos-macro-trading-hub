@@ -15,10 +15,12 @@ import {
   CheckCircle2,
   AlertTriangle,
   Info,
+  Sparkles,
 } from 'lucide-react';
 import { CentralBankTerminalProps, CentralBankRateData } from '../types/centralBank';
 import { useCentralBankRates } from '../hooks/useCentralBankRates';
 import { getMeetingCountdown } from '../utils/centralBankUtils';
+import { generateMacroAIContent } from '../services/geminiService';
 
 type SortColumn = 'nextMeeting' | 'name' | 'rate' | 'implied' | 'deltaBps' | 'prob' | 'tone';
 
@@ -32,6 +34,40 @@ export function CentralBankTerminal({ language = 'en', onSelectBank, className =
 
   // Scenario Simulator overrides for drilldown
   const [simulatedOffsetBps, setSimulatedOffsetBps] = useState<number>(0);
+
+  // Gemini AI Policy Synthesis state
+  const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
+  const [isAiLoading, setIsAiLoading] = useState<boolean>(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+
+  const handleGenerateAiBriefing = async () => {
+    setIsAiLoading(true);
+    setAiError(null);
+    try {
+      const bankSummary = Object.values(data)
+        .map(
+          (b) =>
+            `${b.code} (${b.name}): Rate ${b.latestRate}%, Implied ${b.impliedRate}%, Spread ${b.forwardDeltaBps} bps, Stance ${b.policyTone.label}`
+        )
+        .join('\n');
+
+      const prompt = `Based on the following G10 central bank interest rates, implied forward paths, and policy stances:\n${bankSummary}\n\nProvide an executive macro analysis for quantitative currency traders: identify the top 2 hawkish/dovish currency divergence pairs, and summarize institutional capital flow implications in 3 concise bullet points.`;
+
+      const text = await generateMacroAIContent({
+        prompt,
+        systemInstruction: isEs
+          ? 'Eres el estratega macroeconómico jefe de Kairos Macro Hub. Responde en español conciso, profesional e institucional.'
+          : 'You are the chief macroeconomic strategist for Kairos Macro Hub. Provide concise, professional, institutional analysis.',
+      });
+
+      setAiAnalysis(text);
+    } catch (err: any) {
+      console.error('Failed to generate AI briefing:', err);
+      setAiError(err.message || 'Unable to generate AI analysis at this moment.');
+    } finally {
+      setIsAiLoading(false);
+    }
+  };
 
   const toggleSort = (col: SortColumn) => {
     if (sortColumn === col) {
@@ -162,6 +198,16 @@ export function CentralBankTerminal({ language = 'en', onSelectBank, className =
             </button>
 
             <button
+              onClick={handleGenerateAiBriefing}
+              disabled={isAiLoading}
+              title="Generate AI Policy Synthesis with Gemini"
+              className="px-3.5 py-1.5 text-[10px] uppercase tracking-wider bg-purple-950/40 hover:bg-purple-900/60 text-purple-300 border border-purple-800/60 transition cursor-pointer font-bold min-h-[36px] flex items-center gap-1.5 disabled:opacity-50"
+            >
+              <Sparkles className={`w-3.5 h-3.5 text-purple-400 ${isAiLoading ? 'animate-spin' : ''}`} />
+              {isAiLoading ? (isEs ? 'Analizando...' : 'Analyzing...') : (isEs ? 'Síntesis IA' : 'AI Policy Briefing')}
+            </button>
+
+            <button
               onClick={handleExportJSON}
               className="px-3.5 py-1.5 text-[10px] uppercase tracking-wider bg-[#0c0c12] hover:bg-zinc-800 text-zinc-300 border border-zinc-800 transition cursor-pointer min-h-[36px] flex items-center gap-1.5"
             >
@@ -188,6 +234,44 @@ export function CentralBankTerminal({ language = 'en', onSelectBank, className =
           </div>
         </div>
       </div>
+
+      {/* AI POLICY BRIEFING CARD */}
+      {(aiAnalysis || isAiLoading || aiError) && (
+        <div className="bg-[#080812] border border-purple-800/50 p-4 sm:p-5 rounded-sm space-y-2.5 font-mono shadow-[0_0_20px_rgba(168,85,247,0.1)]">
+          <div className="flex items-center justify-between pb-2 border-b border-purple-900/40">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-purple-400" />
+              <span className="text-xs font-bold text-white uppercase tracking-wider">
+                {isEs ? 'Síntesis de Política Monetaria IA (Gemini Proxy)' : 'AI Macro Policy Synthesis (Gemini Proxy)'}
+              </span>
+            </div>
+            {aiAnalysis && (
+              <button
+                onClick={() => setAiAnalysis(null)}
+                className="text-zinc-500 hover:text-zinc-300 text-xs uppercase"
+              >
+                &times; Close
+              </button>
+            )}
+          </div>
+
+          {isAiLoading ? (
+            <div className="flex items-center gap-3 text-xs text-purple-300 py-2">
+              <span className="w-2 h-2 rounded-full bg-purple-400 animate-ping"></span>
+              <span>{isEs ? 'Sintetizando diferenciales y flujos de capital a través del proxy backend...' : 'Synthesizing spreads and capital flow implications via backend proxy...'}</span>
+            </div>
+          ) : aiError ? (
+            <div className="text-xs text-rose-400 flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              <span>{aiError}</span>
+            </div>
+          ) : (
+            <div className="text-xs text-zinc-300 font-sans leading-relaxed whitespace-pre-line">
+              {aiAnalysis}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ERROR / FALLBACK NOTIFICATION BANNER */}
       {isError && (

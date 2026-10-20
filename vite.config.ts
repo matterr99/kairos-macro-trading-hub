@@ -17,20 +17,10 @@ export default defineConfig(({ command }) => {
         '@': path.resolve(import.meta.dirname, '.'),
       },
     },
-    define: {
-      'window.VITE_FRED_API_KEY': JSON.stringify(process.env.VITE_FRED_API_KEY || ''),
-    },
     server: {
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
       hmr: process.env.DISABLE_HMR !== 'true',
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
-      proxy: {
-        '/api/fred': {
-          target: 'https://api.stlouisfed.org/fred',
-          changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/api\/fred/, ''),
-        },
-      },
     },
   };
 });

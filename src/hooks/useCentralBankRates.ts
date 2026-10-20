@@ -22,9 +22,9 @@ interface UseCentralBankRatesResult {
 }
 
 const CACHE_KEY = 'kairos_fred_central_bank_rates_v1';
-const CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes institutional cache
+const CACHE_TTL_MS = 15 * 60 * 1000; // 15-minute institutional cache
 
-export function useCentralBankRates(customApiKey?: string): UseCentralBankRatesResult {
+export function useCentralBankRates(): UseCentralBankRatesResult {
   const [data, setData] = useState<Record<string, CentralBankRateData>>(() => {
     // Generate default baseline data immediately
     const baseline: Record<string, CentralBankRateData> = {};
@@ -70,30 +70,12 @@ export function useCentralBankRates(customApiKey?: string): UseCentralBankRatesR
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const isFetchingRef = useRef<boolean>(false);
 
-  const getEffectiveApiKey = useCallback(() => {
-    if (customApiKey && customApiKey.trim()) return customApiKey.trim();
-    if (typeof window !== 'undefined') {
-      const win = window as unknown as { VITE_FRED_API_KEY?: string };
-      if (win.VITE_FRED_API_KEY && win.VITE_FRED_API_KEY !== 'MY_FRED_API_KEY') {
-        return win.VITE_FRED_API_KEY;
-      }
-    }
-    try {
-      const envKey = import.meta.env?.VITE_FRED_API_KEY;
-      if (envKey && envKey !== 'MY_FRED_API_KEY') return envKey;
-    } catch {}
-
-    const localKey =
-      localStorage.getItem('VITE_FRED_API_KEY') ||
-      localStorage.getItem('FRED_API_KEY');
-    if (localKey && localKey !== 'MY_FRED_API_KEY') return localKey.trim();
-
-    return '';
-  }, [customApiKey]);
-
+  /**
+   * Fetches latest observations for a given central bank through the secure backend proxy
+   * Endpoint: /api/fred?series_id={seriesId}
+   */
   const fetchSingleSeries = async (
-    config: CentralBankSeriesConfig,
-    apiKey: string
+    config: CentralBankSeriesConfig
   ): Promise<{ latestRate: number; previousRate: number | null; latestDate: string; previousDate: string | null } | null> => {
     const seriesList = [config.seriesId];
     if (config.secondarySeriesId) {
@@ -101,37 +83,34 @@ export function useCentralBankRates(customApiKey?: string): UseCentralBankRatesR
     }
 
     for (const sid of seriesList) {
-      // Use the Vite proxy /api/fred to prevent CORS rejection in the browser
-      const proxyUrl = `/api/fred/series/observations?series_id=${sid}&api_key=${apiKey}&file_type=json&sort_order=desc&limit=10`;
-      const directUrl = `https://api.stlouisfed.org/fred/series/observations?series_id=${sid}&api_key=${apiKey}&file_type=json&sort_order=desc&limit=10`;
+      try {
+        const res = await fetch(`/api/fred?series_id=${encodeURIComponent(sid)}`, {
+          headers: { Accept: 'application/json' },
+        });
 
-      for (const endpoint of [proxyUrl, directUrl]) {
-        try {
-          const res = await fetch(endpoint, {
-            headers: { Accept: 'application/json' },
-          });
-
-          if (!res.ok) continue;
-
-          const json: FredObservationsResponse = await res.json();
-          if (json && Array.isArray(json.observations) && json.observations.length > 0) {
-            // Find valid numeric observations (FRED sometimes returns "." for weekends/holidays)
-            const valid = json.observations.filter(
-              (o) => o.value && o.value !== '.' && !isNaN(parseFloat(o.value))
-            );
-
-            if (valid.length > 0) {
-              const latestRate = parseFloat(valid[0].value);
-              const latestDate = valid[0].date;
-              const previousRate = valid.length > 1 ? parseFloat(valid[1].value) : null;
-              const previousDate = valid.length > 1 ? valid[1].date : null;
-
-              return { latestRate, previousRate, latestDate, previousDate };
-            }
-          }
-        } catch {
-          // Continue to next endpoint or secondary series
+        // If backend proxy returns non-200 (e.g. 503 if no server key, or 429), skip and fallback
+        if (!res.ok) {
+          continue;
         }
+
+        const json: FredObservationsResponse = await res.json();
+        if (json && Array.isArray(json.observations) && json.observations.length > 0) {
+          // Filter out missing/holiday entries (marked as '.' in FRED observations)
+          const valid = json.observations.filter(
+            (o) => o.value && o.value !== '.' && !isNaN(parseFloat(o.value))
+          );
+
+          if (valid.length > 0) {
+            const latestRate = parseFloat(valid[0].value);
+            const latestDate = valid[0].date;
+            const previousRate = valid.length > 1 ? parseFloat(valid[1].value) : null;
+            const previousDate = valid.length > 1 ? valid[1].date : null;
+
+            return { latestRate, previousRate, latestDate, previousDate };
+          }
+        }
+      } catch {
+        // Fallback gracefully on network failure
       }
     }
 
@@ -145,9 +124,7 @@ export function useCentralBankRates(customApiKey?: string): UseCentralBankRatesR
     setIsError(false);
     setError(null);
 
-    const apiKey = getEffectiveApiKey();
-
-    // Check cached data if no new key provided and cache is fresh
+    // Check cached session data if fresh
     try {
       const cachedStr = sessionStorage.getItem(CACHE_KEY);
       if (cachedStr) {
@@ -163,13 +140,6 @@ export function useCentralBankRates(customApiKey?: string): UseCentralBankRatesR
       }
     } catch {}
 
-    // If no API key configured, remain on baseline fallback with a helpful hint
-    if (!apiKey) {
-      setIsLoading(false);
-      isFetchingRef.current = false;
-      return;
-    }
-
     const updatedMap: Record<string, CentralBankRateData> = {};
     let successfulFetches = 0;
 
@@ -183,7 +153,7 @@ export function useCentralBankRates(customApiKey?: string): UseCentralBankRatesR
           let isLive = false;
 
           try {
-            const result = await fetchSingleSeries(config, apiKey);
+            const result = await fetchSingleSeries(config);
             if (result && !isNaN(result.latestRate)) {
               latestRate = Number(result.latestRate.toFixed(2));
               previousRate = result.previousRate !== null ? Number(result.previousRate.toFixed(2)) : null;
@@ -245,19 +215,19 @@ export function useCentralBankRates(customApiKey?: string): UseCentralBankRatesR
         );
       } catch {}
 
-      if (successfulFetches === 0 && apiKey) {
-        setIsError(true);
-        setError('FRED API rate limit reached or invalid API key. Institutional fallback benchmarks are active.');
+      if (successfulFetches === 0) {
+        // Backend returned non-200 or no key configured - fallback benchmark active
+        setIsError(false);
       }
     } catch (err) {
       console.error('[useCentralBankRates] Error fetching FRED rates:', err);
       setIsError(true);
-      setError(err instanceof Error ? err.message : 'Failed to fetch FRED rates');
+      setError(err instanceof Error ? err.message : 'Failed to fetch rates from backend proxy');
     } finally {
       setIsLoading(false);
       isFetchingRef.current = false;
     }
-  }, [getEffectiveApiKey]);
+  }, []);
 
   useEffect(() => {
     fetchRates();

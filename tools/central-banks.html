@@ -995,10 +995,10 @@
       }
     }
 
-    async function fetchSingleFredSeries(seriesId, apiKey) {
+    async function fetchSingleFredSeries(seriesId) {
       const urls = [
-        `/api/fred/series/observations?series_id=${seriesId}&api_key=${apiKey}&file_type=json&sort_order=desc&limit=5`,
-        `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${apiKey}&file_type=json&sort_order=desc&limit=5`
+        `/api/fred?series_id=${encodeURIComponent(seriesId)}`,
+        `/api/fred/series/observations?series_id=${encodeURIComponent(seriesId)}&file_type=json&sort_order=desc&limit=5`
       ];
 
       for (const url of urls) {
@@ -1020,17 +1020,6 @@
     }
 
     async function fetchLiveCentralBankRates() {
-      const apiKey = (typeof window !== 'undefined' && window.VITE_FRED_API_KEY) ||
-                     localStorage.getItem('VITE_FRED_API_KEY') ||
-                     localStorage.getItem('FRED_API_KEY') ||
-                     new URLSearchParams(window.location.search).get('fred_api_key') ||
-                     '';
-
-      if (!apiKey || apiKey.trim() === '' || apiKey === 'MY_FRED_API_KEY') {
-        updateFredStatusUI('fallback', 'FRED API: BENCHMARK FALLBACK (KEY NOT SET)');
-        return;
-      }
-
       updateFredStatusUI('loading', 'FRED API: SYNCING LIVE RATES...');
 
       let updatedCount = 0;
@@ -1040,7 +1029,7 @@
         await Promise.all(bankCodes.map(async (code) => {
           const { seriesId } = FRED_SERIES_MAP[code];
           try {
-            const liveRate = await fetchSingleFredSeries(seriesId, apiKey);
+            const liveRate = await fetchSingleFredSeries(seriesId);
             if (liveRate !== null && !isNaN(liveRate)) {
               if (ratesData[code]) {
                 ratesData[code].rate = Number(liveRate.toFixed(2));
