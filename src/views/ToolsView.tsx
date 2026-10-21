@@ -946,6 +946,20 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
         }
       }
 
+      // User-specified 2-letter country/region code to 3-letter currency mapping
+      const currencyMap: Record<string, string> = {
+        'US': 'USD',
+        'UK': 'GBP',
+        'EU': 'EUR',
+        'DE': 'EUR',
+        'FR': 'EUR',
+        'JP': 'JPY',
+        'CA': 'CAD',
+        'AU': 'AUD',
+        'NZ': 'NZD',
+        'CH': 'CHF'
+      };
+
       // Smart column heuristic fallback if headers are missing or not fully identified
       const candidateDataRows = headerRowIdx !== -1 ? cleanRows.slice(headerRowIdx + 1) : cleanRows;
       const sampleRows = candidateDataRows.slice(0, 20);
@@ -958,8 +972,9 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
           for (let c = 0; c < numCols; c++) {
             let ccyMatches = 0;
             sampleRows.forEach(row => {
-              const val = String(row[c] || '').trim().toUpperCase().replace(/[^A-Z]/g, '');
-              if (['USD','EUR','GBP','JPY','AUD','CAD','CHF','NZD','CNH','CNY','DEU','FRA','GBR'].includes(val) || COUNTRY_MAP[val]) {
+              const rawVal = String(row[c] || '').trim().toUpperCase().replace(/[^A-Z]/g, '');
+              const mappedVal = currencyMap[rawVal] || rawVal;
+              if (['USD','EUR','GBP','JPY','AUD','CAD','CHF','NZD','CNH','CNY','DEU','FRA','GBR'].includes(mappedVal) || COUNTRY_MAP[rawVal] || COUNTRY_MAP[mappedVal]) {
                 ccyMatches++;
               }
             });
@@ -1070,14 +1085,30 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
           // Determine target currency from column or infer from event text
           let targetCurr: string | null = null;
           if (currCol !== -1 && row[currCol]) {
-            const cleanCcy = String(row[currCol]).trim().toUpperCase().replace(/[^A-Z]/g, '');
-            targetCurr = COUNTRY_MAP[cleanCcy] || (nextState[cleanCcy] ? cleanCcy : null);
+            // Intercept raw string from Cur. (or Currency) column for each row
+            const rawCur = String(row[currCol]).trim().toUpperCase().replace(/[^A-Z]/g, '');
+            // Translate 2-letter codes using currencyMap BEFORE G10 filtering
+            const mappedCur = currencyMap[rawCur] || rawCur;
+            targetCurr = mappedCur;
+          }
+          if (!targetCurr || !['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'NZD', 'CAD', 'CHF'].includes(targetCurr)) {
+            // Fallback: check all cells for 2-letter or 3-letter currency codes
+            for (const cell of row) {
+              const rawCell = String(cell || '').trim().toUpperCase().replace(/[^A-Z]/g, '');
+              const mappedCell = currencyMap[rawCell] || rawCell;
+              if (['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'NZD', 'CAD', 'CHF'].includes(mappedCell)) {
+                targetCurr = mappedCell;
+                break;
+              }
+            }
           }
           if (!targetCurr) {
             targetCurr = inferCurrencyFromText(rawEvent);
           }
 
-          if (!targetCurr || !nextState[targetCurr]) return;
+          // Strict G10 currency filter check: ['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'NZD', 'CAD', 'CHF']
+          const G10_CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'NZD', 'CAD', 'CHF'];
+          if (!targetCurr || !G10_CURRENCIES.includes(targetCurr) || !nextState[targetCurr]) return;
 
           const indList = [...nextState[targetCurr]];
           const matchedIdx = findIndicatorIndex(targetCurr, rawEvent, indList);
