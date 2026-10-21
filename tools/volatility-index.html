@@ -73,16 +73,81 @@
         </div>
     </section>
 
+    <!-- STANDALONE TOOLS SWITCHER BAR (Allows opening any other tool in a new tab) -->
+    <div class="w-full bg-[#040406] border-b border-zinc-900 py-2.5 px-4 sm:px-6 lg:px-8 overflow-x-auto select-none no-print">
+        <div class="max-w-7xl mx-auto flex items-center justify-between gap-4 min-w-max font-mono text-[11px]">
+            <div class="flex items-center gap-2 text-zinc-500">
+                <span class="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse"></span>
+                <span class="text-cyan-400 font-bold uppercase tracking-wider">// OPEN TOOLS IN SEPARATE TABS:</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="px-2.5 py-1 bg-cyan-500 text-black font-bold rounded-sm uppercase tracking-wider">
+                    Volatility Matrix (Active)
+                </span>
+                <a href="valuation.html" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 bg-zinc-900 hover:bg-cyan-950 text-zinc-300 hover:text-cyan-300 border border-zinc-800 rounded-sm transition flex items-center gap-1 uppercase">
+                    Valuation Desk <span class="text-[9px] text-cyan-400">&nearr;</span>
+                </a>
+                <a href="calendar.html" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 bg-zinc-900 hover:bg-cyan-950 text-zinc-300 hover:text-cyan-300 border border-zinc-800 rounded-sm transition flex items-center gap-1 uppercase">
+                    Calendar Filter <span class="text-[9px] text-cyan-400">&nearr;</span>
+                </a>
+                <a href="quant-desk.html" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 bg-zinc-900 hover:bg-cyan-950 text-zinc-300 hover:text-cyan-300 border border-zinc-800 rounded-sm transition flex items-center gap-1 uppercase">
+                    Quant Desk <span class="text-[9px] text-cyan-400">&nearr;</span>
+                </a>
+                <a href="central-banks.html" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 bg-zinc-900 hover:bg-cyan-950 text-zinc-300 hover:text-cyan-300 border border-zinc-800 rounded-sm transition flex items-center gap-1 uppercase">
+                    Central Banks <span class="text-[9px] text-cyan-400">&nearr;</span>
+                </a>
+                <a href="risk-calculator.html" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 bg-zinc-900 hover:bg-cyan-950 text-zinc-300 hover:text-cyan-300 border border-zinc-800 rounded-sm transition flex items-center gap-1 uppercase">
+                    Position Calculator <span class="text-[9px] text-cyan-400">&nearr;</span>
+                </a>
+                <a href="consensus-filter-engine.html" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 bg-zinc-900 hover:bg-cyan-950 text-zinc-300 hover:text-cyan-300 border border-zinc-800 rounded-sm transition flex items-center gap-1 uppercase">
+                    Consensus Hub <span class="text-[9px] text-cyan-400">&nearr;</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
     <!-- 5. VOLATILITY TABLE -->
     <main class="flex-grow w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12 space-y-6">
+        
+        <!-- Action & Search Bar -->
+        <div class="bg-[#040406] border border-zinc-900 p-4 rounded-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4 font-mono text-xs">
+            <div class="flex items-center gap-1.5 flex-wrap" id="volCurrencyPills">
+                <span class="text-zinc-500 text-[10px] uppercase font-bold mr-1">// FILTER:</span>
+                <button onclick="setVolFilter('ALL')" class="vol-btn px-2.5 py-1 rounded-sm text-[11px] font-bold bg-cyan-500 text-black">ALL (28)</button>
+                <button onclick="setVolFilter('USD')" class="vol-btn px-2.5 py-1 rounded-sm text-[11px] bg-[#0c0c12] text-zinc-400 border border-zinc-800 hover:text-white">USD</button>
+                <button onclick="setVolFilter('EUR')" class="vol-btn px-2.5 py-1 rounded-sm text-[11px] bg-[#0c0c12] text-zinc-400 border border-zinc-800 hover:text-white">EUR</button>
+                <button onclick="setVolFilter('GBP')" class="vol-btn px-2.5 py-1 rounded-sm text-[11px] bg-[#0c0c12] text-zinc-400 border border-zinc-800 hover:text-white">GBP</button>
+                <button onclick="setVolFilter('JPY')" class="vol-btn px-2.5 py-1 rounded-sm text-[11px] bg-[#0c0c12] text-zinc-400 border border-zinc-800 hover:text-white">JPY</button>
+                <button onclick="setVolFilter('AUD')" class="vol-btn px-2.5 py-1 rounded-sm text-[11px] bg-[#0c0c12] text-zinc-400 border border-zinc-800 hover:text-white">AUD</button>
+                <button onclick="setVolFilter('CAD')" class="vol-btn px-2.5 py-1 rounded-sm text-[11px] bg-[#0c0c12] text-zinc-400 border border-zinc-800 hover:text-white">CAD</button>
+                <button onclick="setVolFilter('NZD')" class="vol-btn px-2.5 py-1 rounded-sm text-[11px] bg-[#0c0c12] text-zinc-400 border border-zinc-800 hover:text-white">NZD</button>
+                <button onclick="setVolFilter('CHF')" class="vol-btn px-2.5 py-1 rounded-sm text-[11px] bg-[#0c0c12] text-zinc-400 border border-zinc-800 hover:text-white">CHF</button>
+            </div>
+
+            <div class="flex items-center gap-3 w-full md:w-auto">
+                <input type="text" id="volSearchInput" oninput="renderVolTable()" placeholder="Search currency pair..." class="w-full md:w-56 bg-[#0c0c12] border border-zinc-800 px-3 py-1.5 rounded-sm text-xs text-white outline-none focus:border-cyan-500 font-mono">
+                <button onclick="exportVolatilityCSV()" class="px-3 py-1.5 text-[10px] uppercase tracking-wider bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-400 rounded-sm border border-emerald-800/60 transition cursor-pointer flex items-center gap-1.5 font-bold shrink-0">
+                    Export CSV
+                </button>
+            </div>
+        </div>
+
         <div class="bg-[#040406] border border-zinc-900 rounded-sm overflow-x-auto shadow-2xl">
-            <table class="w-full text-left font-mono text-xs select-none">
+            <table class="w-full text-left font-mono text-xs select-none min-w-[620px]">
                 <thead>
                     <tr class="text-[10px] text-zinc-500 border-b border-zinc-900 uppercase tracking-wider bg-[#07080d]">
-                        <th class="py-4 font-medium pl-6">Pair Symbol</th>
-                        <th class="py-4 font-medium text-right">Avg Daily Pips</th>
-                        <th class="py-4 font-medium text-right">$ Cash Value (100k)</th>
-                        <th class="py-4 font-medium text-right pr-6">% Realized Range</th>
+                        <th onclick="sortVolTable('name')" class="py-4 font-medium pl-6 cursor-pointer hover:text-cyan-400">
+                            Pair Symbol <span id="sort-name" class="text-cyan-400">&uarr;</span>
+                        </th>
+                        <th onclick="sortVolTable('pips')" class="py-4 font-medium text-right cursor-pointer hover:text-cyan-400">
+                            Avg Daily Pips <span id="sort-pips"></span>
+                        </th>
+                        <th onclick="sortVolTable('cash')" class="py-4 font-medium text-right cursor-pointer hover:text-cyan-400">
+                            $ Cash Value (100k) <span id="sort-cash"></span>
+                        </th>
+                        <th onclick="sortVolTable('pct')" class="py-4 font-medium text-right pr-6 cursor-pointer hover:text-cyan-400">
+                            % Realized Range <span id="sort-pct"></span>
+                        </th>
                     </tr>
                 </thead>
                 <tbody id="currency-table-body" class="divide-y divide-zinc-900/40">
@@ -97,60 +162,124 @@
     <script src="../js/inject-engine.js"></script>
     <script>
         const assetProfiles = {
-            AUDCAD: { name: "AUDCAD", pips: "47.898", cash: "340.60", pct: "0.48%" },
-            AUDCHF: { name: "AUDCHF", pips: "30.310", cash: "369.32", pct: "0.52%" },
-            AUDJPY: { name: "AUDJPY", pips: "82.238", cash: "522.35", pct: "0.73%" },
-            AUDNZD: { name: "AUDNZD", pips: "54.954", cash: "314.83", pct: "0.44%" },
-            AUDUSD: { name: "AUDUSD", pips: "40.454", cash: "404.54", pct: "0.57%" },
-            CADCHF: { name: "CADCHF", pips: "28.086", cash: "342.22", pct: "0.48%" },
-            CADJPY: { name: "CADJPY", pips: "82.000", cash: "520.83", pct: "0.73%" },
-            CHFJPY: { name: "CHFJPY", pips: "133.798", cash: "849.83", pct: "0.70%" },
-            EURAUD: { name: "EURAUD", pips: "66.412", cash: "472.65", pct: "0.41%" },
-            EURCAD: { name: "EURCAD", pips: "54.142", cash: "385.00", pct: "0.34%" },
-            EURCHF: { name: "EURCHF", pips: "33.718", cash: "410.84", pct: "0.36%" },
-            EURGBP: { name: "EURGBP", pips: "22.096", cash: "294.87", pct: "0.26%" },
-            EURJPY: { name: "EURJPY", pips: "112.550", cash: "714.88", pct: "0.62%" },
-            EURNZD: { name: "EURNZD", pips: "97.184", cash: "556.77", pct: "0.49%" },
-            EURUSD: { name: "EURUSD", pips: "47.880", cash: "478.80", pct: "0.42%" },
-            GBPAUD: { name: "GBPAUD", pips: "85.680", cash: "609.78", pct: "0.46%" },
-            GBPCAD: { name: "GBPCAD", pips: "74.562", cash: "530.20", pct: "0.40%" },
-            GBPCHF: { name: "GBPCHF", pips: "48.994", cash: "596.98", pct: "0.45%" },
-            GBPJPY: { name: "GBPJPY", pips: "142.214", cash: "903.29", pct: "0.68%" },
-            GBPNZD: { name: "GBPNZD", pips: "118.458", cash: "678.65", pct: "0.51%" },
-            GBPUSD: { name: "GBPUSD", pips: "62.908", cash: "629.08", pct: "0.47%" },
-            NZDCAD: { name: "NZDCAD", pips: "46.522", cash: "330.81", pct: "0.58%" },
-            NZDCHF: { name: "NZDCHF", pips: "25.590", cash: "311.81", pct: "0.54%" },
-            NZDJPY: { name: "NZDJPY", pips: "73.590", cash: "467.42", pct: "0.82%" },
-            NZDUSD: { name: "NZDUSD", pips: "42.276", cash: "422.76", pct: "0.74%" },
-            USDCAD: { name: "USDCAD", pips: "55.822", cash: "396.94", pct: "0.40%" },
-            USDCHF: { name: "USDCHF", pips: "51.136", cash: "623.08", pct: "0.62%" },
-            USDJPY: { name: "USDJPY", pips: "118.658", cash: "753.67", pct: "0.75%" }
+            AUDCAD: { name: "AUDCAD", pips: 47.898, cash: 340.60, pct: 0.48 },
+            AUDCHF: { name: "AUDCHF", pips: 30.310, cash: 369.32, pct: 0.52 },
+            AUDJPY: { name: "AUDJPY", pips: 82.238, cash: 522.35, pct: 0.73 },
+            AUDNZD: { name: "AUDNZD", pips: 54.954, cash: 314.83, pct: 0.44 },
+            AUDUSD: { name: "AUDUSD", pips: 40.454, cash: 404.54, pct: 0.57 },
+            CADCHF: { name: "CADCHF", pips: 28.086, cash: 342.22, pct: 0.48 },
+            CADJPY: { name: "CADJPY", pips: 82.000, cash: 520.83, pct: 0.73 },
+            CHFJPY: { name: "CHFJPY", pips: 133.798, cash: 849.83, pct: 0.70 },
+            EURAUD: { name: "EURAUD", pips: 66.412, cash: 472.65, pct: 0.41 },
+            EURCAD: { name: "EURCAD", pips: 54.142, cash: 385.00, pct: 0.34 },
+            EURCHF: { name: "EURCHF", pips: 33.718, cash: 410.84, pct: 0.36 },
+            EURGBP: { name: "EURGBP", pips: 22.096, cash: 294.87, pct: 0.26 },
+            EURJPY: { name: "EURJPY", pips: 112.550, cash: 714.88, pct: 0.62 },
+            EURNZD: { name: "EURNZD", pips: 97.184, cash: 556.77, pct: 0.49 },
+            EURUSD: { name: "EURUSD", pips: 47.880, cash: 478.80, pct: 0.42 },
+            GBPAUD: { name: "GBPAUD", pips: 85.680, cash: 609.78, pct: 0.46 },
+            GBPCAD: { name: "GBPCAD", pips: 74.562, cash: 530.20, pct: 0.40 },
+            GBPCHF: { name: "GBPCHF", pips: 48.994, cash: 596.98, pct: 0.45 },
+            GBPJPY: { name: "GBPJPY", pips: 142.214, cash: 903.29, pct: 0.68 },
+            GBPNZD: { name: "GBPNZD", pips: 118.458, cash: 678.65, pct: 0.51 },
+            GBPUSD: { name: "GBPUSD", pips: 62.908, cash: 629.08, pct: 0.47 },
+            NZDCAD: { name: "NZDCAD", pips: 46.522, cash: 330.81, pct: 0.58 },
+            NZDCHF: { name: "NZDCHF", pips: 25.590, cash: 311.81, pct: 0.54 },
+            NZDJPY: { name: "NZDJPY", pips: 73.590, cash: 467.42, pct: 0.82 },
+            NZDUSD: { name: "NZDUSD", pips: 42.276, cash: 422.76, pct: 0.74 },
+            USDCAD: { name: "USDCAD", pips: 55.822, cash: 396.94, pct: 0.40 },
+            USDCHF: { name: "USDCHF", pips: 51.136, cash: 623.08, pct: 0.62 },
+            USDJPY: { name: "USDJPY", pips: 118.658, cash: 753.67, pct: 0.75 }
         };
 
-        function buildSortedCurrencyIndexTable() {
+        let currentVolSort = 'name';
+        let currentVolAsc = true;
+        let currentVolFilter = 'ALL';
+
+        function setVolFilter(ccy) {
+            currentVolFilter = ccy;
+            document.querySelectorAll('.vol-btn').forEach(btn => {
+                if (btn.innerText.startsWith(ccy)) {
+                    btn.className = "vol-btn px-2.5 py-1 rounded-sm text-[11px] font-bold bg-cyan-500 text-black";
+                } else {
+                    btn.className = "vol-btn px-2.5 py-1 rounded-sm text-[11px] bg-[#0c0c12] text-zinc-400 border border-zinc-800 hover:text-white";
+                }
+            });
+            renderVolTable();
+        }
+
+        function sortVolTable(col) {
+            if (currentVolSort === col) {
+                currentVolAsc = !currentVolAsc;
+            } else {
+                currentVolSort = col;
+                currentVolAsc = col === 'name';
+            }
+            ['name', 'pips', 'cash', 'pct'].forEach(c => {
+                const el = document.getElementById('sort-' + c);
+                if (el) el.innerHTML = (c === currentVolSort) ? (currentVolAsc ? '&uarr;' : '&darr;') : '';
+            });
+            renderVolTable();
+        }
+
+        function renderVolTable() {
             const tbody = document.getElementById('currency-table-body');
-            if(!tbody) return;
+            if (!tbody) return;
             tbody.innerHTML = '';
-            
-            const sortedKeys = Object.keys(assetProfiles).sort();
-            sortedKeys.forEach(key => {
-                const item = assetProfiles[key];
+
+            const search = (document.getElementById('volSearchInput')?.value || '').trim().toUpperCase();
+
+            let items = Object.values(assetProfiles).filter(item => {
+                const matchesFilter = currentVolFilter === 'ALL' || item.name.includes(currentVolFilter);
+                const matchesSearch = !search || item.name.includes(search);
+                return matchesFilter && matchesSearch;
+            });
+
+            items.sort((a, b) => {
+                let vA = a[currentVolSort];
+                let vB = b[currentVolSort];
+                if (vA < vB) return currentVolAsc ? -1 : 1;
+                if (vA > vB) return currentVolAsc ? 1 : -1;
+                return 0;
+            });
+
+            items.forEach(item => {
                 const row = document.createElement('tr');
                 row.className = "hover:bg-[#08080f] transition-colors border-b border-zinc-900/30 text-zinc-300 font-medium";
                 row.innerHTML = `
-                    <td class="py-3.5 text-left font-bold text-white pl-6">${item.name}</td>
-                    <td class="py-3.5 text-right tabular-nums pr-2">${item.pips}</td>
-                    <td class="py-3.5 text-right tabular-nums text-zinc-400 pr-2">$${item.cash}</td>
-                    <td class="py-3.5 text-right tabular-nums text-cyan-400 font-bold pr-6">${item.pct}</td>
+                    <td class="py-3.5 text-left font-bold text-white pl-6 flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 rounded-full ${item.pct >= 0.6 ? 'bg-cyan-400' : 'bg-zinc-600'}"></span>
+                        <span>${item.name}</span>
+                    </td>
+                    <td class="py-3.5 text-right tabular-nums pr-2 font-bold text-zinc-200">${item.pips.toFixed(3)}</td>
+                    <td class="py-3.5 text-right tabular-nums text-zinc-400 pr-2">$${item.cash.toFixed(2)}</td>
+                    <td class="py-3.5 text-right tabular-nums text-cyan-400 font-bold pr-6">${item.pct.toFixed(2)}%</td>
                 `;
                 tbody.appendChild(row);
             });
         }
-        
+
+        function exportVolatilityCSV() {
+            const items = Object.values(assetProfiles);
+            let csv = "Pair,Average Daily Pips,Cash Value (100k USD),Realized Range Pct\n";
+            items.forEach(i => {
+                csv += `${i.name},${i.pips},${i.cash},${i.pct}%\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `kairos_volatility_matrix_${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
         if (document.readyState === 'loading') {
-            window.addEventListener('DOMContentLoaded', buildSortedCurrencyIndexTable);
+            window.addEventListener('DOMContentLoaded', renderVolTable);
         } else {
-            buildSortedCurrencyIndexTable();
+            renderVolTable();
         }
     </script>
 </body>

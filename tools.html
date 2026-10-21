@@ -66,8 +66,34 @@
             </h1>
 
             <p class="text-sm sm:text-base text-zinc-400 font-sans max-w-3xl font-light leading-relaxed">
-                Access qualitative and mathematical macro analytical models engineered to verify position parameters, volatility ranges, central bank expectations, and relative currency valuations.
+                Access qualitative and mathematical macro analytical models engineered to verify position parameters, volatility ranges, central bank expectations, and relative currency valuations. Open each tool in its own browser tab to multi-task across workflows.
             </p>
+
+            <!-- Quick Standalone Launcher Bar -->
+            <div class="pt-2 flex items-center gap-2 flex-wrap font-mono text-[11px]">
+                <span class="text-cyan-400 font-bold uppercase tracking-wider mr-1">// LAUNCH IN NEW TAB:</span>
+                <a href="tools/valuation.html" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 bg-zinc-900 hover:bg-cyan-950 text-zinc-300 hover:text-cyan-300 border border-zinc-800 rounded-sm transition flex items-center gap-1 uppercase">
+                    Valuation Desk &nearr;
+                </a>
+                <a href="tools/calendar.html" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 bg-zinc-900 hover:bg-cyan-950 text-zinc-300 hover:text-cyan-300 border border-zinc-800 rounded-sm transition flex items-center gap-1 uppercase">
+                    Calendar Filter &nearr;
+                </a>
+                <a href="tools/quant-desk.html" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 bg-zinc-900 hover:bg-cyan-950 text-zinc-300 hover:text-cyan-300 border border-zinc-800 rounded-sm transition flex items-center gap-1 uppercase">
+                    Quant Desk &nearr;
+                </a>
+                <a href="tools/central-banks.html" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 bg-zinc-900 hover:bg-cyan-950 text-zinc-300 hover:text-cyan-300 border border-zinc-800 rounded-sm transition flex items-center gap-1 uppercase">
+                    Central Banks &nearr;
+                </a>
+                <a href="tools/volatility-index.html" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 bg-zinc-900 hover:bg-cyan-950 text-zinc-300 hover:text-cyan-300 border border-zinc-800 rounded-sm transition flex items-center gap-1 uppercase">
+                    Volatility Matrix &nearr;
+                </a>
+                <a href="tools/risk-calculator.html" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 bg-zinc-900 hover:bg-cyan-950 text-zinc-300 hover:text-cyan-300 border border-zinc-800 rounded-sm transition flex items-center gap-1 uppercase">
+                    Position Calculator &nearr;
+                </a>
+                <a href="tools/consensus-filter-engine.html" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 bg-zinc-900 hover:bg-cyan-950 text-zinc-300 hover:text-cyan-300 border border-zinc-800 rounded-sm transition flex items-center gap-1 uppercase">
+                    Consensus Hub &nearr;
+                </a>
+            </div>
         </div>
     </section>
 
@@ -99,7 +125,7 @@
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 
                 <!-- Tool 0: QUANT DESK / CURRENCY SENTIMENT DEFINER -->
-                <a href="tools/quant-desk.html" class="group bg-[#040406] border border-zinc-800 hover:border-cyan-500/50 p-6 sm:p-8 rounded-sm transition-all flex flex-col justify-between shadow-2xl relative overflow-hidden">
+                <div class="group bg-[#040406] border border-zinc-800 hover:border-cyan-500/50 p-6 sm:p-8 rounded-sm transition-all flex flex-col justify-between shadow-2xl relative overflow-hidden">
                     <div class="space-y-4 font-mono">
                         <div class="flex items-center justify-between text-[10px]">
                             <span class="text-zinc-500 uppercase tracking-widest">// QUANT_DESK_V2</span>
@@ -109,7 +135,7 @@
                         </div>
 
                         <h3 class="text-xl font-bold text-white group-hover:text-cyan-400 transition-colors uppercase tracking-wide">
-                            Currency Sentiment Definer
+                            <a href="tools/quant-desk.html" class="hover:underline">Currency Sentiment Definer</a>
                         </h3>
 
                         <p class="text-xs sm:text-sm text-zinc-400 font-sans leading-relaxed font-light">
@@ -123,14 +149,23 @@
                         </div>
                     </div>
 
-                    <div class="mt-8 pt-4 border-t border-zinc-800 flex justify-between items-center font-mono text-xs text-cyan-400 font-bold uppercase tracking-wider">
-                        <span>Launch Quant Desk</span>
-                        <span class="group-hover:translate-x-2 transition-transform text-base">&rarr;</span>
+                    <div class="mt-8 pt-4 border-t border-zinc-800 flex items-center justify-between gap-2 font-mono text-xs">
+                        <a href="tools/quant-desk.html" class="text-cyan-400 hover:text-cyan-300 font-bold uppercase tracking-wider flex items-center gap-1">
+                            Launch &rarr;
+                        </a>
+                        <div class="flex items-center gap-1.5">
+                            <a href="tools/quant-desk-es.html" target="_blank" rel="noopener noreferrer" class="text-[10px] text-zinc-400 hover:text-white px-2 py-1 rounded bg-zinc-900 border border-zinc-800">
+                                ES &nearr;
+                            </a>
+                            <a href="tools/quant-desk.html" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 text-[10px] bg-cyan-950/60 hover:bg-cyan-900 text-cyan-300 rounded border border-cyan-800/80 uppercase font-bold flex items-center gap-1">
+                                Open New Tab &nearr;
+                            </a>
+                        </div>
                     </div>
-                </a>
+                </div>
 
                 <!-- Tool 1: CALENDAR FILTERING TOOL -->
-                <a href="tools/calendar.html" class="group bg-[#040406] border-2 border-cyan-500/60 hover:border-cyan-400 p-6 sm:p-8 rounded-sm transition-all flex flex-col justify-between shadow-2xl relative overflow-hidden">
+                <div class="group bg-[#040406] border-2 border-cyan-500/60 hover:border-cyan-400 p-6 sm:p-8 rounded-sm transition-all flex flex-col justify-between shadow-2xl relative overflow-hidden">
                     <div class="absolute top-0 right-0 w-36 h-36 bg-cyan-500/15 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none group-hover:scale-150 transition-transform"></div>
                     
                     <div class="space-y-4 font-mono relative z-10">
@@ -143,7 +178,7 @@
                         </div>
 
                         <h3 class="text-xl font-bold text-white group-hover:text-cyan-400 transition-colors uppercase tracking-wide">
-                            Calendar Filtering Tool
+                            <a href="tools/calendar.html" class="hover:underline">Calendar Filtering Tool</a>
                         </h3>
 
                         <p class="text-xs sm:text-sm text-zinc-300 font-sans leading-relaxed font-light">
@@ -157,14 +192,18 @@
                         </div>
                     </div>
 
-                    <div class="mt-8 pt-4 border-t border-zinc-800 flex justify-between items-center font-mono text-xs text-cyan-400 font-bold uppercase tracking-wider relative z-10">
-                        <span>Launch Calendar Filtering Tool</span>
-                        <span class="group-hover:translate-x-2 transition-transform text-base">&rarr;</span>
+                    <div class="mt-8 pt-4 border-t border-zinc-800 flex items-center justify-between gap-2 font-mono text-xs relative z-10">
+                        <a href="tools/calendar.html" class="text-cyan-400 hover:text-cyan-300 font-bold uppercase tracking-wider flex items-center gap-1">
+                            Launch &rarr;
+                        </a>
+                        <a href="tools/calendar.html" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 text-[10px] bg-cyan-500 hover:bg-cyan-400 text-black rounded font-bold uppercase flex items-center gap-1 shadow-md">
+                            Open New Tab &nearr;
+                        </a>
                     </div>
-                </a>
+                </div>
 
-                <!-- Tool 2: CURRENCY STRENGTH ENGINE -->
-                <a href="tools/currency-strength-engine.html" class="group bg-[#040406] border border-zinc-800 hover:border-cyan-500/50 p-6 sm:p-8 rounded-sm transition-all flex flex-col justify-between shadow-2xl relative overflow-hidden">
+                <!-- Tool 2: VALUATION & CURRENCY STRENGTH ENGINE -->
+                <div class="group bg-[#040406] border border-zinc-800 hover:border-cyan-500/50 p-6 sm:p-8 rounded-sm transition-all flex flex-col justify-between shadow-2xl relative overflow-hidden">
                     <div class="space-y-4 font-mono">
                         <div class="flex items-center justify-between text-[10px]">
                             <span class="text-zinc-500 uppercase tracking-widest">// VALUATION_INDEX_V2</span>
@@ -174,25 +213,29 @@
                         </div>
 
                         <h3 class="text-xl font-bold text-white group-hover:text-cyan-400 transition-colors uppercase tracking-wide">
-                            Currency Strength & Valuation Engine
+                            <a href="tools/valuation.html" class="hover:underline">Currency Strength & Valuation</a>
                         </h3>
 
                         <p class="text-xs sm:text-sm text-zinc-400 font-sans leading-relaxed font-light">
-                            Fundamental valuation dashboard tracking economic indicators across 8 major currencies. Computes directional bias ratios, divergence rankings, and editable actual/forecast values.
+                            Fundamental valuation dashboard tracking economic indicators across 8 major currencies. Computes directional bias ratios, divergence rankings, and supports automated ingestion and export of Excel/CSV data.
                         </p>
 
                         <div class="pt-2 flex flex-wrap gap-1.5 text-[9px] text-zinc-400">
                             <span class="bg-[#0c0c14] border border-zinc-800 px-2 py-0.5 rounded">8 Major Currencies</span>
+                            <span class="bg-[#0c0c14] border border-zinc-800 px-2 py-0.5 rounded">Excel / CSV Import</span>
                             <span class="bg-[#0c0c14] border border-zinc-800 px-2 py-0.5 rounded">Divergence Ranking</span>
-                            <span class="bg-[#0c0c14] border border-zinc-800 px-2 py-0.5 rounded">JSON Data Backup</span>
                         </div>
                     </div>
 
-                    <div class="mt-8 pt-4 border-t border-zinc-800 flex justify-between items-center font-mono text-xs text-cyan-400 font-bold uppercase tracking-wider">
-                        <span>Open Valuation Console</span>
-                        <span class="group-hover:translate-x-2 transition-transform text-base">&rarr;</span>
+                    <div class="mt-8 pt-4 border-t border-zinc-800 flex items-center justify-between gap-2 font-mono text-xs">
+                        <a href="tools/valuation.html" class="text-cyan-400 hover:text-cyan-300 font-bold uppercase tracking-wider flex items-center gap-1">
+                            Launch &rarr;
+                        </a>
+                        <a href="tools/valuation.html" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 text-[10px] bg-cyan-950/60 hover:bg-cyan-900 text-cyan-300 rounded border border-cyan-800/80 uppercase font-bold flex items-center gap-1">
+                            Open New Tab &nearr;
+                        </a>
                     </div>
-                </a>
+                </div>
 
             </div>
         </div>
@@ -226,44 +269,52 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 
                 <!-- Volatility Index -->
-                <a href="tools/volatility-index.html" class="group bg-[#040406] border border-zinc-900 hover:border-cyan-500/50 p-6 sm:p-8 rounded-sm transition-all flex flex-col justify-between">
+                <div class="group bg-[#040406] border border-zinc-900 hover:border-cyan-500/50 p-6 sm:p-8 rounded-sm transition-all flex flex-col justify-between">
                     <div class="space-y-3 font-mono">
                         <div class="flex items-center justify-between text-[10px]">
                             <span class="text-zinc-500 uppercase">// MATRIX_V3</span>
-                            <span class="text-cyan-400 font-bold uppercase">70-DAY HISTORY</span>
+                            <span class="text-cyan-400 font-bold uppercase">28 CURRENCY PAIRS</span>
                         </div>
                         <h3 class="text-lg font-bold text-white group-hover:text-cyan-400 transition-colors uppercase tracking-wide">
-                            Daily Average Volatility by Currency Pair
+                            <a href="tools/volatility-index.html" class="hover:underline">Daily Average Volatility Matrix</a>
                         </h3>
                         <p class="text-xs text-zinc-400 font-sans leading-relaxed font-light">
-                            Consult programmatic historical realized variance metrics showing average daily pip ranges and 100k cash values across 28 currency pairs.
+                            Consult programmatic historical realized variance metrics showing average daily pip ranges and 100k cash values across 28 currency pairs. Searchable and sortable.
                         </p>
                     </div>
-                    <div class="mt-8 pt-3 border-t border-zinc-900 flex justify-between font-mono text-xs text-cyan-500 font-bold uppercase">
-                        <span>Open Volatility Matrix</span>
-                        <span class="group-hover:translate-x-1 transition-transform">&rarr;</span>
+                    <div class="mt-8 pt-3 border-t border-zinc-900 flex items-center justify-between gap-2 font-mono text-xs">
+                        <a href="tools/volatility-index.html" class="text-cyan-400 hover:text-cyan-300 font-bold uppercase tracking-wider flex items-center gap-1">
+                            Launch &rarr;
+                        </a>
+                        <a href="tools/volatility-index.html" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 text-[10px] bg-zinc-900 hover:bg-zinc-800 text-cyan-300 rounded border border-zinc-800 uppercase font-bold flex items-center gap-1">
+                            Open New Tab &nearr;
+                        </a>
                     </div>
-                </a>
+                </div>
 
                 <!-- Position Calculator -->
-                <a href="tools/risk-calculator.html" class="group bg-[#040406] border border-zinc-900 hover:border-emerald-500/50 p-6 sm:p-8 rounded-sm transition-all flex flex-col justify-between">
+                <div class="group bg-[#040406] border border-zinc-900 hover:border-emerald-500/50 p-6 sm:p-8 rounded-sm transition-all flex flex-col justify-between">
                     <div class="space-y-3 font-mono">
                         <div class="flex items-center justify-between text-[10px]">
                             <span class="text-zinc-500 uppercase">// RISK_MODEL_V1</span>
                             <span class="text-emerald-400 font-bold uppercase">PARITY SIZING</span>
                         </div>
                         <h3 class="text-lg font-bold text-white group-hover:text-emerald-400 transition-colors uppercase tracking-wide">
-                            Risk & Position Size Calculator
+                            <a href="tools/risk-calculator.html" class="hover:underline">Risk & Position Size Calculator</a>
                         </h3>
                         <p class="text-xs text-zinc-400 font-sans leading-relaxed font-light">
-                            Calculate exact position size limits in standard lots based on custom invalidation levels, account balance, and real-time pip values.
+                            Calculate exact position size limits in standard lots based on custom invalidation levels, account balance, and real-time cross-currency pip values.
                         </p>
                     </div>
-                    <div class="mt-8 pt-3 border-t border-zinc-900 flex justify-between font-mono text-xs text-emerald-400 font-bold uppercase">
-                        <span>Launch Calculator</span>
-                        <span class="group-hover:translate-x-1 transition-transform">&rarr;</span>
+                    <div class="mt-8 pt-3 border-t border-zinc-900 flex items-center justify-between gap-2 font-mono text-xs">
+                        <a href="tools/risk-calculator.html" class="text-emerald-400 hover:text-emerald-300 font-bold uppercase tracking-wider flex items-center gap-1">
+                            Launch &rarr;
+                        </a>
+                        <a href="tools/risk-calculator.html" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 text-[10px] bg-zinc-900 hover:bg-zinc-800 text-emerald-300 rounded border border-zinc-800 uppercase font-bold flex items-center gap-1">
+                            Open New Tab &nearr;
+                        </a>
                     </div>
-                </a>
+                </div>
 
             </div>
         </div>
@@ -297,44 +348,52 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 
                 <!-- Central Bank Terminal -->
-                <a href="tools/central-banks.html" class="group bg-[#040406] border border-zinc-900 hover:border-cyan-500/50 p-6 sm:p-8 rounded-sm transition-all flex flex-col justify-between">
+                <div class="group bg-[#040406] border border-zinc-900 hover:border-cyan-500/50 p-6 sm:p-8 rounded-sm transition-all flex flex-col justify-between">
                     <div class="space-y-3 font-mono">
                         <div class="flex items-center justify-between text-[10px]">
                             <span class="text-zinc-500 uppercase">// POLICY_RADAR_V2</span>
                             <span class="text-cyan-400 font-bold uppercase">G10 TERMINAL</span>
                         </div>
                         <h3 class="text-lg font-bold text-white group-hover:text-cyan-400 transition-colors uppercase tracking-wide">
-                            Central Bank Rate Terminal
+                            <a href="tools/central-banks.html" class="hover:underline">Central Bank Rate Terminal</a>
                         </h3>
                         <p class="text-xs text-zinc-400 font-sans leading-relaxed font-light">
                             Real-time monetary policy expectations, automated tone classification (Hawkish/Dovish), meeting countdowns, and implied trajectory curves.
                         </p>
                     </div>
-                    <div class="mt-8 pt-3 border-t border-zinc-900 flex justify-between font-mono text-xs text-cyan-500 font-bold uppercase">
-                        <span>Open Bank Terminal</span>
-                        <span class="group-hover:translate-x-1 transition-transform">&rarr;</span>
+                    <div class="mt-8 pt-3 border-t border-zinc-900 flex items-center justify-between gap-2 font-mono text-xs">
+                        <a href="tools/central-banks.html" class="text-cyan-400 hover:text-cyan-300 font-bold uppercase tracking-wider flex items-center gap-1">
+                            Launch &rarr;
+                        </a>
+                        <a href="tools/central-banks.html" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 text-[10px] bg-zinc-900 hover:bg-zinc-800 text-cyan-300 rounded border border-zinc-800 uppercase font-bold flex items-center gap-1">
+                            Open New Tab &nearr;
+                        </a>
                     </div>
-                </a>
+                </div>
 
                 <!-- Consensus Engine -->
-                <a href="tools/consensus-filter-engine.html" class="group bg-[#040406] border border-zinc-900 hover:border-cyan-500/50 p-6 sm:p-8 rounded-sm transition-all flex flex-col justify-between">
+                <div class="group bg-[#040406] border border-zinc-900 hover:border-cyan-500/50 p-6 sm:p-8 rounded-sm transition-all flex flex-col justify-between">
                     <div class="space-y-3 font-mono">
                         <div class="flex items-center justify-between text-[10px]">
                             <span class="text-zinc-500 uppercase">// EXPECTATIONS_V1</span>
                             <span class="text-cyan-400 font-bold uppercase">SURPRISE MATRIX</span>
                         </div>
                         <h3 class="text-lg font-bold text-white group-hover:text-cyan-400 transition-colors uppercase tracking-wide">
-                            Consensus Filter Hub
+                            <a href="tools/consensus-filter-engine.html" class="hover:underline">Consensus Filter Hub</a>
                         </h3>
                         <p class="text-xs text-zinc-400 font-sans leading-relaxed font-light">
                             Filter macroeconomic forecast ranges, monitor actual results vs. consensus, and classify Beat vs. Miss surprises with regional filtering.
                         </p>
                     </div>
-                    <div class="mt-8 pt-3 border-t border-zinc-900 flex justify-between font-mono text-xs text-cyan-500 font-bold uppercase">
-                        <span>Open Consensus Hub</span>
-                        <span class="group-hover:translate-x-1 transition-transform">&rarr;</span>
+                    <div class="mt-8 pt-3 border-t border-zinc-900 flex items-center justify-between gap-2 font-mono text-xs">
+                        <a href="tools/consensus-filter-engine.html" class="text-cyan-400 hover:text-cyan-300 font-bold uppercase tracking-wider flex items-center gap-1">
+                            Launch &rarr;
+                        </a>
+                        <a href="tools/consensus-filter-engine.html" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 text-[10px] bg-zinc-900 hover:bg-zinc-800 text-cyan-300 rounded border border-zinc-800 uppercase font-bold flex items-center gap-1">
+                            Open New Tab &nearr;
+                        </a>
                     </div>
-                </a>
+                </div>
 
             </div>
         </div>

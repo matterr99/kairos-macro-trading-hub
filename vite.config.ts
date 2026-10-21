@@ -22,5 +22,24 @@ export default defineConfig(({ command }) => {
       hmr: process.env.DISABLE_HMR !== 'true',
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
     },
+    build: {
+      rollupOptions: {
+        input: {
+          main: path.resolve(import.meta.dirname, 'index.html'),
+          tools: path.resolve(import.meta.dirname, 'tools.html'),
+          research: path.resolve(import.meta.dirname, 'research.html'),
+          academy: path.resolve(import.meta.dirname, 'academy.html'),
+          valuation: path.resolve(import.meta.dirname, 'tools/valuation.html'),
+          currencyStrength: path.resolve(import.meta.dirname, 'tools/currency-strength-engine.html'),
+          calendar: path.resolve(import.meta.dirname, 'tools/calendar.html'),
+          quantDesk: path.resolve(import.meta.dirname, 'tools/quant-desk.html'),
+          quantDeskEs: path.resolve(import.meta.dirname, 'tools/quant-desk-es.html'),
+          centralBanks: path.resolve(import.meta.dirname, 'tools/central-banks.html'),
+          volatilityIndex: path.resolve(import.meta.dirname, 'tools/volatility-index.html'),
+          riskCalculator: path.resolve(import.meta.dirname, 'tools/risk-calculator.html'),
+          consensusFilter: path.resolve(import.meta.dirname, 'tools/consensus-filter-engine.html'),
+        },
+      },
+    },
   };
 });

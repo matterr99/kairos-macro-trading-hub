@@ -81,31 +81,67 @@
 
             <!-- Action Buttons -->
             <div class="flex items-center gap-2 flex-wrap font-mono text-xs">
-                <button onclick="exportData()" class="px-3 py-1.5 text-[10px] uppercase tracking-wider bg-cyan-950/40 hover:bg-cyan-900/60 text-cyan-400 rounded-sm border border-cyan-900/60 transition cursor-pointer">
-                    <i class="fa-solid fa-download mr-1"></i> Export Backup
+                <button onclick="exportValuationCSV()" class="px-3 py-1.5 text-[10px] uppercase tracking-wider bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-400 rounded-sm border border-emerald-800/60 transition cursor-pointer flex items-center gap-1.5 font-bold">
+                    <i class="fa-solid fa-file-excel mr-1"></i> Export Excel/CSV
                 </button>
-                <button onclick="triggerImport()" class="px-3 py-1.5 text-[10px] uppercase tracking-wider bg-[#0c0c12] hover:bg-zinc-900 text-zinc-300 rounded-sm border border-zinc-800 transition cursor-pointer">
-                    <i class="fa-solid fa-upload mr-1"></i> Import Backup
+                <button onclick="exportData()" class="px-3 py-1.5 text-[10px] uppercase tracking-wider bg-cyan-950/40 hover:bg-cyan-900/60 text-cyan-400 rounded-sm border border-cyan-900/60 transition cursor-pointer flex items-center gap-1.5">
+                    <i class="fa-solid fa-download mr-1"></i> Export JSON
                 </button>
-                <input type="file" id="jsonFileInput" accept=".json,application/json" class="hidden" onchange="importData(event)">
+                <button onclick="triggerImport()" class="px-3 py-1.5 text-[10px] uppercase tracking-wider bg-[#0c0c12] hover:bg-zinc-900 text-zinc-300 rounded-sm border border-zinc-800 transition cursor-pointer flex items-center gap-1.5">
+                    <i class="fa-solid fa-upload mr-1"></i> Import Backup / Excel
+                </button>
+                <input type="file" id="jsonFileInput" accept=".json, .xlsx, .xls, .csv, application/json" class="hidden" onchange="importData(event)">
                 
                 <!-- Investing.com File Upload Button & Hidden Input -->
-                <button onclick="document.getElementById('investingFileInput').click()" class="px-3 py-1.5 text-[10px] uppercase tracking-wider bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-400 rounded-sm border border-emerald-900/60 transition cursor-pointer">
+                <button onclick="document.getElementById('investingFileInput').click()" class="px-3 py-1.5 text-[10px] uppercase tracking-wider bg-cyan-950/40 hover:bg-cyan-900/60 text-cyan-300 rounded-sm border border-cyan-800/80 transition cursor-pointer flex items-center gap-1.5 font-semibold">
                     <i class="fa-solid fa-file-import mr-1"></i> Import Investing.com
                 </button>
-                <input type="file" id="investingFileInput" accept=".csv, .xlsx, .xls, .tsv, .txt" class="hidden" onchange="handleInvestingUpload(event)">
+                <input type="file" id="investingFileInput" accept=".csv, .xlsx, .xls, .tsv, .txt, .json" class="hidden" onchange="handleInvestingUpload(event)">
 
                 <!-- Paste Raw Table Button -->
-                <button onclick="openPasteModal()" class="px-3 py-1.5 text-[10px] uppercase tracking-wider bg-purple-950/40 hover:bg-purple-900/60 text-purple-300 rounded-sm border border-purple-800/60 transition cursor-pointer">
+                <button onclick="openPasteModal()" class="px-3 py-1.5 text-[10px] uppercase tracking-wider bg-purple-950/40 hover:bg-purple-900/60 text-purple-300 rounded-sm border border-purple-800/60 transition cursor-pointer flex items-center gap-1.5">
                     <i class="fa-solid fa-paste mr-1"></i> Paste Table
                 </button>
 
-                <button onclick="resetToDefaults()" class="px-3 py-1.5 text-[10px] uppercase tracking-wider bg-[#0c0c12] hover:bg-zinc-900 text-rose-400 rounded-sm border border-zinc-800 transition cursor-pointer">
+                <button onclick="resetToDefaults()" class="px-3 py-1.5 text-[10px] uppercase tracking-wider bg-[#0c0c12] hover:bg-zinc-900 text-rose-400 rounded-sm border border-zinc-800 transition cursor-pointer flex items-center gap-1.5">
                     <i class="fa-solid fa-rotate-left mr-1"></i> Reset
                 </button>
             </div>
         </div>
     </section>
+
+    <!-- STANDALONE TOOLS SWITCHER BAR (Allows opening any other tool in a new tab) -->
+    <div class="w-full bg-[#040406] border-b border-zinc-900 py-2.5 px-4 sm:px-6 lg:px-8 overflow-x-auto select-none no-print">
+        <div class="max-w-7xl mx-auto flex items-center justify-between gap-4 min-w-max font-mono text-[11px]">
+            <div class="flex items-center gap-2 text-zinc-500">
+                <span class="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse"></span>
+                <span class="text-cyan-400 font-bold uppercase tracking-wider">// OPEN TOOLS IN SEPARATE TABS:</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="px-2.5 py-1 bg-cyan-500 text-black font-bold rounded-sm uppercase tracking-wider">
+                    Valuation Desk (Active)
+                </span>
+                <a href="calendar.html" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 bg-zinc-900 hover:bg-cyan-950 text-zinc-300 hover:text-cyan-300 border border-zinc-800 rounded-sm transition flex items-center gap-1 uppercase">
+                    Calendar Filter <span class="text-[9px] text-cyan-400">&nearr;</span>
+                </a>
+                <a href="quant-desk.html" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 bg-zinc-900 hover:bg-cyan-950 text-zinc-300 hover:text-cyan-300 border border-zinc-800 rounded-sm transition flex items-center gap-1 uppercase">
+                    Quant Desk <span class="text-[9px] text-cyan-400">&nearr;</span>
+                </a>
+                <a href="central-banks.html" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 bg-zinc-900 hover:bg-cyan-950 text-zinc-300 hover:text-cyan-300 border border-zinc-800 rounded-sm transition flex items-center gap-1 uppercase">
+                    Central Banks <span class="text-[9px] text-cyan-400">&nearr;</span>
+                </a>
+                <a href="volatility-index.html" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 bg-zinc-900 hover:bg-cyan-950 text-zinc-300 hover:text-cyan-300 border border-zinc-800 rounded-sm transition flex items-center gap-1 uppercase">
+                    Volatility Matrix <span class="text-[9px] text-cyan-400">&nearr;</span>
+                </a>
+                <a href="risk-calculator.html" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 bg-zinc-900 hover:bg-cyan-950 text-zinc-300 hover:text-cyan-300 border border-zinc-800 rounded-sm transition flex items-center gap-1 uppercase">
+                    Position Calculator <span class="text-[9px] text-cyan-400">&nearr;</span>
+                </a>
+                <a href="consensus-filter-engine.html" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 bg-zinc-900 hover:bg-cyan-950 text-zinc-300 hover:text-cyan-300 border border-zinc-800 rounded-sm transition flex items-center gap-1 uppercase">
+                    Consensus Hub <span class="text-[9px] text-cyan-400">&nearr;</span>
+                </a>
+            </div>
+        </div>
+    </div>
 
     <!-- 4. MAIN CONTENT WRAPPER -->
     <main class="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-6">
@@ -875,6 +911,45 @@
             if (activeTab !== 'dashboard') renderCurrencyTable(activeTab);
         }
 
+        function exportValuationCSV() {
+            try {
+                let csv = "Currency,Indicator,Type,Actual,Forecast,Previous,Net_Change,Score,Date,Time\n";
+                Object.keys(appData).forEach(curr => {
+                    const list = appData[curr] || [];
+                    list.forEach(ind => {
+                        const evalRes = evaluateIndicator(ind);
+                        const cleanName = `"${String(ind.name || '').replace(/"/g, '""')}"`;
+                        const act = ind.actual !== null ? ind.actual : '';
+                        const fcst = ind.forecast !== null ? ind.forecast : '';
+                        const prev = ind.previous !== null ? ind.previous : '';
+                        const d = ind.date || '';
+                        const t = ind.time || '';
+                        csv += `${curr},${cleanName},${ind.type},${act},${fcst},${prev},${evalRes.netChange},${evalRes.score},${d},${t}\n`;
+                    });
+                });
+
+                const fileName = `kairos_valuation_table_${new Date().toISOString().slice(0, 10)}.csv`;
+                const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+                if (window.navigator && window.navigator.msSaveOrOpenBlob) {
+                    window.navigator.msSaveOrOpenBlob(blob, fileName);
+                    return;
+                }
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 1000);
+            } catch (err) {
+                console.error("CSV Export error:", err);
+                alert("Failed to export CSV table.");
+            }
+        }
+
         function exportData() {
             try {
                 // 1. Fix Backup Export Engine: Deep-clone appData before stringifying
@@ -916,6 +991,13 @@
         function importData(event) {
             const file = event.target && event.target.files && event.target.files[0];
             if (!file) return;
+            const fname = (file.name || '').toLowerCase();
+            // If the user selected an Excel or CSV file via the Import Backup button, route to spreadsheet processor
+            if (fname.endsWith('.xlsx') || fname.endsWith('.xls') || fname.endsWith('.csv') || fname.endsWith('.tsv')) {
+                processInvestingFile(file);
+                event.target.value = '';
+                return;
+            }
             const reader = new FileReader();
             reader.onload = function(e) {
                 try {
@@ -1126,32 +1208,51 @@
         }
 
         function processInvestingRows(rawRows) {
-            const mappedRows = (rawRows || []).map(row => {
-                if (!row) return [];
-                const cleanRow = row.map(cell => {
-                  if (cell === null || cell === undefined) return "";
-                  if (cell instanceof Date) {
-                    // Catch Excel time-only epoch dates (1899/1900)
-                    if (cell.getFullYear() <= 1905) {
-                      return String(cell.getHours()).padStart(2, '0') + ":" + String(cell.getMinutes()).padStart(2, '0');
-                    }
-                    // Safely convert real dates to YYYY-MM-DD
-                    const y = cell.getFullYear();
-                    const m = String(cell.getMonth() + 1).padStart(2, '0');
-                    const d = String(cell.getDate()).padStart(2, '0');
-                    return `${y}-${m}-${d}`;
-                  }
-                  return String(cell).trim();
-                });
-                return cleanRow;
-            });
-            const cleanRows = mappedRows.filter(r => r && r.some(c => c !== ''));
-            if (cleanRows.length === 0) {
-                alert('No readable data rows found.');
+            if (!rawRows || !rawRows.length) {
+                alert('No data rows found in the uploaded file.');
                 return;
             }
 
-            // Detect Header Row across first 25 rows
+            // Clean, normalize and map rows
+            const cleanRows = [];
+            for (let i = 0; i < rawRows.length; i++) {
+                const r = rawRows[i];
+                if (!r) continue;
+                const rowArr = Array.isArray(r) ? r : Object.values(r);
+                const mappedRow = rowArr.map(cell => {
+                    if (cell === null || cell === undefined) return '';
+                    if (cell instanceof Date) {
+                        if (cell.getFullYear() <= 1905) {
+                            return String(cell.getHours()).padStart(2, '0') + ':' + String(cell.getMinutes()).padStart(2, '0');
+                        }
+                        const y = cell.getFullYear();
+                        const m = String(cell.getMonth() + 1).padStart(2, '0');
+                        const d = String(cell.getDate()).padStart(2, '0');
+                        return `${y}-${m}-${d}`;
+                    }
+                    return String(cell).trim().replace(/[\u00A0\u200B\r\n\t]/g, ' ');
+                });
+                if (mappedRow.some(c => c !== '')) {
+                    cleanRows.push(mappedRow);
+                }
+            }
+
+            if (cleanRows.length === 0) {
+                alert('No readable data rows found in the spreadsheet.');
+                return;
+            }
+
+            // Normalization helper for header detection (accent & case insensitive)
+            const cleanHeaderStr = (s) => {
+                return String(s || '')
+                    .toLowerCase()
+                    .normalize('NFD')
+                    .replace(/[\u0300-\u036f]/g, '') // remove accents (previsión -> prevision)
+                    .replace(/[^a-z0-9]/g, ' ')
+                    .replace(/\s+/g, ' ')
+                    .trim();
+            };
+
             let headerRowIdx = -1;
             let eventCol = -1;
             let currCol = -1;
@@ -1159,50 +1260,114 @@
             let forecastCol = -1;
             let prevCol = -1;
             let dateCol = -1;
+            let timeCol = -1;
 
-            for (let r = 0; r < Math.min(cleanRows.length, 25); r++) {
-                const row = cleanRows[r].map(c => String(c || '').trim().toLowerCase().replace(/[\u00A0\u200B\r\n]/g, ''));
-                const hasEventHeader = row.some(c => c === 'event' || c === 'indicator' || c === 'evento' || c === 'indicador' || c === 'acontecimiento' || c.includes('event'));
-                const hasCcyHeader = row.some(c => c === 'cur.' || c === 'cur' || c === 'currency' || c === 'divisa' || c === 'moneda' || c === 'country' || c === 'pais' || c === 'país' || c === 'zone');
-                const hasNumbersHeader = row.some(c => c === 'actual' || c === 'dato actual' || c === 'real' || c === 'forecast' || c === 'previsión' || c === 'prevision' || c === 'previous' || c === 'previo');
+            // Flexible header keyword testers
+            const isEventHeader = (h) => /^(event|evento|indicator|indicador|release|acontecimiento|title|titulo|description|descripcion|headline|report|reporte|item|data|nombre)/.test(h) || h.includes('event') || h.includes('indicat') || h.includes('release');
+            const isCcyHeader = (h) => /^(cur|div|currency|divisa|moneda|country|pais|zone|zona|ccy|iso)/.test(h) || h === 'cur' || h === 'div';
+            const isActualHeader = (h) => /^(actual|act|dato actual|real|current|publicado|latest|valor actual|valor real)/.test(h) || h.includes('actual') || h.includes('real');
+            const isForecastHeader = (h) => /^(forecast|fcst|prevision|previsto|pronostico|consenso|consensus|expected|est|estimado|median)/.test(h) || h.includes('forecast') || h.includes('previs') || h.includes('pronost') || h.includes('consen');
+            const isPrevHeader = (h) => /^(previous|prev|prior|previo|anterior|revisado|last|previo valor)/.test(h) || h.includes('prev') || h.includes('prior') || h.includes('anter');
+            const isDateHeader = (h) => /^(date|fecha|day|dia|release date|period|periodo)/.test(h) || h.includes('fecha') || h.includes('date');
+            const isTimeHeader = (h) => /^(time|hora|hour)/.test(h) || h.includes('time') || h.includes('hora');
 
-                if (hasEventHeader || (hasCcyHeader && hasNumbersHeader)) {
+            // Scan first 30 rows to find header row
+            for (let r = 0; r < Math.min(cleanRows.length, 30); r++) {
+                const row = cleanRows[r].map(cleanHeaderStr);
+                const hasEvent = row.some(isEventHeader);
+                const hasCcy = row.some(isCcyHeader);
+                const hasNum = row.some(isActualHeader) || row.some(isForecastHeader) || row.some(isPrevHeader);
+
+                if ((hasEvent && (hasCcy || hasNum)) || (hasCcy && hasNum)) {
                     headerRowIdx = r;
                     row.forEach((cell, idx) => {
-                        if (['date', 'fecha', 'day', 'dia', 'día', 'release date'].some(h => cell === h || cell.includes(h))) {
-                            if (dateCol === -1) dateCol = idx;
-                        }
-                        if (['cur.', 'cur', 'currency', 'div.', 'div', 'divisa', 'moneda', 'country', 'pais', 'país', 'zone', 'zona', 'ccy'].some(h => cell === h || cell.startsWith(h))) {
-                            if (currCol === -1) currCol = idx;
-                        }
-                        if (['event', 'indicator', 'evento', 'indicador', 'acontecimiento', 'title', 'nombre', 'release'].some(h => cell === h || cell.includes(h))) {
-                            if (eventCol === -1) eventCol = idx;
-                        }
-                        if (['actual', 'act', 'dato actual', 'real', 'current'].some(h => cell === h || cell.includes(h))) {
-                            if (actualCol === -1) actualCol = idx;
-                        }
-                        if (['forecast', 'consensus', 'fcst', 'previsión', 'prevision', 'previsto', 'pronóstico', 'pronostico', 'consenso', 'expected', 'estimado'].some(h => cell === h || cell.includes(h))) {
-                            if (forecastCol === -1) forecastCol = idx;
-                        }
-                        if (['previous', 'prev', 'prior', 'previo', 'anterior', 'prev.'].some(h => cell === h || cell.includes(h))) {
-                            if (prevCol === -1) prevCol = idx;
-                        }
+                        if (isDateHeader(cell) && dateCol === -1) dateCol = idx;
+                        else if (isTimeHeader(cell) && timeCol === -1) timeCol = idx;
+                        else if (isCcyHeader(cell) && currCol === -1) currCol = idx;
+                        else if (isEventHeader(cell) && eventCol === -1) eventCol = idx;
+                        else if (isActualHeader(cell) && actualCol === -1) actualCol = idx;
+                        else if (isForecastHeader(cell) && forecastCol === -1) forecastCol = idx;
+                        else if (isPrevHeader(cell) && prevCol === -1) prevCol = idx;
                     });
                     break;
                 }
             }
 
-            // Fallback heuristics if no explicit header row was identified
-            if (headerRowIdx === -1) {
-                headerRowIdx = 0;
-                cleanRows[0].forEach((c, idx) => {
-                    const s = String(c || '').trim();
-                    if (s.length >= 3 && /^[A-Z]{2,3}$/.test(s) && currCol === -1) currCol = idx;
-                    else if (s.length > 5 && isNaN(Number(s)) && !s.includes(':') && eventCol === -1) eventCol = idx;
-                });
+            // SMART COLUMN HEURISTIC FALLBACK: If headers are missing or columns not fully identified
+            const candidateDataRows = headerRowIdx !== -1 ? cleanRows.slice(headerRowIdx + 1) : cleanRows;
+            const sampleRows = candidateDataRows.slice(0, 20);
+
+            if (sampleRows.length > 0) {
+                const numCols = Math.max(...sampleRows.map(r => r.length));
+
+                // 1. Detect Currency Column
+                if (currCol === -1) {
+                    for (let c = 0; c < numCols; c++) {
+                        let ccyMatches = 0;
+                        sampleRows.forEach(row => {
+                            const val = String(row[c] || '').trim().toUpperCase().replace(/[^A-Z]/g, '');
+                            if (['USD','EUR','GBP','JPY','AUD','CAD','CHF','NZD','CNH','CNY','DEU','FRA','GBR'].includes(val) || countryToCurrency[val]) {
+                                ccyMatches++;
+                            }
+                        });
+                        if (ccyMatches >= Math.max(2, Math.floor(sampleRows.length * 0.25))) {
+                            currCol = c;
+                            break;
+                        }
+                    }
+                }
+
+                // 2. Detect Event Column (longest text column with economic terms)
+                if (eventCol === -1) {
+                    let bestCol = -1;
+                    let bestScore = 0;
+                    for (let c = 0; c < numCols; c++) {
+                        if (c === currCol) continue;
+                        let textScore = 0;
+                        sampleRows.forEach(row => {
+                            const val = String(row[c] || '').toLowerCase();
+                            if (val.length >= 5 && isNaN(Number(val)) && !val.includes(':') && !/^\d{4}-\d{2}/.test(val)) {
+                                textScore += 2;
+                                if (/pmi|cpi|sales|unemp|payroll|gdp|sentiment|survey|rate|confidence|ipc|desempleo|ventas/i.test(val)) {
+                                    textScore += 5;
+                                }
+                            }
+                        });
+                        if (textScore > bestScore) {
+                            bestScore = textScore;
+                            bestCol = c;
+                        }
+                    }
+                    if (bestCol !== -1 && bestScore >= 4) {
+                        eventCol = bestCol;
+                    }
+                }
+
+                // 3. Detect Numeric Columns (Actual, Forecast, Previous)
+                if (actualCol === -1 || forecastCol === -1 || prevCol === -1) {
+                    const numericCols = [];
+                    for (let c = 0; c < numCols; c++) {
+                        if (c === currCol || c === eventCol || c === dateCol || c === timeCol) continue;
+                        let numCount = 0;
+                        sampleRows.forEach(row => {
+                            const val = String(row[c] || '').trim().replace(/[%+]/g, '');
+                            if (val !== '' && val !== '-' && val !== 'N/A' && !isNaN(parseFloat(val)) && !val.includes(':') && !/^\d{4}-\d{2}/.test(val)) {
+                                numCount++;
+                            }
+                        });
+                        if (numCount >= Math.max(2, Math.floor(sampleRows.length * 0.2))) {
+                            numericCols.push(c);
+                        }
+                    }
+
+                    // In economic calendars, standard order is: Actual, Forecast, Previous
+                    if (numericCols.length >= 1 && actualCol === -1) actualCol = numericCols[0];
+                    if (numericCols.length >= 2 && forecastCol === -1) forecastCol = numericCols[1];
+                    if (numericCols.length >= 3 && prevCol === -1) prevCol = numericCols[2];
+                }
             }
 
-            const dataRows = cleanRows.slice(headerRowIdx + 1);
+            const dataRows = headerRowIdx !== -1 ? cleanRows.slice(headerRowIdx + 1) : cleanRows;
             if (dataRows.length === 0) {
                 alert('No data rows found below headers.');
                 return;
@@ -1246,6 +1411,16 @@
                     targetCurr = countryToCurrency[cleanCcy] || (appData[cleanCcy] ? cleanCcy : null);
                 }
                 if (!targetCurr) {
+                    // Check if any cell in the row matches a currency code
+                    for (const cell of row) {
+                        const cleanC = String(cell || '').trim().toUpperCase().replace(/[^A-Z]/g, '');
+                        if (['USD','EUR','GBP','JPY','AUD','CAD','CHF','NZD','CNH'].includes(cleanC)) {
+                            targetCurr = cleanC;
+                            break;
+                        }
+                    }
+                }
+                if (!targetCurr) {
                     targetCurr = inferCurrencyFromText(rawEvent);
                 }
 
@@ -1281,7 +1456,7 @@
                         }
 
                         if (hasChanges) {
-                            // 3. Enforce Index & Survey Scale Matching (Westpac, IFO, NFIB, Sentiment)
+                            // Enforce Index & Survey Scale Matching (Westpac, IFO, NFIB, Sentiment)
                             normalizeIndexIndicatorScales(matchedInd);
 
                             // Format release date with serial number converter
@@ -1301,9 +1476,9 @@
                 if (notice) {
                     notice.innerText = `Updated: ${updatedCount} indicators (${Array.from(updatedCurrencies).join(', ')})`;
                 }
-                alert(`Successfully updated ${updatedCount} indicators from Investing.com export!\n(${Array.from(updatedCurrencies).join(', ')})`);
+                alert(`Successfully updated ${updatedCount} indicators from spreadsheet export!\nCurrencies: ${Array.from(updatedCurrencies).join(', ')}`);
             } else {
-                alert('Processed data, but no matching indicators could be identified. Please ensure the table contains G10 economic calendar events.');
+                alert('Processed data, but no matching indicators could be identified. Please ensure the table contains G10 economic calendar events with Event Name, Currency, and Values.');
             }
         }
 
@@ -1319,6 +1494,7 @@
             if (!file) return;
             const fileName = file.name.toLowerCase();
 
+            // 1. JSON Backup Restore
             if (fileName.endsWith('.json')) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
@@ -1360,6 +1536,7 @@
                 return;
             }
 
+            // 2. CSV / TSV / TXT
             if (fileName.endsWith('.csv') || fileName.endsWith('.tsv') || fileName.endsWith('.txt')) {
                 Papa.parse(file, {
                     header: false,
@@ -1375,23 +1552,64 @@
                         alert('Error parsing CSV file: ' + err.message);
                     }
                 });
-            } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+            }
+            // 3. XLSX / XLS
+            else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     try {
                         const data = new Uint8Array(e.target.result);
-                        const workbook = XLSX.read(data, { type: 'array', cellDates: true });
-                        const firstSheetName = workbook.SheetNames[0];
-                        const worksheet = workbook.Sheets[firstSheetName];
-                        // Using raw header:1 to extract 2D matrix
-                        const rawMatrix = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
-                        if (rawMatrix && rawMatrix.length > 0) {
-                            processInvestingRows(rawMatrix);
+                        let workbook;
+                        try {
+                            workbook = XLSX.read(data, { type: 'array', cellDates: true });
+                        } catch(xlsxErr) {
+                            // Fallback for HTML-table based exports saved with .xls extension
+                            const text = new TextDecoder("utf-8").decode(data);
+                            if (text.includes('<table') || text.includes('<tr>')) {
+                                const parser = new DOMParser();
+                                const doc = parser.parseFromString(text, 'text/html');
+                                const table = doc.querySelector('table');
+                                if (table) {
+                                    workbook = XLSX.utils.table_to_book(table);
+                                }
+                            }
+                            if (!workbook) throw xlsxErr;
+                        }
+
+                        // Inspect all sheets to select the sheet with the most rows
+                        let bestRows = [];
+                        for (const name of workbook.SheetNames) {
+                            const ws = workbook.Sheets[name];
+                            if (!ws) continue;
+                            const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
+                            if (rows && rows.length > bestRows.length) {
+                                bestRows = rows;
+                            }
+                        }
+
+                        if (bestRows && bestRows.length > 0) {
+                            processInvestingRows(bestRows);
                         } else {
                             alert('No data rows found in the Excel sheet.');
                         }
                     } catch(err) {
-                        alert('Error reading Excel spreadsheet: ' + err.message);
+                        // Fallback: try parsing as text/CSV with PapaParse in case file is comma/tab delimited text with .xls/.xlsx extension
+                        try {
+                            const text = new TextDecoder("utf-8").decode(new Uint8Array(e.target.result));
+                            Papa.parse(text, {
+                                header: false,
+                                skipEmptyLines: 'greedy',
+                                complete: function(res) {
+                                    if (res.data && res.data.length > 0) {
+                                        processInvestingRows(res.data);
+                                    } else {
+                                        alert('Error reading Excel spreadsheet: ' + err.message);
+                                    }
+                                }
+                            });
+                        } catch(subErr) {
+                            alert('Error reading Excel spreadsheet: ' + err.message);
+                        }
                     }
                 };
                 reader.readAsArrayBuffer(file);

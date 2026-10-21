@@ -68,22 +68,63 @@
     </div>
   </section>
 
+  <!-- STANDALONE TOOLS SWITCHER BAR (Allows opening any other tool in a new tab) -->
+  <div class="w-full bg-[#040406] border-b border-zinc-900 py-2.5 px-4 sm:px-6 lg:px-8 overflow-x-auto select-none no-print">
+    <div class="max-w-7xl mx-auto flex items-center justify-between gap-4 min-w-max font-mono text-[11px]">
+      <div class="flex items-center gap-2 text-zinc-500">
+        <span class="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse"></span>
+        <span class="text-cyan-400 font-bold uppercase tracking-wider">// OPEN TOOLS IN SEPARATE TABS:</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="px-2.5 py-1 bg-cyan-500 text-black font-bold rounded-sm uppercase tracking-wider">
+          Consensus Hub (Active)
+        </span>
+        <a href="valuation.html" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 bg-zinc-900 hover:bg-cyan-950 text-zinc-300 hover:text-cyan-300 border border-zinc-800 rounded-sm transition flex items-center gap-1 uppercase">
+          Valuation Desk <span class="text-[9px] text-cyan-400">&nearr;</span>
+        </a>
+        <a href="calendar.html" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 bg-zinc-900 hover:bg-cyan-950 text-zinc-300 hover:text-cyan-300 border border-zinc-800 rounded-sm transition flex items-center gap-1 uppercase">
+          Calendar Filter <span class="text-[9px] text-cyan-400">&nearr;</span>
+        </a>
+        <a href="quant-desk.html" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 bg-zinc-900 hover:bg-cyan-950 text-zinc-300 hover:text-cyan-300 border border-zinc-800 rounded-sm transition flex items-center gap-1 uppercase">
+          Quant Desk <span class="text-[9px] text-cyan-400">&nearr;</span>
+        </a>
+        <a href="central-banks.html" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 bg-zinc-900 hover:bg-cyan-950 text-zinc-300 hover:text-cyan-300 border border-zinc-800 rounded-sm transition flex items-center gap-1 uppercase">
+          Central Banks <span class="text-[9px] text-cyan-400">&nearr;</span>
+        </a>
+        <a href="volatility-index.html" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 bg-zinc-900 hover:bg-cyan-950 text-zinc-300 hover:text-cyan-300 border border-zinc-800 rounded-sm transition flex items-center gap-1 uppercase">
+          Volatility Matrix <span class="text-[9px] text-cyan-400">&nearr;</span>
+        </a>
+        <a href="risk-calculator.html" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 bg-zinc-900 hover:bg-cyan-950 text-zinc-300 hover:text-cyan-300 border border-zinc-800 rounded-sm transition flex items-center gap-1 uppercase">
+          Position Calculator <span class="text-[9px] text-cyan-400">&nearr;</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
   <!-- 4. CONSENSUS TABLE -->
   <main class="flex-grow w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12 space-y-6">
     
-    <div class="bg-[#040406] border border-zinc-900 p-4 rounded-sm flex flex-col sm:flex-row justify-between items-center gap-4 font-mono text-xs">
+    <div class="bg-[#040406] border border-zinc-900 p-4 rounded-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4 font-mono text-xs">
       <div class="flex items-center gap-2 flex-wrap" id="geoFilterGroup">
         <span class="text-zinc-500 text-[10px] font-bold uppercase">Region:</span>
         <button onclick="filterGeo('ALL')" class="geo-btn px-2.5 py-1 rounded-sm font-bold bg-cyan-500 text-black">ALL</button>
-        <button onclick="filterGeo('US')" class="geo-btn px-2.5 py-1 rounded-sm bg-[#0c0c12] text-zinc-400 border border-zinc-800">US</button>
-        <button onclick="filterGeo('EUR')" class="geo-btn px-2.5 py-1 rounded-sm bg-[#0c0c12] text-zinc-400 border border-zinc-800">EUR</button>
-        <button onclick="filterGeo('GB')" class="geo-btn px-2.5 py-1 rounded-sm bg-[#0c0c12] text-zinc-400 border border-zinc-800">GBP</button>
-        <button onclick="filterGeo('JP')" class="geo-btn px-2.5 py-1 rounded-sm bg-[#0c0c12] text-zinc-400 border border-zinc-800">JPY</button>
-        <button onclick="filterGeo('CA')" class="geo-btn px-2.5 py-1 rounded-sm bg-[#0c0c12] text-zinc-400 border border-zinc-800">CAD</button>
-        <button onclick="filterGeo('AU')" class="geo-btn px-2.5 py-1 rounded-sm bg-[#0c0c12] text-zinc-400 border border-zinc-800">AUD</button>
+        <button onclick="filterGeo('US')" class="geo-btn px-2.5 py-1 rounded-sm bg-[#0c0c12] text-zinc-400 border border-zinc-800 hover:text-white">US</button>
+        <button onclick="filterGeo('EUR')" class="geo-btn px-2.5 py-1 rounded-sm bg-[#0c0c12] text-zinc-400 border border-zinc-800 hover:text-white">EUR</button>
+        <button onclick="filterGeo('GB')" class="geo-btn px-2.5 py-1 rounded-sm bg-[#0c0c12] text-zinc-400 border border-zinc-800 hover:text-white">GBP</button>
+        <button onclick="filterGeo('JP')" class="geo-btn px-2.5 py-1 rounded-sm bg-[#0c0c12] text-zinc-400 border border-zinc-800 hover:text-white">JPY</button>
+        <button onclick="filterGeo('CA')" class="geo-btn px-2.5 py-1 rounded-sm bg-[#0c0c12] text-zinc-400 border border-zinc-800 hover:text-white">CAD</button>
+        <button onclick="filterGeo('AU')" class="geo-btn px-2.5 py-1 rounded-sm bg-[#0c0c12] text-zinc-400 border border-zinc-800 hover:text-white">AUD</button>
       </div>
 
-      <input type="text" id="searchInput" oninput="renderTable()" placeholder="Search indicator..." class="w-full sm:w-60 bg-[#0c0c12] border border-zinc-800 px-3 py-1.5 rounded-sm text-xs text-white outline-none focus:border-cyan-500 font-mono">
+      <div class="flex items-center gap-3 w-full md:w-auto">
+        <input type="text" id="searchInput" oninput="renderTable()" placeholder="Search indicator..." class="w-full md:w-56 bg-[#0c0c12] border border-zinc-800 px-3 py-1.5 rounded-sm text-xs text-white outline-none focus:border-cyan-500 font-mono">
+        <button onclick="exportConsensusCSV()" class="px-3 py-1.5 text-[10px] uppercase tracking-wider bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-400 rounded-sm border border-emerald-800/60 transition cursor-pointer flex items-center gap-1.5 font-bold shrink-0">
+          Export CSV
+        </button>
+        <button onclick="resetConsensus()" class="px-3 py-1.5 text-[10px] uppercase tracking-wider bg-[#0c0c12] hover:bg-zinc-900 text-rose-400 rounded-sm border border-zinc-800 transition cursor-pointer flex items-center gap-1.5 shrink-0">
+          Reset
+        </button>
+      </div>
     </div>
 
     <div class="bg-[#040406] border border-zinc-900 rounded-sm overflow-x-auto shadow-2xl">
@@ -130,7 +171,7 @@
         if (btn.innerText === geo) {
           btn.className = "geo-btn px-2.5 py-1 rounded-sm font-bold bg-cyan-500 text-black";
         } else {
-          btn.className = "geo-btn px-2.5 py-1 rounded-sm bg-[#0c0c12] text-zinc-400 border border-zinc-800";
+          btn.className = "geo-btn px-2.5 py-1 rounded-sm bg-[#0c0c12] text-zinc-400 border border-zinc-800 hover:text-white";
         }
       });
       renderTable();
@@ -145,6 +186,27 @@
         return e;
       });
       renderTable();
+    }
+
+    function resetConsensus() {
+      rawEvents = rawEvents.map(e => ({ ...e, status: 'none' }));
+      renderTable();
+    }
+
+    function exportConsensusCSV() {
+      let csv = "Time,Region,Indicator,Consensus,Range,Prior,Status\n";
+      rawEvents.forEach(e => {
+        csv += `"${e.time}","${e.country}","${e.indicator}","${e.consensus}","${e.range}","${e.prior}","${e.status}"\n`;
+      });
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `kairos_consensus_${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     }
 
     function renderTable() {

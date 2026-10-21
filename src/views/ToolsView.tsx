@@ -429,9 +429,51 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
     }
   };
 
+  const handleExportCSV = () => {
+    try {
+      let csv = "Currency,Indicator,Date,Time,Actual,Forecast,Previous,Type,Net Change,Score\n";
+      Object.keys(currencyIndicators).forEach(curr => {
+        const list = currencyIndicators[curr] || [];
+        list.forEach(ind => {
+          const evalRes = evaluateIndicator(ind);
+          const name = `"${(ind.name || '').replace(/"/g, '""')}"`;
+          const date = ind.date || '';
+          const time = ind.time || '';
+          const act = ind.actual !== null && ind.actual !== undefined ? ind.actual : '';
+          const fcst = ind.forecast !== null && ind.forecast !== undefined ? ind.forecast : '';
+          const prev = ind.previous !== null && ind.previous !== undefined ? ind.previous : '';
+          const type = ind.type || '';
+          csv += `${curr},${name},${date},${time},${act},${fcst},${prev},${type},${evalRes.netChange},${evalRes.score}\n`;
+        });
+      });
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const fileName = `kairos_valuation_indicators_${new Date().toISOString().split('T')[0]}.csv`;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        if (document.body.contains(a)) document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 1000);
+    } catch (e: any) {
+      alert("Error exporting CSV: " + (e?.message || 'Unknown error'));
+    }
+  };
+
   const handleImportData = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    const lowerName = file.name.toLowerCase();
+    if (lowerName.endsWith('.xlsx') || lowerName.endsWith('.xls') || lowerName.endsWith('.csv') || lowerName.endsWith('.tsv')) {
+      processCurrencySpreadsheet(file);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      e.target.value = '';
+      return;
+    }
 
     const fileReader = new FileReader();
     fileReader.onload = (event) => {
@@ -853,6 +895,17 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
         return;
       }
 
+      // Normalization helper for header detection (accent & case insensitive)
+      const cleanHeaderStr = (s: any) => {
+        return String(s || '')
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/[^a-z0-9]/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+      };
+
       // Column detection indices
       let headerRowIdx = -1;
       let eventCol = -1;
@@ -861,56 +914,118 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
       let forecastCol = -1;
       let prevCol = -1;
       let dateCol = -1;
+      let timeCol = -1;
 
-      // Scan first 25 rows to detect actual header row
-      for (let r = 0; r < Math.min(cleanRows.length, 25); r++) {
-        const row = cleanRows[r].map(c => String(c || '').trim().toLowerCase());
-        const hasEventHeader = row.some(c => c === 'event' || c === 'indicator' || c === 'evento' || c === 'indicador' || c === 'acontecimiento' || c.includes('event'));
-        const hasCcyHeader = row.some(c => c === 'cur.' || c === 'cur' || c === 'currency' || c === 'divisa' || c === 'moneda' || c === 'country' || c === 'pais' || c === 'país' || c === 'zone');
-        const hasNumbersHeader = row.some(c => c === 'actual' || c === 'dato actual' || c === 'real' || c === 'forecast' || c === 'previsión' || c === 'prevision' || c === 'previous' || c === 'previo');
+      const isEventHeader = (h: string) => /^(event|evento|indicator|indicador|release|acontecimiento|title|titulo|description|descripcion|headline|report|reporte|item|data|nombre)/.test(h) || h.includes('event') || h.includes('indicat') || h.includes('release');
+      const isCcyHeader = (h: string) => /^(cur|div|currency|divisa|moneda|country|pais|zone|zona|ccy|iso)/.test(h) || h === 'cur' || h === 'div';
+      const isActualHeader = (h: string) => /^(actual|act|dato actual|real|current|publicado|latest|valor actual|valor real)/.test(h) || h.includes('actual') || h.includes('real');
+      const isForecastHeader = (h: string) => /^(forecast|fcst|prevision|previsto|pronostico|consenso|consensus|expected|est|estimado|median)/.test(h) || h.includes('forecast') || h.includes('previs') || h.includes('pronost') || h.includes('consen');
+      const isPrevHeader = (h: string) => /^(previous|prev|prior|previo|anterior|revisado|last|previo valor)/.test(h) || h.includes('prev') || h.includes('prior') || h.includes('anter');
+      const isDateHeader = (h: string) => /^(date|fecha|day|dia|release date|period|periodo)/.test(h) || h.includes('fecha') || h.includes('date');
+      const isTimeHeader = (h: string) => /^(time|hora|hour)/.test(h) || h.includes('time') || h.includes('hora');
 
-        if (hasEventHeader || (hasCcyHeader && hasNumbersHeader)) {
+      // Scan first 30 rows to detect actual header row
+      for (let r = 0; r < Math.min(cleanRows.length, 30); r++) {
+        const row = cleanRows[r].map(cleanHeaderStr);
+        const hasEvent = row.some(isEventHeader);
+        const hasCcy = row.some(isCcyHeader);
+        const hasNum = row.some(isActualHeader) || row.some(isForecastHeader) || row.some(isPrevHeader);
+
+        if ((hasEvent && (hasCcy || hasNum)) || (hasCcy && hasNum)) {
           headerRowIdx = r;
           row.forEach((cell, idx) => {
-            if (['date', 'fecha', 'day', 'dia', 'día', 'release date'].some(h => cell === h || cell.includes(h))) {
-              if (dateCol === -1) dateCol = idx;
-            }
-            if (['cur.', 'cur', 'currency', 'div.', 'div', 'divisa', 'moneda', 'country', 'pais', 'país', 'zone', 'zona', 'ccy'].some(h => cell === h || cell.startsWith(h))) {
-              if (currCol === -1) currCol = idx;
-            }
-            if (['event', 'indicator', 'evento', 'indicador', 'acontecimiento', 'title', 'nombre', 'release'].some(h => cell === h || cell.includes(h))) {
-              if (eventCol === -1) eventCol = idx;
-            }
-            if (['actual', 'act', 'dato actual', 'real', 'current'].some(h => cell === h || cell.includes(h))) {
-              if (actualCol === -1) actualCol = idx;
-            }
-            if (['forecast', 'consensus', 'fcst', 'previsión', 'prevision', 'previsto', 'pronóstico', 'pronostico', 'consenso', 'expected', 'estimado'].some(h => cell === h || cell.includes(h))) {
-              if (forecastCol === -1) forecastCol = idx;
-            }
-            if (['previous', 'prev', 'prior', 'previo', 'anterior', 'prev.'].some(h => cell === h || cell.includes(h))) {
-              if (prevCol === -1) prevCol = idx;
-            }
+            if (isDateHeader(cell) && dateCol === -1) dateCol = idx;
+            else if (isTimeHeader(cell) && timeCol === -1) timeCol = idx;
+            else if (isCcyHeader(cell) && currCol === -1) currCol = idx;
+            else if (isEventHeader(cell) && eventCol === -1) eventCol = idx;
+            else if (isActualHeader(cell) && actualCol === -1) actualCol = idx;
+            else if (isForecastHeader(cell) && forecastCol === -1) forecastCol = idx;
+            else if (isPrevHeader(cell) && prevCol === -1) prevCol = idx;
           });
           break;
         }
       }
 
-      // Fallback heuristics if no explicit header row was identified
-      if (headerRowIdx === -1) {
-        headerRowIdx = 0;
-        // Try to identify from first data row
-        const sampleRow = cleanRows[0];
-        sampleRow.forEach((c: any, idx: number) => {
-          const s = String(c || '').trim();
-          if (s.length >= 3 && /^[A-Z]{2,3}$/.test(s)) {
-            if (currCol === -1) currCol = idx;
-          } else if (s.length > 5 && isNaN(Number(s)) && !s.includes(':')) {
-            if (eventCol === -1) eventCol = idx;
+      // Smart column heuristic fallback if headers are missing or not fully identified
+      const candidateDataRows = headerRowIdx !== -1 ? cleanRows.slice(headerRowIdx + 1) : cleanRows;
+      const sampleRows = candidateDataRows.slice(0, 20);
+
+      if (sampleRows.length > 0) {
+        const numCols = Math.max(...sampleRows.map(r => r.length));
+
+        // 1. Detect Currency Column
+        if (currCol === -1) {
+          for (let c = 0; c < numCols; c++) {
+            let ccyMatches = 0;
+            sampleRows.forEach(row => {
+              const val = String(row[c] || '').trim().toUpperCase().replace(/[^A-Z]/g, '');
+              if (['USD','EUR','GBP','JPY','AUD','CAD','CHF','NZD','CNH','CNY','DEU','FRA','GBR'].includes(val) || COUNTRY_MAP[val]) {
+                ccyMatches++;
+              }
+            });
+            if (ccyMatches >= Math.max(2, Math.floor(sampleRows.length * 0.25))) {
+              currCol = c;
+              break;
+            }
           }
-        });
+        }
+
+        // 2. Detect Event Column
+        if (eventCol === -1) {
+          let bestCol = -1;
+          let bestScore = 0;
+          for (let c = 0; c < numCols; c++) {
+            if (c === currCol) continue;
+            let textScore = 0;
+            sampleRows.forEach(row => {
+              const val = String(row[c] || '').toLowerCase();
+              if (val.length >= 5 && isNaN(Number(val)) && !val.includes(':') && !/^\d{4}-\d{2}/.test(val)) {
+                textScore += 2;
+                if (/pmi|cpi|sales|unemp|payroll|gdp|sentiment|survey|rate|confidence|ipc|desempleo|ventas/i.test(val)) {
+                  textScore += 5;
+                }
+              }
+            });
+            if (textScore > bestScore) {
+              bestScore = textScore;
+              bestCol = c;
+            }
+          }
+          if (bestCol !== -1 && bestScore >= 4) {
+            eventCol = bestCol;
+          }
+        }
+
+        // 3. Detect Numeric Columns (Actual, Forecast, Previous)
+        if (actualCol === -1 || forecastCol === -1 || prevCol === -1) {
+          const numericCols: number[] = [];
+          for (let c = 0; c < numCols; c++) {
+            if (c === currCol || c === eventCol || c === dateCol || c === timeCol) continue;
+            let numCount = 0;
+            sampleRows.forEach(row => {
+              const val = String(row[c] || '').trim().replace(/[%+]/g, '');
+              if (val !== '' && val !== '-' && val !== 'N/A' && !isNaN(parseFloat(val)) && !val.includes(':') && !/^\d{4}-\d{2}/.test(val)) {
+                numCount++;
+              }
+            });
+            if (numCount >= Math.max(2, Math.floor(sampleRows.length * 0.2))) {
+              numericCols.push(c);
+            }
+          }
+          if (numericCols.length >= 3) {
+            if (actualCol === -1) actualCol = numericCols[0];
+            if (forecastCol === -1) forecastCol = numericCols[1];
+            if (prevCol === -1) prevCol = numericCols[2];
+          } else if (numericCols.length === 2) {
+            if (actualCol === -1) actualCol = numericCols[0];
+            if (prevCol === -1) prevCol = numericCols[1];
+          } else if (numericCols.length === 1) {
+            if (actualCol === -1) actualCol = numericCols[0];
+          }
+        }
       }
 
-      const dataRows = cleanRows.slice(headerRowIdx + 1);
+      const dataRows = headerRowIdx !== -1 ? cleanRows.slice(headerRowIdx + 1) : cleanRows;
       if (dataRows.length === 0) {
         alert(language === 'es' ? "No se encontraron filas de datos posteriores a los encabezados." : "No data rows found below headers.");
         return;
@@ -1059,11 +1174,48 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
       reader.onload = (evt) => {
         try {
           const data = new Uint8Array(evt.target?.result as ArrayBuffer);
-          const workbook = XLSX.read(data, { type: 'array' });
-          const firstSheetName = workbook.SheetNames[0];
-          const firstSheet = workbook.Sheets[firstSheetName];
-          const rawMatrix: any[][] = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: "" });
-          processMatrix(rawMatrix);
+          let workbook: any = null;
+          try {
+            workbook = XLSX.read(data, { type: 'array' });
+          } catch (readErr) {
+            // Check if HTML table disguised as .xls
+            try {
+              const textContent = new TextDecoder().decode(data);
+              if (textContent.includes('<table') || textContent.includes('<html')) {
+                const doc = new DOMParser().parseFromString(textContent, 'text/html');
+                const table = doc.querySelector('table');
+                if (table) {
+                  const rows: any[][] = [];
+                  table.querySelectorAll('tr').forEach(tr => {
+                    const row: any[] = [];
+                    tr.querySelectorAll('td, th').forEach(td => row.push(td.textContent?.trim() || ''));
+                    if (row.length > 0) rows.push(row);
+                  });
+                  if (rows.length > 0) {
+                    processMatrix(rows);
+                    return;
+                  }
+                }
+              }
+            } catch {}
+            throw readErr;
+          }
+
+          if (workbook && workbook.SheetNames && workbook.SheetNames.length > 0) {
+            let bestSheet = workbook.Sheets[workbook.SheetNames[0]];
+            let maxRows = 0;
+            for (const sName of workbook.SheetNames) {
+              const s = workbook.Sheets[sName];
+              if (!s || !s['!ref']) continue;
+              const testMatrix: any[][] = XLSX.utils.sheet_to_json(s, { header: 1, defval: "" });
+              if (testMatrix.length > maxRows) {
+                maxRows = testMatrix.length;
+                bestSheet = s;
+              }
+            }
+            const rawMatrix: any[][] = XLSX.utils.sheet_to_json(bestSheet, { header: 1, defval: "" });
+            processMatrix(rawMatrix);
+          }
         } catch (err: any) {
           alert((language === 'es' ? "Error al leer hoja de cálculo Excel: " : "Error reading Excel spreadsheet: ") + err.message);
         }
@@ -1488,34 +1640,68 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
 
       {/* SUB-NAVIGATION BAR - STICKY FULL WIDTH (Touch-scrollable on mobile & iPad) */}
       <div className="w-full bg-[#040406] border-b border-zinc-900 py-3 sticky top-16 sm:top-18 z-30 shadow-md">
-        <div className="max-w-7xl 2xl:max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 flex items-center gap-2 overflow-x-auto no-scrollbar touch-scroll font-mono text-xs">
-          {[
-            { id: 'all', label: t.tools.subTabs.all },
-            { id: 'quant-desk', label: t.tools.subTabs.quantDesk },
-            { id: 'calendar-filter', label: t.tools.subTabs.calendarFilter, isPrimary: true },
-            { id: 'currency-strength', label: t.tools.subTabs.currencyStrength },
-            { id: 'volatility', label: t.tools.subTabs.volatility },
-            { id: 'calculator', label: t.tools.subTabs.calculator },
-            { id: 'central-banks', label: t.tools.subTabs.centralBanks },
-            { id: 'consensus', label: t.tools.subTabs.consensus },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => handleTabSwitch(tab.id as ToolSubTab)}
-              className={`px-3.5 py-2 uppercase tracking-wider text-[11px] transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 shrink-0 min-h-[36px] ${
-                activeTab === tab.id
-                  ? 'bg-cyan-500 text-black font-bold shadow-[0_0_12px_rgba(6,182,212,0.4)]'
-                  : (tab as any).isPrimary
-                  ? 'bg-cyan-950/40 text-cyan-300 border border-cyan-700/70 hover:border-cyan-400 hover:text-white font-semibold'
-                  : 'bg-[#0c0c12] text-zinc-400 border border-zinc-800 hover:text-white'
-              }`}
-            >
-              {(tab as any).isPrimary && (
-                <span className="w-1.5 h-1.5 bg-cyan-400 animate-ping"></span>
-              )}
-              {tab.label}
-            </button>
-          ))}
+        <div className="max-w-7xl 2xl:max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 flex items-center justify-between gap-3 overflow-x-auto no-scrollbar touch-scroll font-mono text-xs">
+          <div className="flex items-center gap-2 shrink-0">
+            {[
+              { id: 'all', label: t.tools.subTabs.all },
+              { id: 'quant-desk', label: t.tools.subTabs.quantDesk },
+              { id: 'calendar-filter', label: t.tools.subTabs.calendarFilter, isPrimary: true },
+              { id: 'currency-strength', label: t.tools.subTabs.currencyStrength },
+              { id: 'volatility', label: t.tools.subTabs.volatility },
+              { id: 'calculator', label: t.tools.subTabs.calculator },
+              { id: 'central-banks', label: t.tools.subTabs.centralBanks },
+              { id: 'consensus', label: t.tools.subTabs.consensus },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => handleTabSwitch(tab.id as ToolSubTab)}
+                className={`px-3.5 py-2 uppercase tracking-wider text-[11px] transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 shrink-0 min-h-[36px] ${
+                  activeTab === tab.id
+                    ? 'bg-cyan-500 text-black font-bold shadow-[0_0_12px_rgba(6,182,212,0.4)]'
+                    : (tab as any).isPrimary
+                    ? 'bg-cyan-950/40 text-cyan-300 border border-cyan-700/70 hover:border-cyan-400 hover:text-white font-semibold'
+                    : 'bg-[#0c0c12] text-zinc-400 border border-zinc-800 hover:text-white'
+                }`}
+              >
+                {(tab as any).isPrimary && (
+                  <span className="w-1.5 h-1.5 bg-cyan-400 animate-ping"></span>
+                )}
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="shrink-0 flex items-center gap-2 pl-2 border-l border-zinc-800">
+            {activeTab !== 'all' ? (
+              <a
+                href={
+                  activeTab === 'quant-desk' ? '/tools/quant-desk.html' :
+                  activeTab === 'calendar-filter' ? '/tools/calendar.html' :
+                  activeTab === 'currency-strength' ? '/tools/valuation.html' :
+                  activeTab === 'volatility' ? '/tools/volatility-index.html' :
+                  activeTab === 'calculator' ? '/tools/risk-calculator.html' :
+                  activeTab === 'central-banks' ? '/tools/central-banks.html' :
+                  activeTab === 'consensus' ? '/tools/consensus-filter-engine.html' : '/tools.html'
+                }
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3 py-1.5 bg-cyan-950/80 hover:bg-cyan-900 text-cyan-300 border border-cyan-700/80 rounded-sm uppercase tracking-wider text-[11px] font-bold flex items-center gap-1.5 transition shadow-sm"
+              >
+                <span>{language === 'es' ? 'Abrir en pestaña nueva' : 'Open in New Tab'}</span>
+                <span className="text-cyan-400 font-black">&nearr;</span>
+              </a>
+            ) : (
+              <a
+                href="/tools.html"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3 py-1.5 bg-[#0c0c14] hover:bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800 rounded-sm uppercase tracking-wider text-[11px] font-bold flex items-center gap-1.5 transition"
+              >
+                <span>{language === 'es' ? 'Hub Independiente' : 'Standalone Hub'}</span>
+                <span className="text-cyan-400">&nearr;</span>
+              </a>
+            )}
+          </div>
         </div>
       </div>
 
@@ -1546,8 +1732,7 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
                 
                 {/* 0. QUANT DESK / SENTIMENT DEFINER */}
                 <div
-                  onClick={() => handleTabSwitch('quant-desk')}
-                  className="group macro-card p-6 sm:p-8 cursor-pointer flex flex-col justify-between relative overflow-hidden border border-zinc-800 hover:border-cyan-500/50"
+                  className="group macro-card p-6 sm:p-8 flex flex-col justify-between relative overflow-hidden border border-zinc-800 hover:border-cyan-500/50"
                 >
                   <div className="space-y-4 font-mono">
                     <div className="flex items-center justify-between text-[10px]">
@@ -1557,7 +1742,7 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
                       </span>
                     </div>
 
-                    <h3 className="text-lg sm:text-xl font-bold text-white group-hover:text-cyan-400 transition-colors uppercase tracking-wide">
+                    <h3 className="text-lg sm:text-xl font-bold text-white group-hover:text-cyan-400 transition-colors uppercase tracking-wide cursor-pointer" onClick={() => handleTabSwitch('quant-desk')}>
                       Currency Sentiment Definer
                     </h3>
 
@@ -1568,16 +1753,26 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
                     </p>
                   </div>
 
-                  <div className="mt-6 sm:mt-8 pt-4 border-t border-zinc-800 flex justify-between items-center font-mono text-xs text-cyan-400 font-bold uppercase tracking-wider">
-                    <span>{language === 'es' ? 'Abrir Quant Desk' : 'Open Quant Desk'}</span>
-                    <span className="group-hover:translate-x-2 transition-transform text-base">&rarr;</span>
+                  <div className="mt-6 sm:mt-8 pt-4 border-t border-zinc-800 flex justify-between items-center font-mono text-xs">
+                    <button onClick={() => handleTabSwitch('quant-desk')} className="text-cyan-400 hover:text-cyan-300 font-bold uppercase tracking-wider flex items-center gap-1 cursor-pointer">
+                      <span>{language === 'es' ? 'Abrir Quant Desk' : 'Open Quant Desk'}</span>
+                      <span className="group-hover:translate-x-1 transition-transform">&rarr;</span>
+                    </button>
+                    <a
+                      href="/tools/quant-desk.html"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-2.5 py-1 text-[10px] bg-zinc-900 hover:bg-zinc-800 text-cyan-300 rounded border border-zinc-800 uppercase font-bold flex items-center gap-1"
+                    >
+                      <span>New Tab</span>
+                      <span>&nearr;</span>
+                    </a>
                   </div>
                 </div>
 
                 {/* 1. CALENDAR FILTER TOOL */}
                 <div
-                  onClick={() => handleTabSwitch('calendar-filter')}
-                  className="group macro-card border-2 border-cyan-500/60 hover:border-cyan-400 p-6 sm:p-8 cursor-pointer flex flex-col justify-between relative overflow-hidden"
+                  className="group macro-card border-2 border-cyan-500/60 hover:border-cyan-400 p-6 sm:p-8 flex flex-col justify-between relative overflow-hidden"
                 >
                   <div className="space-y-4 font-mono relative z-10">
                     <div className="flex items-center justify-between text-[10px]">
@@ -1588,7 +1783,7 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
                       </span>
                     </div>
 
-                    <h3 className="text-lg sm:text-xl font-bold text-white group-hover:text-cyan-400 transition-colors uppercase tracking-wide">
+                    <h3 className="text-lg sm:text-xl font-bold text-white group-hover:text-cyan-400 transition-colors uppercase tracking-wide cursor-pointer" onClick={() => handleTabSwitch('calendar-filter')}>
                       Kairos Macro Hub (Motor Unificado)
                     </h3>
 
@@ -1597,16 +1792,26 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
                     </p>
                   </div>
 
-                  <div className="mt-6 sm:mt-8 pt-4 border-t border-zinc-800 flex justify-between items-center font-mono text-xs text-cyan-400 font-bold uppercase tracking-wider relative z-10">
-                    <span>Abrir Motor de Riesgo y Divergencias</span>
-                    <span className="group-hover:translate-x-2 transition-transform text-base">&rarr;</span>
+                  <div className="mt-6 sm:mt-8 pt-4 border-t border-zinc-800 flex justify-between items-center font-mono text-xs relative z-10">
+                    <button onClick={() => handleTabSwitch('calendar-filter')} className="text-cyan-400 hover:text-cyan-300 font-bold uppercase tracking-wider flex items-center gap-1 cursor-pointer">
+                      <span>{language === 'es' ? 'Abrir Motor' : 'Open Engine'}</span>
+                      <span className="group-hover:translate-x-1 transition-transform">&rarr;</span>
+                    </button>
+                    <a
+                      href="/tools/calendar.html"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-2.5 py-1 text-[10px] bg-cyan-500 hover:bg-cyan-400 text-black rounded font-bold uppercase flex items-center gap-1 shadow-md"
+                    >
+                      <span>New Tab</span>
+                      <span>&nearr;</span>
+                    </a>
                   </div>
                 </div>
 
                 {/* 2. CURRENCY STRENGTH ENGINE */}
                 <div
-                  onClick={() => handleTabSwitch('currency-strength')}
-                  className="group macro-card p-6 sm:p-8 cursor-pointer flex flex-col justify-between relative overflow-hidden"
+                  className="group macro-card p-6 sm:p-8 flex flex-col justify-between relative overflow-hidden"
                 >
                   <div className="space-y-4 font-mono">
                     <div className="flex items-center justify-between text-[10px]">
@@ -1616,7 +1821,7 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
                       </span>
                     </div>
 
-                    <h3 className="text-lg sm:text-xl font-bold text-white group-hover:text-cyan-400 transition-colors uppercase tracking-wide">
+                    <h3 className="text-lg sm:text-xl font-bold text-white group-hover:text-cyan-400 transition-colors uppercase tracking-wide cursor-pointer" onClick={() => handleTabSwitch('currency-strength')}>
                       Currency Strength & Valuation Engine
                     </h3>
 
@@ -1625,9 +1830,20 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
                     </p>
                   </div>
 
-                  <div className="mt-6 sm:mt-8 pt-4 border-t border-zinc-800 flex justify-between items-center font-mono text-xs text-cyan-400 font-bold uppercase tracking-wider">
-                    <span>Open Valuation Console</span>
-                    <span className="group-hover:translate-x-2 transition-transform text-base">&rarr;</span>
+                  <div className="mt-6 sm:mt-8 pt-4 border-t border-zinc-800 flex justify-between items-center font-mono text-xs">
+                    <button onClick={() => handleTabSwitch('currency-strength')} className="text-cyan-400 hover:text-cyan-300 font-bold uppercase tracking-wider flex items-center gap-1 cursor-pointer">
+                      <span>{language === 'es' ? 'Abrir Consola' : 'Open Console'}</span>
+                      <span className="group-hover:translate-x-1 transition-transform">&rarr;</span>
+                    </button>
+                    <a
+                      href="/tools/valuation.html"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-2.5 py-1 text-[10px] bg-zinc-900 hover:bg-zinc-800 text-cyan-300 rounded border border-zinc-800 uppercase font-bold flex items-center gap-1"
+                    >
+                      <span>New Tab</span>
+                      <span>&nearr;</span>
+                    </a>
                   </div>
                 </div>
 
@@ -1660,47 +1876,67 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
                 
                 {/* Volatility Index */}
                 <div
-                  onClick={() => handleTabSwitch('volatility')}
-                  className="group macro-card p-6 sm:p-8 cursor-pointer flex flex-col justify-between"
+                  className="group macro-card p-6 sm:p-8 flex flex-col justify-between"
                 >
                   <div className="space-y-3 font-mono">
                     <div className="flex items-center justify-between text-[10px]">
                       <span className="text-zinc-400 uppercase">// MATRIX_V3</span>
                       <span className="text-cyan-400 font-bold uppercase">70-DAY CYCLE</span>
                     </div>
-                    <h3 className="text-base sm:text-lg font-bold text-white group-hover:text-cyan-400 transition-colors uppercase">
+                    <h3 className="text-base sm:text-lg font-bold text-white group-hover:text-cyan-400 transition-colors uppercase cursor-pointer" onClick={() => handleTabSwitch('volatility')}>
                       Volatility Index
                     </h3>
                     <p className="text-xs text-zinc-400 font-sans leading-relaxed font-light">
                       Realized variance matrix calculating average daily pip ranges, 100k cash equivalencies, and % realized ranges for 28 currency pairs.
                     </p>
                   </div>
-                  <div className="mt-6 sm:mt-8 pt-3 border-t border-zinc-800/80 flex justify-between font-mono text-xs text-cyan-500 font-bold uppercase">
-                    <span>Open Volatility Grid</span>
-                    <span className="group-hover:translate-x-1 transition-transform">&rarr;</span>
+                  <div className="mt-6 sm:mt-8 pt-3 border-t border-zinc-800/80 flex justify-between items-center font-mono text-xs">
+                    <button onClick={() => handleTabSwitch('volatility')} className="text-cyan-500 hover:text-cyan-400 font-bold uppercase flex items-center gap-1 cursor-pointer">
+                      <span>Open Volatility Grid</span>
+                      <span className="group-hover:translate-x-1 transition-transform">&rarr;</span>
+                    </button>
+                    <a
+                      href="/tools/volatility-index.html"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-2.5 py-1 text-[10px] bg-zinc-900 hover:bg-zinc-800 text-cyan-300 rounded border border-zinc-800 uppercase font-bold flex items-center gap-1"
+                    >
+                      <span>New Tab</span>
+                      <span>&nearr;</span>
+                    </a>
                   </div>
                 </div>
 
                 {/* Risk Calculator */}
                 <div
-                  onClick={() => handleTabSwitch('calculator')}
-                  className="group macro-card p-6 sm:p-8 cursor-pointer flex flex-col justify-between"
+                  className="group macro-card p-6 sm:p-8 flex flex-col justify-between"
                 >
                   <div className="space-y-3 font-mono">
                     <div className="flex items-center justify-between text-[10px]">
                       <span className="text-zinc-400 uppercase">// RISK_MODEL_V1</span>
                       <span className="text-emerald-400 font-bold uppercase">PARITY SIZING</span>
                     </div>
-                    <h3 className="text-base sm:text-lg font-bold text-white group-hover:text-emerald-400 transition-colors uppercase">
+                    <h3 className="text-base sm:text-lg font-bold text-white group-hover:text-emerald-400 transition-colors uppercase cursor-pointer" onClick={() => handleTabSwitch('calculator')}>
                       Risk & Position Size Calculator
                     </h3>
                     <p className="text-xs text-zinc-400 font-sans leading-relaxed font-light">
                       Calculate standard lot sizes and pip cash values based on invalidation points, account equity, and dynamic cross-rate parities.
                     </p>
                   </div>
-                  <div className="mt-6 sm:mt-8 pt-3 border-t border-zinc-800/80 flex justify-between font-mono text-xs text-emerald-400 font-bold uppercase">
-                    <span>Launch Calculator</span>
-                    <span className="group-hover:translate-x-1 transition-transform">&rarr;</span>
+                  <div className="mt-6 sm:mt-8 pt-3 border-t border-zinc-800/80 flex justify-between items-center font-mono text-xs">
+                    <button onClick={() => handleTabSwitch('calculator')} className="text-emerald-400 hover:text-emerald-300 font-bold uppercase flex items-center gap-1 cursor-pointer">
+                      <span>Launch Calculator</span>
+                      <span className="group-hover:translate-x-1 transition-transform">&rarr;</span>
+                    </button>
+                    <a
+                      href="/tools/risk-calculator.html"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-2.5 py-1 text-[10px] bg-zinc-900 hover:bg-zinc-800 text-emerald-300 rounded border border-zinc-800 uppercase font-bold flex items-center gap-1"
+                    >
+                      <span>New Tab</span>
+                      <span>&nearr;</span>
+                    </a>
                   </div>
                 </div>
 
@@ -1733,41 +1969,61 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
                 
                 {/* Central Bank Terminal */}
                 <div
-                  onClick={() => handleTabSwitch('central-banks')}
-                  className="group macro-card p-6 sm:p-8 cursor-pointer flex flex-col justify-between"
+                  className="group macro-card p-6 sm:p-8 flex flex-col justify-between"
                 >
                   <div className="space-y-3 font-mono">
                     <span className="text-cyan-400 text-[10px] font-bold uppercase">// POLICY_RADAR_V2</span>
-                    <h3 className="text-base font-bold text-white uppercase tracking-wide">
+                    <h3 className="text-base font-bold text-white uppercase tracking-wide cursor-pointer" onClick={() => handleTabSwitch('central-banks')}>
                       Central Bank Rate Terminal
                     </h3>
                     <p className="text-xs text-zinc-400 font-sans leading-relaxed font-light">
                       Monetary policy rate expectations, automated Hawkish/Dovish classifications, and decision countdown timers.
                     </p>
                   </div>
-                  <div className="mt-6 pt-3 border-t border-zinc-800/80 flex justify-between font-mono text-xs text-cyan-500 font-bold uppercase">
-                    <span>Open Bank Terminal</span>
-                    <span className="group-hover:translate-x-1 transition-transform">&rarr;</span>
+                  <div className="mt-6 pt-3 border-t border-zinc-800/80 flex justify-between items-center font-mono text-xs">
+                    <button onClick={() => handleTabSwitch('central-banks')} className="text-cyan-500 hover:text-cyan-400 font-bold uppercase flex items-center gap-1 cursor-pointer">
+                      <span>Open Bank Terminal</span>
+                      <span className="group-hover:translate-x-1 transition-transform">&rarr;</span>
+                    </button>
+                    <a
+                      href="/tools/central-banks.html"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-2.5 py-1 text-[10px] bg-zinc-900 hover:bg-zinc-800 text-cyan-300 rounded border border-zinc-800 uppercase font-bold flex items-center gap-1"
+                    >
+                      <span>New Tab</span>
+                      <span>&nearr;</span>
+                    </a>
                   </div>
                 </div>
 
                 {/* Consensus Engine */}
                 <div
-                  onClick={() => handleTabSwitch('consensus')}
-                  className="group macro-card p-6 sm:p-8 cursor-pointer flex flex-col justify-between"
+                  className="group macro-card p-6 sm:p-8 flex flex-col justify-between"
                 >
                   <div className="space-y-3 font-mono">
                     <span className="text-cyan-400 text-[10px] font-bold uppercase">// EXPECTATIONS_V1</span>
-                    <h3 className="text-base font-bold text-white uppercase tracking-wide">
+                    <h3 className="text-base font-bold text-white uppercase tracking-wide cursor-pointer" onClick={() => handleTabSwitch('consensus')}>
                       Consensus Filter Hub
                     </h3>
                     <p className="text-xs text-zinc-400 font-sans leading-relaxed font-light">
                       Macroeconomic expectation ranges, actual result deviations, and Beat/Miss surprise tracking.
                     </p>
                   </div>
-                  <div className="mt-6 pt-3 border-t border-zinc-800/80 flex justify-between font-mono text-xs text-cyan-500 font-bold uppercase">
-                    <span>Open Consensus Hub</span>
-                    <span className="group-hover:translate-x-1 transition-transform">&rarr;</span>
+                  <div className="mt-6 pt-3 border-t border-zinc-800/80 flex justify-between items-center font-mono text-xs">
+                    <button onClick={() => handleTabSwitch('consensus')} className="text-cyan-500 hover:text-cyan-400 font-bold uppercase flex items-center gap-1 cursor-pointer">
+                      <span>Open Consensus Hub</span>
+                      <span className="group-hover:translate-x-1 transition-transform">&rarr;</span>
+                    </button>
+                    <a
+                      href="/tools/consensus-filter-engine.html"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-2.5 py-1 text-[10px] bg-zinc-900 hover:bg-zinc-800 text-cyan-300 rounded border border-zinc-800 uppercase font-bold flex items-center gap-1"
+                    >
+                      <span>New Tab</span>
+                      <span>&nearr;</span>
+                    </a>
                   </div>
                 </div>
 
@@ -1814,23 +2070,30 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
 
                 <div className="flex items-center gap-2 flex-wrap text-xs">
                   <button
+                    onClick={handleExportCSV}
+                    className="px-3.5 py-1.5 text-[10px] uppercase tracking-wider bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-400 border border-emerald-800/60 transition cursor-pointer font-bold min-h-[36px] flex items-center gap-1.5"
+                  >
+                    <FileSpreadsheet className="w-3.5 h-3.5" />
+                    Export Excel/CSV
+                  </button>
+                  <button
                     onClick={handleExportData}
                     className="px-3.5 py-1.5 text-[10px] uppercase tracking-wider bg-cyan-950/40 hover:bg-cyan-900/60 text-cyan-400 border border-cyan-800/60 transition cursor-pointer font-bold min-h-[36px] flex items-center gap-1.5"
                   >
                     <Download className="w-3.5 h-3.5" />
-                    Export Backup
+                    Export JSON
                   </button>
                   <button
                     onClick={() => fileInputRef.current?.click()}
                     className="px-3.5 py-1.5 text-[10px] uppercase tracking-wider bg-[#0c0c12] hover:bg-zinc-800 text-zinc-300 border border-zinc-800 transition cursor-pointer min-h-[36px] flex items-center gap-1.5"
                   >
                     <Upload className="w-3.5 h-3.5" />
-                    Import Backup
+                    Import Backup / Excel
                   </button>
                   <input
                     type="file"
                     ref={fileInputRef}
-                    accept=".json,application/json"
+                    accept=".json,.xlsx,.xls,.csv,.tsv,application/json"
                     onChange={handleImportData}
                     className="hidden"
                   />
@@ -1844,7 +2107,7 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
                   <input
                     type="file"
                     ref={currencyInvestingFileRef}
-                    accept=".csv,.xlsx,.xls"
+                    accept=".csv,.xlsx,.xls,.tsv,.json"
                     onChange={handleCurrencyInvestingUpload}
                     className="hidden"
                   />

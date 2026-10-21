@@ -62,6 +62,7 @@ export interface ConsensusEvent {
 export interface MacroIndicator {
   name: string;
   date: string;
+  time?: string;
   previous: number | null;
   forecast: number | null;
   actual: number | null;

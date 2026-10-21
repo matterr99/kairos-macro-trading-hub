@@ -69,6 +69,39 @@
     </div>
   </section>
 
+  <!-- STANDALONE TOOLS SWITCHER BAR (Allows opening any other tool in a new tab) -->
+  <div class="w-full bg-[#040406] border-b border-zinc-900 py-2.5 px-4 sm:px-6 lg:px-8 overflow-x-auto select-none no-print">
+    <div class="max-w-7xl mx-auto flex items-center justify-between gap-4 min-w-max font-mono text-[11px]">
+      <div class="flex items-center gap-2 text-zinc-500">
+        <span class="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse"></span>
+        <span class="text-cyan-400 font-bold uppercase tracking-wider">// OPEN TOOLS IN SEPARATE TABS:</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="px-2.5 py-1 bg-cyan-500 text-black font-bold rounded-sm uppercase tracking-wider">
+          Central Banks (Active)
+        </span>
+        <a href="valuation.html" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 bg-zinc-900 hover:bg-cyan-950 text-zinc-300 hover:text-cyan-300 border border-zinc-800 rounded-sm transition flex items-center gap-1 uppercase">
+          Valuation Desk <span class="text-[9px] text-cyan-400">&nearr;</span>
+        </a>
+        <a href="calendar.html" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 bg-zinc-900 hover:bg-cyan-950 text-zinc-300 hover:text-cyan-300 border border-zinc-800 rounded-sm transition flex items-center gap-1 uppercase">
+          Calendar Filter <span class="text-[9px] text-cyan-400">&nearr;</span>
+        </a>
+        <a href="quant-desk.html" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 bg-zinc-900 hover:bg-cyan-950 text-zinc-300 hover:text-cyan-300 border border-zinc-800 rounded-sm transition flex items-center gap-1 uppercase">
+          Quant Desk <span class="text-[9px] text-cyan-400">&nearr;</span>
+        </a>
+        <a href="volatility-index.html" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 bg-zinc-900 hover:bg-cyan-950 text-zinc-300 hover:text-cyan-300 border border-zinc-800 rounded-sm transition flex items-center gap-1 uppercase">
+          Volatility Matrix <span class="text-[9px] text-cyan-400">&nearr;</span>
+        </a>
+        <a href="risk-calculator.html" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 bg-zinc-900 hover:bg-cyan-950 text-zinc-300 hover:text-cyan-300 border border-zinc-800 rounded-sm transition flex items-center gap-1 uppercase">
+          Position Calculator <span class="text-[9px] text-cyan-400">&nearr;</span>
+        </a>
+        <a href="consensus-filter-engine.html" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 bg-zinc-900 hover:bg-cyan-950 text-zinc-300 hover:text-cyan-300 border border-zinc-800 rounded-sm transition flex items-center gap-1 uppercase">
+          Consensus Hub <span class="text-[9px] text-cyan-400">&nearr;</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
   <!-- 4. MAIN CONTAINER FOR INJECT ENGINE -->
   <main class="flex-grow max-w-7xl mx-auto px-4 py-10 w-full">
     <div id="central-bank-root"></div>

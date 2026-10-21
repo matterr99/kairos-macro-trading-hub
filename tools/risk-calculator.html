@@ -55,6 +55,39 @@
         </div>
     </section>
 
+    <!-- STANDALONE TOOLS SWITCHER BAR (Allows opening any other tool in a new tab) -->
+    <div class="w-full bg-[#040406] border-b border-zinc-900 py-2.5 px-4 sm:px-6 lg:px-8 overflow-x-auto select-none no-print">
+        <div class="max-w-7xl mx-auto flex items-center justify-between gap-4 min-w-max font-mono text-[11px]">
+            <div class="flex items-center gap-2 text-zinc-500">
+                <span class="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse"></span>
+                <span class="text-cyan-400 font-bold uppercase tracking-wider">// OPEN TOOLS IN SEPARATE TABS:</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="px-2.5 py-1 bg-cyan-500 text-black font-bold rounded-sm uppercase tracking-wider">
+                    Position Calculator (Active)
+                </span>
+                <a href="valuation.html" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 bg-zinc-900 hover:bg-cyan-950 text-zinc-300 hover:text-cyan-300 border border-zinc-800 rounded-sm transition flex items-center gap-1 uppercase">
+                    Valuation Desk <span class="text-[9px] text-cyan-400">&nearr;</span>
+                </a>
+                <a href="calendar.html" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 bg-zinc-900 hover:bg-cyan-950 text-zinc-300 hover:text-cyan-300 border border-zinc-800 rounded-sm transition flex items-center gap-1 uppercase">
+                    Calendar Filter <span class="text-[9px] text-cyan-400">&nearr;</span>
+                </a>
+                <a href="quant-desk.html" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 bg-zinc-900 hover:bg-cyan-950 text-zinc-300 hover:text-cyan-300 border border-zinc-800 rounded-sm transition flex items-center gap-1 uppercase">
+                    Quant Desk <span class="text-[9px] text-cyan-400">&nearr;</span>
+                </a>
+                <a href="central-banks.html" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 bg-zinc-900 hover:bg-cyan-950 text-zinc-300 hover:text-cyan-300 border border-zinc-800 rounded-sm transition flex items-center gap-1 uppercase">
+                    Central Banks <span class="text-[9px] text-cyan-400">&nearr;</span>
+                </a>
+                <a href="volatility-index.html" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 bg-zinc-900 hover:bg-cyan-950 text-zinc-300 hover:text-cyan-300 border border-zinc-800 rounded-sm transition flex items-center gap-1 uppercase">
+                    Volatility Matrix <span class="text-[9px] text-cyan-400">&nearr;</span>
+                </a>
+                <a href="consensus-filter-engine.html" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 bg-zinc-900 hover:bg-cyan-950 text-zinc-300 hover:text-cyan-300 border border-zinc-800 rounded-sm transition flex items-center gap-1 uppercase">
+                    Consensus Hub <span class="text-[9px] text-cyan-400">&nearr;</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
     <!-- 4. CALCULATOR INTERFACE -->
     <main class="flex-grow w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12 space-y-6">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8 font-mono">
@@ -117,12 +150,28 @@
                 </div>
                 
                 <div class="space-y-1.5">
-                    <label class="text-xs text-zinc-400 block uppercase">Risk Percentage (%)</label>
+                    <div class="flex items-center justify-between">
+                        <label class="text-xs text-zinc-400 block uppercase">Risk Percentage (%)</label>
+                        <div class="flex items-center gap-1">
+                            <button onclick="setRiskPreset(0.5)" class="px-1.5 py-0.5 text-[9px] bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white rounded border border-zinc-800">0.5%</button>
+                            <button onclick="setRiskPreset(1.0)" class="px-1.5 py-0.5 text-[9px] bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white rounded border border-zinc-800">1.0%</button>
+                            <button onclick="setRiskPreset(1.5)" class="px-1.5 py-0.5 text-[9px] bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white rounded border border-zinc-800">1.5%</button>
+                            <button onclick="setRiskPreset(2.0)" class="px-1.5 py-0.5 text-[9px] bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white rounded border border-zinc-800">2.0%</button>
+                        </div>
+                    </div>
                     <input id="calc-risk" type="number" value="1.0" step="0.1" class="w-full bg-[#0c0c12] border border-zinc-800 rounded-sm px-3 py-2 text-white focus:outline-none focus:border-cyan-500 text-xs font-semibold tabular-nums">
                 </div>
                 
                 <div class="space-y-1.5">
-                    <label class="text-xs text-zinc-400 block uppercase">Stop Loss (Pips)</label>
+                    <div class="flex items-center justify-between">
+                        <label class="text-xs text-zinc-400 block uppercase">Stop Loss (Pips)</label>
+                        <div class="flex items-center gap-1">
+                            <button onclick="setStopPreset(15)" class="px-1.5 py-0.5 text-[9px] bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white rounded border border-zinc-800">15p</button>
+                            <button onclick="setStopPreset(20)" class="px-1.5 py-0.5 text-[9px] bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white rounded border border-zinc-800">20p</button>
+                            <button onclick="setStopPreset(30)" class="px-1.5 py-0.5 text-[9px] bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white rounded border border-zinc-800">30p</button>
+                            <button onclick="setStopPreset(50)" class="px-1.5 py-0.5 text-[9px] bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white rounded border border-zinc-800">50p</button>
+                        </div>
+                    </div>
                     <input id="calc-stop" type="number" value="20" class="w-full bg-[#0c0c12] border border-zinc-800 rounded-sm px-3 py-2 text-white focus:outline-none focus:border-cyan-500 text-xs font-semibold tabular-nums">
                 </div>
                 
@@ -133,9 +182,14 @@
 
             <div class="bg-[#07080d] border border-zinc-800 rounded-sm p-6 sm:p-8 flex flex-col justify-between shadow-xl">
                 <div class="space-y-6">
-                    <span class="text-zinc-500 text-[10px] uppercase tracking-widest block pb-2 border-b border-zinc-800">
-                        // TELEMETRY METRIC TARGETS
-                    </span>
+                    <div class="flex items-center justify-between pb-2 border-b border-zinc-800">
+                        <span class="text-zinc-500 text-[10px] uppercase tracking-widest block">
+                            // TELEMETRY METRIC TARGETS
+                        </span>
+                        <button onclick="copySummary()" class="text-[10px] text-cyan-400 hover:text-cyan-300 font-bold uppercase tracking-wider flex items-center gap-1 cursor-pointer">
+                            Copy Summary
+                        </button>
+                    </div>
                     
                     <div class="space-y-4 divide-y divide-zinc-800/80">
                         <div class="pt-1">
@@ -213,6 +267,35 @@
             document.getElementById('out-cash').textContent = '$' + cashRisk.toFixed(2) + ' ' + acctCurr;
             document.getElementById('out-lots').innerHTML = standardLots.toFixed(2) + ' <span class="text-xs font-medium text-zinc-500">Lots</span>';
             document.getElementById('out-pipval').textContent = '$' + runningPipVal.toFixed(2) + ' ' + acctCurr + ' / pip';
+        }
+
+        function setRiskPreset(pct) {
+            const el = document.getElementById('calc-risk');
+            if (el) {
+                el.value = pct;
+                executePositionMath();
+            }
+        }
+
+        function setStopPreset(pips) {
+            const el = document.getElementById('calc-stop');
+            if (el) {
+                el.value = pips;
+                executePositionMath();
+            }
+        }
+
+        function copySummary() {
+            const pair = document.getElementById('calc-pair').value;
+            const cash = document.getElementById('out-cash').textContent;
+            const lots = document.getElementById('out-lots').innerText;
+            const pipval = document.getElementById('out-pipval').textContent;
+            const text = `Kairos Risk Calc: ${pair} | Position: ${lots} | Risk: ${cash} | Pip Value: ${pipval}`;
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Position sizing parameters copied to clipboard!');
+            }).catch(() => {
+                prompt('Copy position details:', text);
+            });
         }
 
         document.addEventListener('DOMContentLoaded', () => {
