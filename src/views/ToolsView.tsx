@@ -30,6 +30,12 @@ import { ValuationRankingChart } from '../components/ValuationRankingChart';
 import { CurrencyIndicatorChart } from '../components/CurrencyIndicatorChart';
 import { SectionDivider } from '../components/SectionDivider';
 import { CentralBankTerminal } from '../components/CentralBankTerminal';
+import {
+  normalizeCurrencyCode,
+  isG10Currency,
+  G10_CURRENCIES,
+  INVESTING_COUNTRY_TO_CURRENCY_MAP
+} from '../utils/currencyUtils';
 
 export interface CentralBankTerminalItem {
   code: string;
@@ -946,20 +952,6 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
         }
       }
 
-      // User-specified 2-letter country/region code to 3-letter currency mapping
-      const currencyMap: Record<string, string> = {
-        'US': 'USD',
-        'UK': 'GBP',
-        'EU': 'EUR',
-        'DE': 'EUR',
-        'FR': 'EUR',
-        'JP': 'JPY',
-        'CA': 'CAD',
-        'AU': 'AUD',
-        'NZ': 'NZD',
-        'CH': 'CHF'
-      };
-
       // Smart column heuristic fallback if headers are missing or not fully identified
       const candidateDataRows = headerRowIdx !== -1 ? cleanRows.slice(headerRowIdx + 1) : cleanRows;
       const sampleRows = candidateDataRows.slice(0, 20);
@@ -972,9 +964,8 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
           for (let c = 0; c < numCols; c++) {
             let ccyMatches = 0;
             sampleRows.forEach(row => {
-              const rawVal = String(row[c] || '').trim().toUpperCase().replace(/[^A-Z]/g, '');
-              const mappedVal = currencyMap[rawVal] || rawVal;
-              if (['USD','EUR','GBP','JPY','AUD','CAD','CHF','NZD','CNH','CNY','DEU','FRA','GBR'].includes(mappedVal) || COUNTRY_MAP[rawVal] || COUNTRY_MAP[mappedVal]) {
+              const mappedVal = normalizeCurrencyCode(row[c]);
+              if (isG10Currency(mappedVal) || mappedVal === 'CNH') {
                 ccyMatches++;
               }
             });
@@ -1085,18 +1076,17 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
           // Determine target currency from column or infer from event text
           let targetCurr: string | null = null;
           if (currCol !== -1 && row[currCol]) {
-            // Intercept raw string from Cur. (or Currency) column for each row
-            const rawCur = String(row[currCol]).trim().toUpperCase().replace(/[^A-Z]/g, '');
-            // Translate 2-letter codes using currencyMap BEFORE G10 filtering
-            const mappedCur = currencyMap[rawCur] || rawCur;
-            targetCurr = mappedCur;
+            // Intercept raw string from Cur. (or Currency) column and normalize
+            const normalizedCur = normalizeCurrencyCode(row[currCol]);
+            if (isG10Currency(normalizedCur)) {
+              targetCurr = normalizedCur;
+            }
           }
-          if (!targetCurr || !['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'NZD', 'CAD', 'CHF'].includes(targetCurr)) {
-            // Fallback: check all cells for 2-letter or 3-letter currency codes
+          if (!targetCurr || !isG10Currency(targetCurr)) {
+            // Fallback: check all cells for 2-letter country or 3-letter currency codes
             for (const cell of row) {
-              const rawCell = String(cell || '').trim().toUpperCase().replace(/[^A-Z]/g, '');
-              const mappedCell = currencyMap[rawCell] || rawCell;
-              if (['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'NZD', 'CAD', 'CHF'].includes(mappedCell)) {
+              const mappedCell = normalizeCurrencyCode(cell);
+              if (isG10Currency(mappedCell)) {
                 targetCurr = mappedCell;
                 break;
               }
@@ -1107,8 +1097,7 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
           }
 
           // Strict G10 currency filter check: ['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'NZD', 'CAD', 'CHF']
-          const G10_CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'NZD', 'CAD', 'CHF'];
-          if (!targetCurr || !G10_CURRENCIES.includes(targetCurr) || !nextState[targetCurr]) return;
+          if (!targetCurr || !isG10Currency(targetCurr) || !nextState[targetCurr]) return;
 
           const indList = [...nextState[targetCurr]];
           const matchedIdx = findIndicatorIndex(targetCurr, rawEvent, indList);
@@ -1409,7 +1398,8 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
   };
   const matchCentralBankEvent = (eventName: string, ccyOrCountry: string): string | null => {
     const ev = (eventName || '').toLowerCase();
-    const ccy = (ccyOrCountry || '').toUpperCase();
+    const normalizedCcy = normalizeCurrencyCode(ccyOrCountry);
+    const ccy = normalizedCcy || (ccyOrCountry || '').toUpperCase();
 
     if (ev.includes('fomc') || ev.includes('fed interest rate') || ev.includes('fed funds') || ev.includes('federal reserve')) return 'FED';
     if (ev.includes('ecb interest rate') || ev.includes('ecb main refinancing') || ev.includes('deposit facility rate')) return 'ECB';

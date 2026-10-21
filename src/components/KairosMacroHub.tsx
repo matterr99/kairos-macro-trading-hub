@@ -3,6 +3,7 @@ import * as XLSX from 'xlsx';
 import Papa from 'papaparse';
 import { Printer, Download, Copy, Check, X, AlertTriangle, AlertCircle, CheckCircle2, Info, FileText } from 'lucide-react';
 import { Language } from '../types';
+import { normalizeCurrencyCode, isG10Currency } from '../utils/currencyUtils';
 
 interface MacroEvent {
   time: string;
@@ -1166,9 +1167,10 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
       }
 
       // Check if this row is ONLY a date header with no indicator data
+      // Check if this row is ONLY a date header with no indicator data
       const hasAnyCcy = cleanRow.some(c => {
-        const u = c.toUpperCase();
-        return COUNTRY_MAP[u] !== undefined || CURRENCIES.includes(u);
+        const norm = normalizeCurrencyCode(c);
+        return isG10Currency(norm) || CURRENCIES.includes(norm) || COUNTRY_MAP[c.toUpperCase()] !== undefined;
       });
       const nonEmptyCells = cleanRow.filter(Boolean);
       if (detectedDay && !hasAnyCcy && nonEmptyCells.length <= 2) {
@@ -1187,8 +1189,9 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
         event = cleanRow[colIdx.event];
         if (colIdx.time !== -1) time = cleanRow[colIdx.time] || '';
         if (colIdx.ccy !== -1) {
-          const rawC = cleanRow[colIdx.ccy].toUpperCase();
-          ccy = COUNTRY_MAP[rawC] || (CURRENCIES.includes(rawC) ? rawC : '');
+          const rawC = cleanRow[colIdx.ccy];
+          const norm = normalizeCurrencyCode(rawC);
+          ccy = isG10Currency(norm) || CURRENCIES.includes(norm) ? norm : (COUNTRY_MAP[rawC.toUpperCase()] || '');
         }
         if (colIdx.actual !== -1) actual = cleanRow[colIdx.actual] || '';
         if (colIdx.forecast !== -1) forecast = cleanRow[colIdx.forecast] || '';
@@ -1199,10 +1202,11 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
       if (!event || !ccy) {
         let foundCcyIdx = -1;
         for (let i = 0; i < Math.min(cleanRow.length, 6); i++) {
-          const cellVal = cleanRow[i].toUpperCase();
-          if (COUNTRY_MAP[cellVal] || CURRENCIES.includes(cellVal)) {
+          const cellVal = cleanRow[i];
+          const norm = normalizeCurrencyCode(cellVal);
+          if (isG10Currency(norm) || CURRENCIES.includes(norm) || COUNTRY_MAP[cellVal.toUpperCase()]) {
             foundCcyIdx = i;
-            ccy = COUNTRY_MAP[cellVal] || cellVal;
+            ccy = isG10Currency(norm) || CURRENCIES.includes(norm) ? norm : (COUNTRY_MAP[cellVal.toUpperCase()] || cellVal);
             break;
           }
         }
@@ -1241,7 +1245,12 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
       }
 
       if (!ccy || !event) return;
-      if (COUNTRY_MAP[ccy]) ccy = COUNTRY_MAP[ccy];
+      const normalizedCcy = normalizeCurrencyCode(ccy);
+      if (isG10Currency(normalizedCcy) || CURRENCIES.includes(normalizedCcy)) {
+        ccy = normalizedCcy;
+      } else if (COUNTRY_MAP[ccy]) {
+        ccy = COUNTRY_MAP[ccy];
+      }
       if (!CURRENCIES.includes(ccy)) return;
 
       if (isWhitelisted(ccy, event)) {

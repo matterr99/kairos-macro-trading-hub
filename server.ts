@@ -25,8 +25,17 @@ async function startServer() {
         return res.status(400).json({ error: 'Missing required query parameter: series_id' });
       }
 
-      // Read secret securely from server environment
-      const apiKey = process.env.FRED_API_KEY || '';
+      // Read secret securely from server environment and extract 32-char hex key if user pasted full URL
+      const rawKey = (process.env.FRED_API_KEY || '').trim();
+      let apiKey = rawKey;
+      if (apiKey.includes('api_key=')) {
+        const match = apiKey.match(/api_key=([a-f0-9]{32})/i);
+        if (match) apiKey = match[1];
+      } else {
+        const match = apiKey.match(/([a-f0-9]{32})/i);
+        if (match) apiKey = match[1];
+      }
+
       if (!apiKey) {
         return res.status(503).json({
           error: 'FRED_API_KEY is not configured on server',
@@ -46,21 +55,43 @@ async function startServer() {
         headers: { Accept: 'application/json' },
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        return res.status(response.status).json({
-          error: `FRED API responded with HTTP ${response.status}`,
-          details: errorText,
+      const rawText = await response.text();
+      const trimmed = rawText.trim();
+
+      // Guard against FRED returning HTML (e.g. St. Louis Fed site maintenance, Cloudflare, or WAF block)
+      if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) {
+        return res.status(503).json({
+          error: 'FRED API returned non-JSON response (e.g. site maintenance or upstream error)',
+          fallback: true,
+          status: response.status,
         });
       }
 
-      const data = await response.json();
+      let data: any;
+      try {
+        data = JSON.parse(trimmed);
+      } catch {
+        return res.status(503).json({
+          error: 'Failed to parse FRED API response as JSON',
+          fallback: true,
+        });
+      }
+
+      if (!response.ok) {
+        return res.status(response.status).json({
+          error: `FRED API responded with HTTP ${response.status}`,
+          details: data,
+          fallback: true,
+        });
+      }
+
       return res.json(data);
     } catch (err: any) {
-      console.error('[server] Error proxying FRED API:', err);
-      return res.status(500).json({
+      console.warn('[server] Notice: FRED API proxy encountered an error, falling back:', err?.message || err);
+      return res.status(503).json({
         error: 'Failed to fetch data from FRED proxy',
-        message: err.message,
+        fallback: true,
+        message: err?.message,
       });
     }
   });

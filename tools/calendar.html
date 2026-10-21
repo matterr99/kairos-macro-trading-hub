@@ -1139,22 +1139,34 @@
     }
 
     const COUNTRY_MAP = {
-      'US': 'USD', 'USA': 'USD', 'UNITED STATES': 'USD', 'ESTADOS UNIDOS': 'USD',
+      'US': 'USD', 'USA': 'USD', 'UNITED STATES': 'USD', 'ESTADOS UNIDOS': 'USD', 'EEUU': 'USD',
       'DE': 'EUR', 'DEU': 'EUR', 'GERMANY': 'EUR', 'ALEMANIA': 'EUR',
       'FR': 'EUR', 'FRA': 'EUR', 'FRANCE': 'EUR', 'FRANCIA': 'EUR',
       'IT': 'EUR', 'ITA': 'EUR', 'ITALY': 'EUR', 'ITALIA': 'EUR',
-      'ES': 'EUR', 'ESP': 'EUR', 'SPAIN': 'EUR', 'ESPAÑA': 'EUR',
+      'ES': 'EUR', 'ESP': 'EUR', 'SPAIN': 'EUR', 'ESPAÑA': 'EUR', 'ESPANA': 'EUR',
       'EU': 'EUR', 'EMU': 'EUR', 'EURO ZONE': 'EUR', 'EUROZONE': 'EUR', 'ZONA EURO': 'EUR',
       'UK': 'GBP', 'GB': 'GBP', 'GBR': 'GBP', 'UNITED KINGDOM': 'GBP', 'REINO UNIDO': 'GBP',
       'JP': 'JPY', 'JPN': 'JPY', 'JAPAN': 'JPY', 'JAPON': 'JPY', 'JAPÓN': 'JPY',
       'AU': 'AUD', 'AUS': 'AUD', 'AUSTRALIA': 'AUD',
       'NZ': 'NZD', 'NZL': 'NZD', 'NEW ZEALAND': 'NZD', 'NUEVA ZELANDA': 'NZD',
-      'CA': 'CAD', 'CAN': 'CAD', 'CANADA': 'CAD', 'CANADÁ': 'CAD',
+      'CA': 'CAD', 'CAN': 'CAD', 'CANADA': 'CAD', 'CANADÁ': 'CAD', 'CANADA': 'CAD',
       'CH': 'CHF', 'CHE': 'CHF', 'SWITZERLAND': 'CHF', 'SUIZA': 'CHF',
       'CN': 'CNH', 'CHN': 'CNH', 'CNY': 'CNH', 'CHINA': 'CNH',
       'USD': 'USD', 'EUR': 'EUR', 'GBP': 'GBP', 'JPY': 'JPY',
       'AUD': 'AUD', 'NZD': 'NZD', 'CAD': 'CAD', 'CHF': 'CHF', 'CNH': 'CNH'
     };
+
+    function normalizeCurrencyCode(rawInput) {
+      if (!rawInput) return '';
+      const str = String(rawInput).trim().replace(/[\u00A0\u200B\r\n\t]/g, '').toUpperCase();
+      if (!str) return '';
+      if (COUNTRY_MAP[str]) return COUNTRY_MAP[str];
+      const clean = str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Z0-9]/g, '');
+      if (COUNTRY_MAP[clean]) return COUNTRY_MAP[clean];
+      const lettersOnly = str.replace(/[^A-Z]/g, '');
+      if (COUNTRY_MAP[lettersOnly]) return COUNTRY_MAP[lettersOnly];
+      return lettersOnly || str;
+    }
 
     function processExcelFile(file) {
       if (!file) return;
@@ -1550,8 +1562,9 @@
           event = cleanRow[colIdx.event];
           if (colIdx.time !== -1) time = cleanRow[colIdx.time] || '';
           if (colIdx.ccy !== -1) {
-            const rawC = cleanRow[colIdx.ccy].toUpperCase();
-            ccy = COUNTRY_MAP[rawC] || (CURRENCIES.includes(rawC) ? rawC : '');
+            const rawC = cleanRow[colIdx.ccy];
+            const norm = normalizeCurrencyCode(rawC);
+            ccy = CURRENCIES.includes(norm) ? norm : (COUNTRY_MAP[norm] || '');
           }
           if (colIdx.actual !== -1) actual = cleanRow[colIdx.actual] || '';
           if (colIdx.forecast !== -1) forecast = cleanRow[colIdx.forecast] || '';
@@ -1562,10 +1575,11 @@
         if (!event || !ccy) {
           let foundCcyIdx = -1;
           for (let i = 0; i < Math.min(cleanRow.length, 6); i++) {
-            const cellVal = cleanRow[i].toUpperCase();
-            if (COUNTRY_MAP[cellVal] || CURRENCIES.includes(cellVal)) {
+            const cellVal = cleanRow[i];
+            const norm = normalizeCurrencyCode(cellVal);
+            if (CURRENCIES.includes(norm) || COUNTRY_MAP[norm]) {
               foundCcyIdx = i;
-              ccy = COUNTRY_MAP[cellVal] || cellVal;
+              ccy = CURRENCIES.includes(norm) ? norm : COUNTRY_MAP[norm];
               break;
             }
           }
@@ -1601,7 +1615,9 @@
         }
 
         if (!ccy || !event) return;
-        if (COUNTRY_MAP[ccy]) ccy = COUNTRY_MAP[ccy];
+        const normCcy = normalizeCurrencyCode(ccy);
+        if (CURRENCIES.includes(normCcy)) ccy = normCcy;
+        else if (COUNTRY_MAP[ccy]) ccy = COUNTRY_MAP[ccy];
         if (!CURRENCIES.includes(ccy)) return;
 
         if (isWhitelisted(ccy, event)) {
