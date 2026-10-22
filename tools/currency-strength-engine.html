@@ -1627,18 +1627,34 @@
                         }
 
                         // Inspect all sheets to select the sheet with the most rows
-                        let bestRows = [];
+                        let bestWs = null;
+                        let maxRows = 0;
                         for (const name of workbook.SheetNames) {
                             const ws = workbook.Sheets[name];
                             if (!ws) continue;
                             const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
-                            if (rows && rows.length > bestRows.length) {
-                                bestRows = rows;
+                            if (rows && rows.length > maxRows) {
+                                maxRows = rows.length;
+                                bestWs = ws;
                             }
                         }
 
-                        if (bestRows && bestRows.length > 0) {
-                            processInvestingRows(bestRows);
+                        if (bestWs) {
+                            const peekRows = XLSX.utils.sheet_to_json(bestWs, { header: 1, defval: "" });
+                            let headerRowIndex = -1;
+                            for (let r = 0; r < Math.min(peekRows.length, 15); r++) {
+                                const row = peekRows[r] || [];
+                                const cells = (Array.isArray(row) ? row : Object.values(row)).map(c => String(c || '').toLowerCase().trim());
+                                const hasCur = cells.some(c => c === 'cur.' || c === 'cur' || c === 'currency' || c === 'ccy');
+                                const hasEvent = cells.some(c => c === 'event' || c === 'evento' || c === 'indicator');
+                                if (hasCur && (hasEvent || cells.includes('actual') || cells.includes('time') || cells.includes('imp.'))) {
+                                    headerRowIndex = r;
+                                    break;
+                                }
+                            }
+                            const skipRange = headerRowIndex !== -1 ? headerRowIndex : (peekRows.length >= 4 ? 3 : 0);
+                            const targetRows = XLSX.utils.sheet_to_json(bestWs, { header: 1, defval: "", range: skipRange });
+                            processInvestingRows(targetRows);
                         } else {
                             alert('No data rows found in the Excel sheet.');
                         }

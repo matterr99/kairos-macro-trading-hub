@@ -479,6 +479,7 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
 
   const handleImportData = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    setUploadModal(null);
     if (!file) return;
 
     const lowerName = file.name.toLowerCase();
@@ -791,10 +792,27 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
     return new Date().toISOString().slice(0, 10);
   };
 
-  const parseSpreadsheetValue = (input: any, type: string): number | null => {
+  // 3. Normalizes Imp. (Importance): Maps "High", "Med", "Low" or star counts (1, 2, 3) to numerical weights (5.0, 4.0, 3.0)
+  const normalizeImportance = (imp: any): string => {
+    if (imp === null || imp === undefined) return "4.0";
+    const s = String(imp).trim().toLowerCase();
+    if (s === 'high' || s === 'alto' || s === 'alta' || s === '3' || s === '3.0' || s.includes('★★★') || s.includes('3 star') || s.includes('three')) return "5.0";
+    if (s === 'med' || s === 'medium' || s === 'medio' || s === 'media' || s === '2' || s === '2.0' || s.includes('★★') || s.includes('2 star') || s.includes('two')) return "4.0";
+    if (s === 'low' || s === 'bajo' || s === 'baja' || s === '1' || s === '1.0' || s.includes('★') || s.includes('1 star') || s.includes('one')) return "3.0";
+    const num = parseFloat(s);
+    if (!isNaN(num)) {
+      if (num >= 3) return "5.0";
+      if (num >= 2) return "4.0";
+      return "3.0";
+    }
+    return "4.0";
+  };
+
+  // 3. DATA NORMALIZATION (INVESTING.COM DISCREPANCIES)
+  const parseSpreadsheetValue = (input: any, type: string, eventName: string = ''): number | null => {
     if (input === null || input === undefined || input === '') return null;
-    let strVal = String(input).trim().replace(/[\u00A0\u200B\r\n]/g, '');
-    if (strVal === '-' || strVal === 'N/A' || strVal === 'n/a' || strVal === 'ND' || strVal === '') return null;
+    let strVal = String(input).trim().replace(/[\u00A0\u200B\r\n\t]/g, '');
+    if (strVal === '-' || strVal === 'N/A' || strVal === 'n/a' || strVal === 'ND' || strVal === '' || strVal === 'NaN') return null;
 
     const isExplicitPercent = strVal.includes('%');
     const hasK = /k$/i.test(strVal) || /k\b/i.test(strVal);
@@ -817,73 +835,95 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
       }
     }
 
-    let cleanStr = strVal.replace(/[%+]/g, '').trim();
+    // Clean alphabetical suffixes like "K", "M", "B", "%" and parse string to float
+    let cleanStr = strVal.replace(/[%+a-zA-Z]/g, '').trim();
+    let num = parseFloat(cleanStr);
+    if (isNaN(num)) return null;
+
+    const evLower = eventName.toLowerCase();
+
+    // Fix PMI scaling: If event includes "PMI" and value < 1.0 (e.g. 0.022 or 0.528)
+    if (type === 'PMI' || type === 'AUD_SERVICES' || evLower.includes('pmi')) {
+      if (Math.abs(num) < 1.0 && Math.abs(num) > 0) {
+        if (Math.abs(num) >= 0.3) {
+          num = num * 100;
+        } else if (Math.abs(num) >= 0.03) {
+          num = num * 1000;
+        } else {
+          // Normalize tiny decimal offset around baseline 50
+          num = 50 + (num * 100);
+        }
+      }
+      return parseFloat(num.toFixed(1));
+    }
+
+    // Fix Unemployment scaling: If event includes "Unemp" and parsed value is a tiny decimal
+    if (evLower.includes('unemp') && (evLower.includes('rate') || evLower.includes('tasa') || type === 'UNEMP_RATE' || type === 'EUR_UNEMP_FIXED')) {
+      // In this dashboard, UNEMP_RATE is stored as a decimal: 0.041 for 4.1%, 0.063 for 6.3%
+      // If parsed value was a tiny decimal (e.g. 0.0065 or 0.00065), scale it to align with percentage display
+      if (Math.abs(num) < 0.01 && Math.abs(num) > 0) {
+        num = num * 10;
+      } else if (Math.abs(num) >= 1.0) {
+        num = num / 100.0;
+      }
+      return parseFloat(num.toFixed(4));
+    }
 
     // Thousands types stored in thousands (NFP, Jobs)
     const thousandsTypes = ["NFP", "JOBS_K", "CAD_JOBS", "GBP_CLAIMANT", "GER_UNEMP_CHANGE", "CHF_UNEMP_CHANGE"];
-    if (thousandsTypes.includes(type)) {
-      cleanStr = cleanStr.replace(/k/gi, '').trim();
-      const num = parseFloat(cleanStr);
-      if (isNaN(num)) return null;
+    if (thousandsTypes.includes(type) || evLower.includes('nfp') || evLower.includes('payrolls') || evLower.includes('claimant')) {
       if (Math.abs(num) >= 1000 && !hasK) {
-        return num / 1000;
+        return parseFloat((num / 1000).toFixed(1));
       }
-      return num;
+      return parseFloat(num.toFixed(1));
     }
 
-    // Percentage types stored as decimals (e.g. 0.041 for 4.1%, 0.002 for 0.2%)
-    const percentTypes = ["CPI", "UNEMP_RATE", "PCT_GROWTH", "EUR_UNEMP_FIXED", "CARD_TRANS", "GBP_RETAIL"];
-    if (percentTypes.includes(type)) {
-      cleanStr = cleanStr.replace(/k/gi, '').trim();
-      const num = parseFloat(cleanStr);
-      if (isNaN(num)) return null;
-
-      // Unit and Scale Normalization (Fix Decimal Shift Bug):
+    // Percentage types stored as decimals (CPI, GDP, Retail Sales)
+    const percentTypes = ["CPI", "PCT_GROWTH", "CARD_TRANS", "GBP_RETAIL"];
+    if (percentTypes.includes(type) || isExplicitPercent) {
       if (isExplicitPercent) {
-        // If already a tiny decimal with an accidental % attached, don't divide again
-        if (Math.abs(num) < 0.08) {
-          return num;
-        }
-        return num / 100.0;
+        if (Math.abs(num) >= 0.08) num = num / 100.0;
       } else {
-        // No % sign: if already a small decimal (0.041, 0.063, 0.002), don't divide by 100 again
-        if (Math.abs(num) < 0.08) {
-          return num;
-        }
-        return num / 100.0;
+        if (Math.abs(num) >= 0.08) num = num / 100.0;
       }
+      return parseFloat(num.toFixed(4));
     }
 
-    // General index / survey / pmi / large suffix
-    if (hasK) {
-      const num = parseFloat(cleanStr.replace(/k/gi, ''));
-      return isNaN(num) ? null : num * 1000;
-    }
-    if (hasM) {
-      const num = parseFloat(cleanStr.replace(/m/gi, ''));
-      return isNaN(num) ? null : num * 1000000;
-    }
-    if (hasB) {
-      const num = parseFloat(cleanStr.replace(/b/gi, ''));
-      return isNaN(num) ? null : num * 1000000000;
-    }
+    // Large suffix multipliers for non-index numbers
+    if (hasK) return num * 1000;
+    if (hasM) return num * 1000000;
+    if (hasB) return num * 1000000000;
 
-    const num = parseFloat(cleanStr);
-    return isNaN(num) ? null : num;
+    return num;
   };
 
-  // 1. INVESTING.COM 2-LETTER COUNTRY TO 3-LETTER G10 CURRENCY MAP
+  // 2. REGION TO G10 CURRENCY MAPPING
   const INVESTING_COM_MAP: Record<string, string> = {
-    'US': 'USD', 'USD': 'USD', 'USA': 'USD',
-    'UK': 'GBP', 'GBP': 'GBP', 'GB': 'GBP', 'GBR': 'GBP',
-    'EU': 'EUR', 'EA': 'EUR', 'DE': 'EUR', 'FR': 'EUR', 'IT': 'EUR', 'ES': 'EUR', 'EUR': 'EUR',
-    'GER': 'EUR', 'FRA': 'EUR', 'ITA': 'EUR', 'ESP': 'EUR', 'DEU': 'EUR',
-    'JP': 'JPY', 'JPY': 'JPY', 'JPN': 'JPY',
-    'AU': 'AUD', 'AUD': 'AUD', 'AUS': 'AUD',
-    'NZ': 'NZD', 'NZD': 'NZD', 'NZL': 'NZD',
-    'CA': 'CAD', 'CAD': 'CAD', 'CAN': 'CAD',
-    'CH': 'CHF', 'CHF': 'CHF', 'CHE': 'CHF'
+    'US': 'USD',
+    'UK': 'GBP',
+    'JP': 'JPY',
+    'CH': 'CHF',
+    'CA': 'CAD',
+    'AU': 'AUD',
+    'NZ': 'NZD',
+    'DE': 'EUR',
+    'FR': 'EUR',
+    'IT': 'EUR',
+    'ES': 'EUR',
+    'EU': 'EUR',
+    'EMU': 'EUR',
+    // Standard 3-letter codes & aliases
+    'USD': 'USD', 'USA': 'USD',
+    'GBP': 'GBP', 'GB': 'GBP', 'GBR': 'GBP',
+    'JPY': 'JPY', 'JPN': 'JPY',
+    'CHF': 'CHF', 'CHE': 'CHF',
+    'CAD': 'CAD', 'CAN': 'CAD',
+    'AUD': 'AUD', 'AUS': 'AUD',
+    'NZD': 'NZD', 'NZL': 'NZD',
+    'EUR': 'EUR', 'EA': 'EUR', 'GER': 'EUR', 'FRA': 'EUR', 'ITA': 'EUR', 'ESP': 'EUR'
   };
+
+  const G10_CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'NZD', 'CAD', 'CHF'];
 
   const processCurrencySpreadsheet = (file: File) => {
     if (!file) return;
@@ -1005,6 +1045,7 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
       let actualCol = -1;
       let forecastCol = -1;
       let prevCol = -1;
+      let impCol = -1;
       let dateCol = -1;
       let timeCol = -1;
 
@@ -1013,6 +1054,7 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
       const isActualHeader = (h: string) => /^(actual|act|dato actual|real|current|publicado|latest|valor actual|valor real)/.test(h) || h.includes('actual') || h.includes('real');
       const isForecastHeader = (h: string) => /^(forecast|fcst|prevision|previsto|pronostico|consenso|consensus|expected|est|estimado|median)/.test(h) || h.includes('forecast') || h.includes('previs') || h.includes('pronost') || h.includes('consen');
       const isPrevHeader = (h: string) => /^(previous|prev|prior|previo|anterior|revisado|last|previo valor)/.test(h) || h.includes('prev') || h.includes('prior') || h.includes('anter');
+      const isImpHeader = (h: string) => /^(imp|importance|importancia|vol|volatilidad|impact|impacto)/.test(h) || h === 'imp' || h.includes('imp');
       const isDateHeader = (h: string) => /^(date|fecha|day|dia|release date|period|periodo)/.test(h) || h.includes('fecha') || h.includes('date');
       const isTimeHeader = (h: string) => /^(time|hora|hour)/.test(h) || h.includes('time') || h.includes('hora');
 
@@ -1032,17 +1074,24 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
             else if (isTimeHeader(cell) && timeCol === -1) timeCol = idx;
             else if (isCcyHeader(cell) && currCol === -1) currCol = idx;
             else if (isEventHeader(cell) && eventCol === -1) eventCol = idx;
+            else if (isImpHeader(cell) && impCol === -1) impCol = idx;
             else if (isActualHeader(cell) && actualCol === -1) actualCol = idx;
             else if (isForecastHeader(cell) && forecastCol === -1) forecastCol = idx;
             else if (isPrevHeader(cell) && prevCol === -1) prevCol = idx;
           });
 
-          // Exact position fallback for standard Investing.com export headers if any column index was ambiguous
+          // Exact position fallback for standard Investing.com export headers ['Time', 'Cur.', 'Event', 'Imp.', 'Actual', 'Forecast', 'Previous']
+          if (timeCol === -1 && row.length >= 7 && (row[0] === 'time' || cleanRows[r][0]?.toLowerCase().includes('time'))) {
+            timeCol = 0;
+          }
           if (currCol === -1 && row.length >= 7 && (row[1] === 'cur' || cleanRows[r][1]?.toLowerCase().includes('cur'))) {
             currCol = 1;
           }
           if (eventCol === -1 && row.length >= 7 && (row[2] === 'event' || cleanRows[r][2]?.toLowerCase().includes('event'))) {
             eventCol = 2;
+          }
+          if (impCol === -1 && row.length >= 7 && (row[3] === 'imp' || cleanRows[r][3]?.toLowerCase().includes('imp'))) {
+            impCol = 3;
           }
           if (actualCol === -1 && row.length >= 7 && (row[4] === 'actual' || cleanRows[r][4]?.toLowerCase().includes('actual'))) {
             actualCol = 4;
@@ -1231,25 +1280,29 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
             let hasChange = false;
 
             if (actualCol !== -1 && row[actualCol] !== undefined && row[actualCol] !== '' && row[actualCol] !== '-') {
-              const actVal = parseSpreadsheetValue(row[actualCol], item.type);
+              const actVal = parseSpreadsheetValue(row[actualCol], item.type, item.name);
               if (actVal !== null) {
                 item.actual = actVal;
                 hasChange = true;
               }
             }
             if (forecastCol !== -1 && row[forecastCol] !== undefined && row[forecastCol] !== '' && row[forecastCol] !== '-') {
-              const fcVal = parseSpreadsheetValue(row[forecastCol], item.type);
+              const fcVal = parseSpreadsheetValue(row[forecastCol], item.type, item.name);
               if (fcVal !== null) {
                 item.forecast = fcVal;
                 hasChange = true;
               }
             }
             if (prevCol !== -1 && row[prevCol] !== undefined && row[prevCol] !== '' && row[prevCol] !== '-') {
-              const pvVal = parseSpreadsheetValue(row[prevCol], item.type);
+              const pvVal = parseSpreadsheetValue(row[prevCol], item.type, item.name);
               if (pvVal !== null) {
                 item.previous = pvVal;
                 hasChange = true;
               }
+            }
+            if (impCol !== -1 && row[impCol] !== undefined && row[impCol] !== '') {
+              item.weight = normalizeImportance(row[impCol]);
+              hasChange = true;
             }
 
             if (hasChange) {
@@ -1373,19 +1426,25 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
                 bestSheet = s;
               }
             }
-            const rawMatrix: any[][] = XLSX.utils.sheet_to_json(bestSheet, { header: 1, defval: "" });
 
-            // Step 1: Skip the first 3 rows of the Excel file so it targets the correct header row
-            let targetMatrix = rawMatrix;
-            if (targetMatrix.length >= 4) {
-              const r4Joined = (targetMatrix[3] || []).map((c: any) => String(c || '').toLowerCase().trim()).join(' ');
-              if (
-                (r4Joined.includes('cur') && (r4Joined.includes('event') || r4Joined.includes('actual') || r4Joined.includes('time') || r4Joined.includes('imp'))) ||
-                (r4Joined.includes('time') && r4Joined.includes('event'))
-              ) {
-                targetMatrix = targetMatrix.slice(3);
+            // 1. DYNAMIC HEADER PARSING
+            // Scan first 15 rows to find the row containing the header "Cur." dynamically
+            const peekMatrix: any[][] = XLSX.utils.sheet_to_json(bestSheet, { header: 1, defval: "" });
+            let headerRowIndex = -1;
+            for (let r = 0; r < Math.min(peekMatrix.length, 15); r++) {
+              const row = peekMatrix[r] || [];
+              const cells = (Array.isArray(row) ? row : Object.values(row)).map((c: any) => String(c || '').toLowerCase().trim());
+              const hasCur = cells.some(c => c === 'cur.' || c === 'cur' || c === 'currency' || c === 'ccy');
+              const hasEvent = cells.some(c => c === 'event' || c === 'evento' || c === 'indicator');
+              if (hasCur && (hasEvent || cells.includes('actual') || cells.includes('time') || cells.includes('imp.'))) {
+                headerRowIndex = r;
+                break;
               }
             }
+
+            // Fallback: Skip first 3 rows if headers are on Row 4 (0-indexed 3)
+            const skipRange = headerRowIndex !== -1 ? headerRowIndex : (peekMatrix.length >= 4 ? 3 : 0);
+            const targetMatrix: any[][] = XLSX.utils.sheet_to_json(bestSheet, { header: 1, defval: "", range: skipRange });
             processMatrix(targetMatrix);
           }
         } catch (err: any) {
@@ -1398,6 +1457,7 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
         }
       };
       reader.readAsArrayBuffer(file);
+    } else {
       setUploadModal({
         isOpen: true,
         type: 'error',
@@ -1409,8 +1469,9 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
 
   const handleCurrencyInvestingUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    setUploadModal(null); // Explicitly reset error modal state
     if (file) processCurrencySpreadsheet(file);
-    e.target.value = '';
+    e.target.value = ''; // Clear file input so user can re-upload the same file
   };
 
   // --- Central Bank Calculations & Trajectory ---
