@@ -134,6 +134,14 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
   const [currencySort, setCurrencySort] = useState<'divergence' | 'bullish' | 'bearish' | 'default'>('divergence');
   const [currencyFilter, setCurrencyFilter] = useState<'all' | 'strong' | 'bullish' | 'bearish'>('all');
   const [isValuationDragOver, setIsValuationDragOver] = useState<boolean>(false);
+  const [uploadModal, setUploadModal] = useState<{
+    isOpen: boolean;
+    type: 'success' | 'error';
+    title: string;
+    message: string;
+    updatedCount?: number;
+    currencies?: string[];
+  } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Save currencyIndicators to localStorage
@@ -672,9 +680,21 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
         }
       }
 
-      // Business & Consumer Confidence Surveys
-      if (iname.includes('consumer confidence') || iname.includes('consumer sentiment') || iname.includes('consumer survey')) {
-        if (ev.includes('consumer confidence') || ev.includes('confianza del consumidor') || ev.includes('consumer sentiment') || ev.includes('sentimiento del consumidor') || ev.includes('consumer survey')) {
+      // Business & Consumer Confidence Surveys (including Household Confidence for JPY)
+      if (iname.includes('consumer confidence') || iname.includes('consumer sentiment') || iname.includes('consumer survey') || iname.includes('confidence') || iname.includes('survey')) {
+        if (
+          ev.includes('consumer confidence') ||
+          ev.includes('confianza del consumidor') ||
+          ev.includes('consumer sentiment') ||
+          ev.includes('sentimiento del consumidor') ||
+          ev.includes('consumer survey') ||
+          ev.includes('household confidence') ||
+          ev.includes('confianza de los hogares') ||
+          ev.includes('household spending') ||
+          ev.includes('gasto de los hogares') ||
+          ev.includes('consumer climate') ||
+          ev.includes('clima del consumidor')
+        ) {
           return i;
         }
       }
@@ -854,18 +874,20 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
 
   // 1. INVESTING.COM 2-LETTER COUNTRY TO 3-LETTER G10 CURRENCY MAP
   const INVESTING_COM_MAP: Record<string, string> = {
-    'US': 'USD', 'USD': 'USD',
-    'UK': 'GBP', 'GBP': 'GBP',
+    'US': 'USD', 'USD': 'USD', 'USA': 'USD',
+    'UK': 'GBP', 'GBP': 'GBP', 'GB': 'GBP', 'GBR': 'GBP',
     'EU': 'EUR', 'EA': 'EUR', 'DE': 'EUR', 'FR': 'EUR', 'IT': 'EUR', 'ES': 'EUR', 'EUR': 'EUR',
-    'JP': 'JPY', 'JPY': 'JPY',
-    'AU': 'AUD', 'AUD': 'AUD',
-    'NZ': 'NZD', 'NZD': 'NZD',
-    'CA': 'CAD', 'CAD': 'CAD',
-    'CH': 'CHF', 'CHF': 'CHF'
+    'GER': 'EUR', 'FRA': 'EUR', 'ITA': 'EUR', 'ESP': 'EUR', 'DEU': 'EUR',
+    'JP': 'JPY', 'JPY': 'JPY', 'JPN': 'JPY',
+    'AU': 'AUD', 'AUD': 'AUD', 'AUS': 'AUD',
+    'NZ': 'NZD', 'NZD': 'NZD', 'NZL': 'NZD',
+    'CA': 'CAD', 'CAD': 'CAD', 'CAN': 'CAD',
+    'CH': 'CHF', 'CHF': 'CHF', 'CHE': 'CHF'
   };
 
   const processCurrencySpreadsheet = (file: File) => {
     if (!file) return;
+    setUploadModal(null);
     const fileName = file.name.toLowerCase();
 
     // 1. JSON Backup Restore
@@ -876,10 +898,20 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
           const imported = JSON.parse(evt.target?.result as string);
           if (imported && typeof imported === 'object') {
             setCurrencyIndicators(imported);
-            alert(language === 'es' ? "¡Copia de seguridad de Valoración restaurada con éxito!" : "Currency Indicators backup restored successfully!");
+            setUploadModal({
+              isOpen: true,
+              type: 'success',
+              title: language === 'es' ? "Importación Exitosa" : "Backup Restored",
+              message: language === 'es' ? "¡Copia de seguridad de Valoración restaurada con éxito!" : "Currency Indicators backup restored successfully!"
+            });
           }
         } catch {
-          alert(language === 'es' ? "Archivo JSON de copia de seguridad inválido." : "Invalid backup JSON file.");
+          setUploadModal({
+            isOpen: true,
+            type: 'error',
+            title: language === 'es' ? "Error en Archivo" : "Invalid Backup",
+            message: language === 'es' ? "Archivo JSON de copia de seguridad inválido." : "Invalid backup JSON file."
+          });
         }
       };
       reader.readAsText(file);
@@ -888,9 +920,46 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
 
     // 2. Core Matrix Processor for CSV / XLSX / XLS
     const processMatrix = (rawRows: any[][]) => {
-      const mappedRows = (rawRows || []).map(row => {
+      // Clear any prior modal state immediately
+      setUploadModal(null);
+
+      if (!rawRows || rawRows.length === 0) {
+        setUploadModal({
+          isOpen: true,
+          type: 'error',
+          title: language === 'es' ? "Archivo Vacío" : "Empty File",
+          message: language === 'es' ? "El archivo no contiene filas legibles." : "No readable data rows found in uploaded file."
+        });
+        return;
+      }
+
+      // Step 1: Skip the first 3 rows of the Excel file so it targets the correct header row
+      // Actual file structure:
+      // - First 3 rows are empty or contain metadata
+      // - Row 4 contains column headers: ['Time', 'Cur.', 'Event', 'Imp.', 'Actual', 'Forecast', 'Previous']
+      // - Data rows start from row 5
+      let effectiveRows = rawRows;
+      if (effectiveRows.length >= 4) {
+        const row4 = effectiveRows[3] || [];
+        const row4Str = (Array.isArray(row4) ? row4 : Object.values(row4))
+          .map((c: any) => String(c || '').trim().toLowerCase())
+          .join(' ');
+
+        // Check if row 4 (index 3) is the designated header row
+        const hasCurHeader = row4Str.includes('cur') || row4Str.includes('ccy') || row4Str.includes('div');
+        const hasEventHeader = row4Str.includes('event') || row4Str.includes('indicat') || row4Str.includes('title');
+        const hasTimeHeader = row4Str.includes('time') || row4Str.includes('hora');
+        const hasMetricHeader = row4Str.includes('actual') || row4Str.includes('forecast') || row4Str.includes('imp');
+
+        if ((hasCurHeader && (hasEventHeader || hasMetricHeader)) || (hasTimeHeader && hasEventHeader)) {
+          // Explicitly skip the first 3 metadata rows to target row 4 headers
+          effectiveRows = effectiveRows.slice(3);
+        }
+      }
+
+      const mappedRows = effectiveRows.map(row => {
         if (!row) return [];
-        const cleanRow = row.map((cell: any) => {
+        const cleanRow = (Array.isArray(row) ? row : Object.values(row)).map((cell: any) => {
           if (cell === null || cell === undefined) return '';
           if (cell instanceof Date) {
             // Catch Excel time-only epoch dates (1899/1900)
@@ -909,7 +978,12 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
       });
       const cleanRows = mappedRows.filter(r => r && r.some((c: any) => c !== ''));
       if (cleanRows.length === 0) {
-        alert(language === 'es' ? "El archivo no contiene filas legibles." : "No readable data rows found in uploaded file.");
+        setUploadModal({
+          isOpen: true,
+          type: 'error',
+          title: language === 'es' ? "Archivo Vacío" : "Empty File",
+          message: language === 'es' ? "El archivo no contiene filas legibles." : "No readable data rows found in uploaded file."
+        });
         return;
       }
 
@@ -942,14 +1016,16 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
       const isDateHeader = (h: string) => /^(date|fecha|day|dia|release date|period|periodo)/.test(h) || h.includes('fecha') || h.includes('date');
       const isTimeHeader = (h: string) => /^(time|hora|hour)/.test(h) || h.includes('time') || h.includes('hora');
 
-      // Scan first 30 rows to detect actual header row
+      // Scan rows to detect actual header row
       for (let r = 0; r < Math.min(cleanRows.length, 30); r++) {
         const row = cleanRows[r].map(cleanHeaderStr);
+        const hasTime = row.some(isTimeHeader);
         const hasEvent = row.some(isEventHeader);
         const hasCcy = row.some(isCcyHeader);
         const hasNum = row.some(isActualHeader) || row.some(isForecastHeader) || row.some(isPrevHeader);
 
-        if ((hasEvent && (hasCcy || hasNum)) || (hasCcy && hasNum)) {
+        // Check for exact Investing.com header row format ['Time', 'Cur.', 'Event', 'Imp.', 'Actual', 'Forecast', 'Previous']
+        if ((hasCcy && hasEvent) || (hasEvent && hasNum) || (hasCcy && hasNum) || (hasTime && hasEvent)) {
           headerRowIdx = r;
           row.forEach((cell, idx) => {
             if (isDateHeader(cell) && dateCol === -1) dateCol = idx;
@@ -960,6 +1036,23 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
             else if (isForecastHeader(cell) && forecastCol === -1) forecastCol = idx;
             else if (isPrevHeader(cell) && prevCol === -1) prevCol = idx;
           });
+
+          // Exact position fallback for standard Investing.com export headers if any column index was ambiguous
+          if (currCol === -1 && row.length >= 7 && (row[1] === 'cur' || cleanRows[r][1]?.toLowerCase().includes('cur'))) {
+            currCol = 1;
+          }
+          if (eventCol === -1 && row.length >= 7 && (row[2] === 'event' || cleanRows[r][2]?.toLowerCase().includes('event'))) {
+            eventCol = 2;
+          }
+          if (actualCol === -1 && row.length >= 7 && (row[4] === 'actual' || cleanRows[r][4]?.toLowerCase().includes('actual'))) {
+            actualCol = 4;
+          }
+          if (forecastCol === -1 && row.length >= 7 && (row[5] === 'forecast' || cleanRows[r][5]?.toLowerCase().includes('forecast'))) {
+            forecastCol = 5;
+          }
+          if (prevCol === -1 && row.length >= 7 && (row[6] === 'previous' || cleanRows[r][6]?.toLowerCase().includes('prev'))) {
+            prevCol = 6;
+          }
           break;
         }
       }
@@ -1047,7 +1140,12 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
 
       const dataRows = headerRowIdx !== -1 ? cleanRows.slice(headerRowIdx + 1) : cleanRows;
       if (dataRows.length === 0) {
-        alert(language === 'es' ? "No se encontraron filas de datos posteriores a los encabezados." : "No data rows found below headers.");
+        setUploadModal({
+          isOpen: true,
+          type: 'error',
+          title: language === 'es' ? "Sin Filas de Datos" : "No Data Rows",
+          message: language === 'es' ? "No se encontraron filas de datos posteriores a los encabezados." : "No data rows found below headers."
+        });
         return;
       }
 
@@ -1190,18 +1288,27 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
         return nextState;
       });
 
+      // Clear the error modal state properly on a successful read
       if (updatedCount > 0) {
-        alert(
-          language === 'es'
+        setUploadModal({
+          isOpen: true,
+          type: 'success',
+          title: language === 'es' ? "Actualización de Calendario Exitosa" : "Macro Calendar Ingested",
+          message: language === 'es'
             ? `¡Se actualizaron con éxito ${updatedCount} indicador(es) macroeconómico(s) en ${updatedCurrencies.size} divisa(s) (${Array.from(updatedCurrencies).join(', ')})!`
-            : `Successfully updated ${updatedCount} macroeconomic indicator(s) across ${updatedCurrencies.size} currency/currencies (${Array.from(updatedCurrencies).join(', ')})!`
-        );
+            : `Successfully updated ${updatedCount} macroeconomic indicator(s) across ${updatedCurrencies.size} currency/currencies (${Array.from(updatedCurrencies).join(', ')})!`,
+          updatedCount,
+          currencies: Array.from(updatedCurrencies)
+        });
       } else {
-        alert(
-          language === 'es'
+        setUploadModal({
+          isOpen: true,
+          type: 'error',
+          title: language === 'es' ? "Sin Indicadores Compatibles" : "No Matching Indicators",
+          message: language === 'es'
             ? "Se procesó el archivo, pero no se encontraron indicadores compatibles con las 8 divisas G10 (USD, EUR, GBP, JPY, AUD, NZD, CAD, CHF). Asegúrese de que el archivo contenga eventos del calendario económico."
             : "Processed file, but no matching indicators were identified for G10 currencies (USD, EUR, GBP, JPY, AUD, NZD, CAD, CHF). Please ensure the export contains economic calendar events."
-        );
+        });
       }
     };
 
@@ -1211,7 +1318,14 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
         header: false,
         skipEmptyLines: 'greedy',
         complete: (res) => processMatrix(res.data as any[][]),
-        error: (err) => alert((language === 'es' ? "Error al procesar CSV: " : "CSV parse error: ") + err.message)
+        error: (err) => {
+          setUploadModal({
+            isOpen: true,
+            type: 'error',
+            title: language === 'es' ? "Error al procesar CSV" : "CSV Parse Error",
+            message: err.message
+          });
+        }
       });
     }
     // Parse XLSX / XLS
@@ -1260,15 +1374,36 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
               }
             }
             const rawMatrix: any[][] = XLSX.utils.sheet_to_json(bestSheet, { header: 1, defval: "" });
-            processMatrix(rawMatrix);
+
+            // Step 1: Skip the first 3 rows of the Excel file so it targets the correct header row
+            let targetMatrix = rawMatrix;
+            if (targetMatrix.length >= 4) {
+              const r4Joined = (targetMatrix[3] || []).map((c: any) => String(c || '').toLowerCase().trim()).join(' ');
+              if (
+                (r4Joined.includes('cur') && (r4Joined.includes('event') || r4Joined.includes('actual') || r4Joined.includes('time') || r4Joined.includes('imp'))) ||
+                (r4Joined.includes('time') && r4Joined.includes('event'))
+              ) {
+                targetMatrix = targetMatrix.slice(3);
+              }
+            }
+            processMatrix(targetMatrix);
           }
         } catch (err: any) {
-          alert((language === 'es' ? "Error al leer hoja de cálculo Excel: " : "Error reading Excel spreadsheet: ") + err.message);
+          setUploadModal({
+            isOpen: true,
+            type: 'error',
+            title: language === 'es' ? "Error en Hoja Excel" : "Excel Reading Error",
+            message: err.message || "Failed to parse Excel spreadsheet"
+          });
         }
       };
       reader.readAsArrayBuffer(file);
-    } else {
-      alert(language === 'es' ? "Formato no compatible. Por favor suba un archivo .xlsx, .xls o .csv." : "Unsupported format. Please upload .xlsx, .xls, or .csv file.");
+      setUploadModal({
+        isOpen: true,
+        type: 'error',
+        title: language === 'es' ? "Formato no compatible" : "Unsupported Format",
+        message: language === 'es' ? "Por favor suba un archivo .xlsx, .xls o .csv." : "Please upload a .xlsx, .xls, or .csv file."
+      });
     }
   };
 
@@ -2762,6 +2897,66 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
             </div>
           </div>
         </section>
+      )}
+
+      {/* Macro Calendar Upload Status Modal */}
+      {uploadModal && uploadModal.isOpen && (
+        <div className="fixed inset-0 z-50 bg-[#020203]/85 backdrop-blur-md flex items-center justify-center p-4">
+          <div className={`max-w-md w-full bg-[#07080e] border ${uploadModal.type === 'success' ? 'border-emerald-500/50 shadow-[0_0_35px_rgba(16,185,129,0.25)]' : 'border-rose-500/50 shadow-[0_0_35px_rgba(244,63,94,0.25)]'} p-6 rounded-xl font-mono space-y-4`}>
+            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+              <div className="flex items-center gap-2">
+                <span className={`w-2.5 h-2.5 rounded-full ${uploadModal.type === 'success' ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400'}`} />
+                <span className={`text-[11px] font-bold uppercase tracking-wider ${uploadModal.type === 'success' ? 'text-emerald-400' : 'text-rose-400'}`}>
+                  {uploadModal.type === 'success' ? '// CALENDAR INGESTION SUCCESS' : '// CALENDAR PARSING NOTICE'}
+                </span>
+              </div>
+              <button
+                onClick={() => setUploadModal(null)}
+                className="text-zinc-500 hover:text-white text-xs font-mono transition cursor-pointer p-1"
+                aria-label="Close modal"
+              >
+                [ ✕ ]
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="text-white text-sm font-bold uppercase tracking-wide">
+                {uploadModal.title}
+              </h3>
+              <p className="text-zinc-300 text-xs font-sans leading-relaxed">
+                {uploadModal.message}
+              </p>
+            </div>
+
+            {uploadModal.currencies && uploadModal.currencies.length > 0 && (
+              <div className="pt-2">
+                <div className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1.5 font-mono">
+                  {language === 'es' ? 'Divisas Actualizadas:' : 'Updated Currencies:'}
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {uploadModal.currencies.map(c => (
+                    <span key={c} className="px-2 py-0.5 bg-cyan-950/70 text-cyan-300 border border-cyan-500/40 text-[10px] font-bold">
+                      {c}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="pt-3 border-t border-zinc-900 flex justify-end gap-2">
+              <button
+                onClick={() => setUploadModal(null)}
+                className={`px-4 py-2 text-xs font-bold uppercase tracking-wider transition cursor-pointer ${
+                  uploadModal.type === 'success'
+                    ? 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/50'
+                    : 'bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-700'
+                }`}
+              >
+                {language === 'es' ? 'Aceptar' : 'Dismiss'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
     </div>

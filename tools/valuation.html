@@ -1159,9 +1159,9 @@
                     if (ev.includes('gdp') || ev.includes('pib') || ev.includes('gross domestic') || ev.includes('producto interior')) return ind;
                 }
 
-                // Confidence / Business Surveys
-                if (iname.includes('consumer confidence') || iname.includes('consumer sentiment') || iname.includes('consumer survey')) {
-                    if (ev.includes('consumer confidence') || ev.includes('confianza del consumidor') || ev.includes('consumer sentiment') || ev.includes('sentimiento del consumidor') || ev.includes('consumer survey')) return ind;
+                // Confidence / Business Surveys (including Household Confidence for JPY)
+                if (iname.includes('consumer confidence') || iname.includes('consumer sentiment') || iname.includes('consumer survey') || iname.includes('confidence') || iname.includes('survey')) {
+                    if (ev.includes('consumer confidence') || ev.includes('confianza del consumidor') || ev.includes('consumer sentiment') || ev.includes('sentimiento del consumidor') || ev.includes('consumer survey') || ev.includes('household confidence') || ev.includes('confianza de los hogares') || ev.includes('household spending') || ev.includes('consumer climate')) return ind;
                 }
                 if (iname.includes('ifo') && (ev.includes('ifo') || ev.includes('business climate') || ev.includes('clima empresarial'))) return ind;
                 if (iname.includes('nfib') && (ev.includes('nfib') || ev.includes('small business'))) return ind;
@@ -1213,10 +1213,20 @@
                 return;
             }
 
+            // Skip first 3 rows if row 4 (index 3) contains the headers (Investing.com format)
+            let effectiveRows = rawRows;
+            if (effectiveRows && effectiveRows.length >= 4) {
+                const r4 = effectiveRows[3] || [];
+                const r4Str = (Array.isArray(r4) ? r4 : Object.values(r4)).map(c => String(c || '').toLowerCase().trim()).join(' ');
+                if ((r4Str.includes('cur') && (r4Str.includes('event') || r4Str.includes('actual') || r4Str.includes('imp') || r4Str.includes('time'))) || (r4Str.includes('time') && r4Str.includes('event'))) {
+                    effectiveRows = effectiveRows.slice(3);
+                }
+            }
+
             // Clean, normalize and map rows
             const cleanRows = [];
-            for (let i = 0; i < rawRows.length; i++) {
-                const r = rawRows[i];
+            for (let i = 0; i < effectiveRows.length; i++) {
+                const r = effectiveRows[i];
                 if (!r) continue;
                 const rowArr = Array.isArray(r) ? r : Object.values(r);
                 const mappedRow = rowArr.map(cell => {
@@ -1274,11 +1284,12 @@
             // Scan first 30 rows to find header row
             for (let r = 0; r < Math.min(cleanRows.length, 30); r++) {
                 const row = cleanRows[r].map(cleanHeaderStr);
+                const hasTime = row.some(isTimeHeader);
                 const hasEvent = row.some(isEventHeader);
                 const hasCcy = row.some(isCcyHeader);
                 const hasNum = row.some(isActualHeader) || row.some(isForecastHeader) || row.some(isPrevHeader);
 
-                if ((hasEvent && (hasCcy || hasNum)) || (hasCcy && hasNum)) {
+                if ((hasCcy && hasEvent) || (hasEvent && (hasCcy || hasNum)) || (hasCcy && hasNum) || (hasTime && hasEvent)) {
                     headerRowIdx = r;
                     row.forEach((cell, idx) => {
                         if (isDateHeader(cell) && dateCol === -1) dateCol = idx;
@@ -1289,20 +1300,26 @@
                         else if (isForecastHeader(cell) && forecastCol === -1) forecastCol = idx;
                         else if (isPrevHeader(cell) && prevCol === -1) prevCol = idx;
                     });
+                    if (currCol === -1 && row.length >= 7 && (row[1] === 'cur' || cleanRows[r][1]?.toLowerCase().includes('cur'))) currCol = 1;
+                    if (eventCol === -1 && row.length >= 7 && (row[2] === 'event' || cleanRows[r][2]?.toLowerCase().includes('event'))) eventCol = 2;
+                    if (actualCol === -1 && row.length >= 7 && (row[4] === 'actual' || cleanRows[r][4]?.toLowerCase().includes('actual'))) actualCol = 4;
+                    if (forecastCol === -1 && row.length >= 7 && (row[5] === 'forecast' || cleanRows[r][5]?.toLowerCase().includes('forecast'))) forecastCol = 5;
+                    if (prevCol === -1 && row.length >= 7 && (row[6] === 'previous' || cleanRows[r][6]?.toLowerCase().includes('prev'))) prevCol = 6;
                     break;
                 }
             }
 
             // 1. INVESTING.COM 2-LETTER COUNTRY TO 3-LETTER G10 CURRENCY MAP
             const INVESTING_COM_MAP = {
-                'US': 'USD', 'USD': 'USD',
-                'UK': 'GBP', 'GBP': 'GBP',
+                'US': 'USD', 'USD': 'USD', 'USA': 'USD',
+                'UK': 'GBP', 'GBP': 'GBP', 'GB': 'GBP', 'GBR': 'GBP',
                 'EU': 'EUR', 'EA': 'EUR', 'DE': 'EUR', 'FR': 'EUR', 'IT': 'EUR', 'ES': 'EUR', 'EUR': 'EUR',
-                'JP': 'JPY', 'JPY': 'JPY',
-                'AU': 'AUD', 'AUD': 'AUD',
-                'NZ': 'NZD', 'NZD': 'NZD',
-                'CA': 'CAD', 'CAD': 'CAD',
-                'CH': 'CHF', 'CHF': 'CHF'
+                'GER': 'EUR', 'FRA': 'EUR', 'ITA': 'EUR', 'ESP': 'EUR', 'DEU': 'EUR',
+                'JP': 'JPY', 'JPY': 'JPY', 'JPN': 'JPY',
+                'AU': 'AUD', 'AUD': 'AUD', 'AUS': 'AUD',
+                'NZ': 'NZD', 'NZD': 'NZD', 'NZL': 'NZD',
+                'CA': 'CAD', 'CAD': 'CAD', 'CAN': 'CAD',
+                'CH': 'CHF', 'CHF': 'CHF', 'CHE': 'CHF'
             };
 
             // SMART COLUMN HEURISTIC FALLBACK: If headers are missing or columns not fully identified
