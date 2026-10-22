@@ -14,8 +14,9 @@ export const ValuationRankingChart: React.FC<ValuationRankingChartProps> = ({
   const currencies = ['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'NZD', 'CAD', 'CHF'];
   const scores = currencies.map(c => totals[c] !== undefined ? totals[c] : 0);
 
-  // Compute scale boundaries
-  const maxScore = Math.max(10, Math.max(...scores.map(s => Math.abs(s))) + 2);
+  // Compute dynamic scale boundaries for normalized scores
+  const maxAbs = Math.max(...scores.map(s => Math.abs(s)), 0.5);
+  const maxScore = Math.max(3.0, parseFloat((maxAbs * 1.25).toFixed(1)));
 
   return (
     <div className="macro-panel p-5 font-mono">

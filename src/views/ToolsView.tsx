@@ -253,90 +253,149 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
     return num;
   };
 
-  const evaluateIndicator = (ind: MacroIndicator) => {
-    let netChange = 0;
-    if (ind.actual !== null && ind.previous !== null) {
-      netChange = ind.actual - ind.previous;
-    }
-    netChange = parseFloat(netChange.toFixed(4));
-    let score = 0;
-
-    switch (ind.type) {
-      case "PMI":
-      case "AUD_SERVICES":
-        if (netChange >= 2.0) score = 2;
-        else if (netChange >= 0.5) score = 1;
-        else if (netChange > -0.5) score = 0;
-        else if (netChange > -2.0) score = -1;
-        else score = -2;
-        break;
-      case "CPI":
-      case "PCT_GROWTH":
-      case "GBP_RETAIL":
-      case "CARD_TRANS":
-        if (netChange >= 0.003) score = 2;
-        else if (netChange >= 0.001) score = 1;
-        else if (netChange > -0.001) score = 0;
-        else if (netChange > -0.003) score = -1;
-        else score = -2;
-        break;
-      case "UNEMP_RATE":
-      case "EUR_UNEMP_FIXED":
-        if (netChange <= -0.002) score = 2;
-        else if (netChange <= -0.001) score = 1;
-        else if (netChange === 0) score = 0;
-        else if (netChange < 0.002) score = -1;
-        else score = -2;
-        break;
-      case "GBP_CLAIMANT":
-      case "GER_UNEMP_CHANGE":
-      case "CHF_UNEMP_CHANGE":
-        if (netChange <= -15.0) score = 2;
-        else if (netChange <= -3.0) score = 1;
-        else if (netChange < 3.0) score = 0;
-        else if (netChange < 15.0) score = -1;
-        else score = -2;
-        break;
-      case "JOBS_K":
-      case "CAD_JOBS":
-        if (netChange >= 40.0) score = 2;
-        else if (netChange >= 10.0) score = 1;
-        else if (netChange > -10.0) score = 0;
-        else if (netChange > -40.0) score = -1;
-        else score = -2;
-        break;
-      case "NFP":
-        if (netChange >= 50) score = 2;
-        else if (netChange >= 15) score = 1;
-        else if (netChange > -15) score = 0;
-        else if (netChange > -50) score = -1;
-        else score = -2;
-        break;
-      case "CONFIDENCE":
-      case "INDEX_SMALL":
-      case "SURVEY_5":
-      case "ANZ_BIZ":
-        if (netChange >= 4.0) score = 2;
-        else if (netChange >= 1.0) score = 1;
-        else if (netChange > -1.0) score = 0;
-        else if (netChange > -4.0) score = -1;
-        else score = -2;
-        break;
-      default:
-        score = netChange > 0 ? 1 : netChange < 0 ? -1 : 0;
-    }
-    return { netChange, score };
+  // Helper to parse weights ("High" -> 5.0, "Med" -> 4.0, "Low" -> 3.0, or numeric strings)
+  const parseWeight = (weight: any): number => {
+    if (typeof weight === 'number' && !isNaN(weight) && weight > 0) return weight;
+    const s = String(weight || '').trim().toLowerCase();
+    if (s === 'high' || s === 'h' || s === '5.0' || s === '5') return 5.0;
+    if (s === 'med' || s === 'medium' || s === 'm' || s === '4.0' || s === '4') return 4.0;
+    if (s === 'low' || s === 'l' || s === '3.0' || s === '3') return 3.0;
+    const num = parseFloat(s);
+    return !isNaN(num) && num > 0 ? num : 4.0;
   };
 
+  // --- Standardized Macro Indicator Evaluation ---
+  // Implements unit standardization across decimal rates, 0-100 indices, inverted metrics, and jobs in thousands
+  const evaluateIndicator = (ind: MacroIndicator) => {
+    const w = parseWeight(ind.weight);
+    if (ind.actual === null || ind.actual === undefined) {
+      return {
+        rawDeviation: 0,
+        standardizedDeviation: 0,
+        netChange: 0,
+        score: 0,
+        eventScore: 0,
+        weight: w
+      };
+    }
+
+    // Baseline target: Forecast preferred; fallback to Previous if forecast is not available
+    const target = ind.forecast !== null && ind.forecast !== undefined
+      ? ind.forecast
+      : (ind.previous !== null && ind.previous !== undefined ? ind.previous : null);
+
+    if (target === null) {
+      return {
+        rawDeviation: 0,
+        standardizedDeviation: 0,
+        netChange: 0,
+        score: 0,
+        eventScore: 0,
+        weight: w
+      };
+    }
+
+    const actual = ind.actual;
+    const rawDeviation = parseFloat((actual - target).toFixed(6));
+    let standardizedDeviation = 0;
+    let score = 0;
+
+    const type = (ind.type || '').toUpperCase();
+
+    switch (type) {
+      case 'CPI':
+      case 'PCT_GROWTH':
+      case 'GBP_RETAIL':
+      case 'CARD_TRANS': {
+        // Decimal rates: Converts 0.001 decimal to 0.1 percentage point
+        standardizedDeviation = (actual - target) * 100;
+        const threshold = 0.0005;
+        if (actual > target + threshold) score = 1.0;
+        else if (actual < target - threshold) score = -1.0;
+        else score = 0.0;
+        break;
+      }
+
+      case 'PMI':
+      case 'CONFIDENCE':
+      case 'INDEX_SMALL':
+      case 'SURVEY_5':
+      case 'ANZ_BIZ':
+      case 'AUD_SERVICES': {
+        // 0-100 indices: Standard index difference
+        standardizedDeviation = actual - target;
+        const threshold = 0.2;
+        if (actual > target + threshold) score = 1.0;
+        else if (actual < target - threshold) score = -1.0;
+        else score = 0.0;
+        break;
+      }
+
+      case 'UNEMP_RATE':
+      case 'EUR_UNEMP_FIXED':
+      case 'GER_UNEMP_CHANGE':
+      case 'GBP_CLAIMANT':
+      case 'CHF_UNEMP_CHANGE': {
+        // Inverted metrics: (Forecast - Actual) * 100 inverts direction so lower unemployment = positive score
+        standardizedDeviation = (target - actual) * 100;
+        const threshold = Math.abs(target) > 1.0 ? 0.5 : 0.0005;
+        if (actual < target - threshold) score = 1.0;
+        else if (actual > target + threshold) score = -1.0;
+        else score = 0.0;
+        break;
+      }
+
+      case 'NFP':
+      case 'JOBS_K':
+      case 'CAD_JOBS': {
+        // Jobs in thousands: Scales thousands into manageable deviation units
+        standardizedDeviation = (actual - target) / 10;
+        const threshold = 5.0;
+        if (actual > target + threshold) score = 1.0;
+        else if (actual < target - threshold) score = -1.0;
+        else score = 0.0;
+        break;
+      }
+
+      default: {
+        standardizedDeviation = actual - target;
+        if (actual > target) score = 1.0;
+        else if (actual < target) score = -1.0;
+        else score = 0.0;
+        break;
+      }
+    }
+
+    standardizedDeviation = parseFloat(standardizedDeviation.toFixed(4));
+    const eventScore = parseFloat((score * w).toFixed(4));
+
+    return {
+      rawDeviation,
+      standardizedDeviation,
+      netChange: standardizedDeviation,
+      score,
+      eventScore,
+      weight: w
+    };
+  };
+
+  // Aggregated Currency Strength Score: Sum(standardizedDeviation * weight) / Sum(weights)
   const calculateCurrencyTotals = () => {
     const totals: Record<string, number> = {};
     Object.keys(currencyIndicators).forEach((curr) => {
       const list = currencyIndicators[curr] || [];
-      const sum = list.reduce((acc, ind) => {
-        const { score } = evaluateIndicator(ind);
-        return acc + score;
-      }, 0);
-      totals[curr] = sum;
+      let sumWeightedDeviation = 0;
+      let sumWeights = 0;
+
+      list.forEach((ind) => {
+        if (ind.actual !== null && ind.actual !== undefined) {
+          const evalRes = evaluateIndicator(ind);
+          sumWeightedDeviation += evalRes.standardizedDeviation * evalRes.weight;
+          sumWeights += evalRes.weight;
+        }
+      });
+
+      totals[curr] = sumWeights > 0 ? parseFloat((sumWeightedDeviation / sumWeights).toFixed(2)) : 0;
     });
     return totals;
   };
@@ -346,26 +405,26 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
   const getPairDivergence = (base: string, quote: string) => {
     const bScore = currencyTotals[base] !== undefined ? currencyTotals[base] : 0;
     const qScore = currencyTotals[quote] !== undefined ? currencyTotals[quote] : 0;
-    const diff = bScore - qScore;
+    const diff = parseFloat((bScore - qScore).toFixed(2));
 
     let biasText = "NEUTRAL";
     let badgeBg = "bg-zinc-800 text-zinc-400 border-zinc-700";
 
-    if (diff >= 6) {
+    if (diff >= 2.0) {
       biasText = "STRONG BULLISH";
       badgeBg = "bg-cyan-950/80 text-cyan-300 border-cyan-500/50 shadow-[0_0_8px_rgba(6,182,212,0.3)]";
-    } else if (diff >= 2) {
+    } else if (diff >= 0.75) {
       biasText = "BULLISH";
       badgeBg = "bg-cyan-950/50 text-cyan-400 border-cyan-500/30";
-    } else if (diff <= -6) {
+    } else if (diff <= -2.0) {
       biasText = "STRONG BEARISH";
       badgeBg = "bg-rose-950/80 text-rose-300 border-rose-500/50 shadow-[0_0_8px_rgba(244,63,94,0.3)]";
-    } else if (diff <= -2) {
+    } else if (diff <= -0.75) {
       biasText = "BEARISH";
       badgeBg = "bg-rose-950/50 text-rose-400 border-rose-500/30";
     }
 
-    const absMax = 12;
+    const absMax = Math.max(4.0, Math.abs(diff));
     const longPct = Math.round(Math.max(10, Math.min(90, 50 + (diff / absMax) * 40)));
     const shortPct = 100 - longPct;
 
@@ -385,7 +444,7 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
   });
 
   const filteredPairs = sortedPairsData.filter((p) => {
-    if (currencyFilter === 'strong') return Math.abs(p.diff) >= 8;
+    if (currencyFilter === 'strong') return Math.abs(p.diff) >= 2.0;
     if (currencyFilter === 'bullish') return p.diff > 0;
     if (currencyFilter === 'bearish') return p.diff < 0;
     return true;
@@ -2449,7 +2508,7 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
                           {score < 0 && (
                             <div
                               className="bg-rose-500 h-full shadow-[0_0_6px_rgba(244,63,94,0.7)]"
-                              style={{ width: `${Math.min(100, (Math.abs(score) / 10) * 100)}%` }}
+                              style={{ width: `${Math.min(100, (Math.abs(score) / 3.0) * 100)}%` }}
                             />
                           )}
                         </div>
@@ -2457,7 +2516,7 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
                           {score > 0 && (
                             <div
                               className="bg-cyan-400 h-full shadow-[0_0_6px_rgba(34,211,238,0.7)]"
-                              style={{ width: `${Math.min(100, (score / 10) * 100)}%` }}
+                              style={{ width: `${Math.min(100, (score / 3.0) * 100)}%` }}
                             />
                           )}
                         </div>
