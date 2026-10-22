@@ -1293,26 +1293,16 @@
                 }
             }
 
-            // User-specified 2-letter country/region code to 3-letter currency mapping
-            const currencyMap = {
-                'US': 'USD',
-                'UK': 'GBP',
-                'GB': 'GBP',
-                'EU': 'EUR',
-                'DE': 'EUR',
-                'FR': 'EUR',
-                'IT': 'EUR',
-                'ES': 'EUR',
-                'NL': 'EUR',
-                'BE': 'EUR',
-                'AT': 'EUR',
-                'IE': 'EUR',
-                'PT': 'EUR',
-                'JP': 'JPY',
-                'CA': 'CAD',
-                'AU': 'AUD',
-                'NZ': 'NZD',
-                'CH': 'CHF'
+            // 1. INVESTING.COM 2-LETTER COUNTRY TO 3-LETTER G10 CURRENCY MAP
+            const INVESTING_COM_MAP = {
+                'US': 'USD', 'USD': 'USD',
+                'UK': 'GBP', 'GBP': 'GBP',
+                'EU': 'EUR', 'EA': 'EUR', 'DE': 'EUR', 'FR': 'EUR', 'IT': 'EUR', 'ES': 'EUR', 'EUR': 'EUR',
+                'JP': 'JPY', 'JPY': 'JPY',
+                'AU': 'AUD', 'AUD': 'AUD',
+                'NZ': 'NZD', 'NZD': 'NZD',
+                'CA': 'CAD', 'CAD': 'CAD',
+                'CH': 'CHF', 'CHF': 'CHF'
             };
 
             // SMART COLUMN HEURISTIC FALLBACK: If headers are missing or columns not fully identified
@@ -1327,9 +1317,10 @@
                     for (let c = 0; c < numCols; c++) {
                         let ccyMatches = 0;
                         sampleRows.forEach(row => {
-                            const rawVal = String(row[c] || '').trim().toUpperCase().replace(/[^A-Z]/g, '');
-                            const mappedVal = currencyMap[rawVal] || rawVal;
-                            if (['USD','EUR','GBP','JPY','AUD','CAD','CHF','NZD','CNH','CNY','DEU','FRA','GBR'].includes(mappedVal) || countryToCurrency[rawVal] || countryToCurrency[mappedVal]) {
+                            const val = row[c];
+                            const s = typeof val === 'string' ? val.trim().toUpperCase() : String(val || '').trim().toUpperCase();
+                            const mappedVal = INVESTING_COM_MAP[s] || s;
+                            if (['USD','EUR','GBP','JPY','AUD','CAD','CHF','NZD','CNH','CNY'].includes(mappedVal) || countryToCurrency[s]) {
                                 ccyMatches++;
                             }
                         });
@@ -1427,32 +1418,44 @@
 
                 if (!rawEvent || rawEvent.length < 3) return;
 
-                // Determine target currency
-                let targetCurr = null;
-                if (currCol !== -1 && row[currCol]) {
-                    // Intercept raw string from Cur. (or Currency) column for each row
-                    const rawCur = String(row[currCol]).trim().toUpperCase().replace(/[^A-Z]/g, '');
-                    // Translate 2-letter codes using currencyMap BEFORE G10 filtering
-                    const mappedCur = currencyMap[rawCur] || rawCur;
-                    targetCurr = mappedCur;
+                // 2. Extract raw currency value (from column index or object properties)
+                let rawCur = '';
+                if (currCol !== -1 && row[currCol] !== undefined && row[currCol] !== '') {
+                    rawCur = row[currCol];
+                } else if (typeof row === 'object' && row !== null && !Array.isArray(row)) {
+                    rawCur = row['Cur.'] || row['Currency'] || row['Cur'] || row['cur.'] || row['currency'] || row['Country'] || row['country'] || '';
                 }
-                if (!targetCurr || !['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'NZD', 'CAD', 'CHF'].includes(targetCurr)) {
-                    // Check if any cell in the row matches a currency code
-                    for (const cell of row) {
-                        const rawC = String(cell || '').trim().toUpperCase().replace(/[^A-Z]/g, '');
-                        const mappedC = currencyMap[rawC] || rawC;
-                        if (['USD','EUR','GBP','JPY','AUD','CAD','CHF','NZD','CNH'].includes(mappedC)) {
-                            targetCurr = mappedC;
+
+                // 3. Immediately after extracting that raw value, aggressively normalize it BEFORE the G10 check:
+                const safeStr = typeof rawCur === 'string' ? rawCur.trim().toUpperCase() : String(rawCur || '').trim().toUpperCase();
+                let normalizedCurrency = INVESTING_COM_MAP[safeStr] || safeStr;
+
+                const G10_CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'NZD', 'CAD', 'CHF'];
+
+                // Fallback if currCol missed or empty: scan row cells for a recognized country/currency
+                if (!G10_CURRENCIES.includes(normalizedCurrency)) {
+                    const cells = Array.isArray(row) ? row : Object.values(row);
+                    for (const cell of cells) {
+                        const s = typeof cell === 'string' ? cell.trim().toUpperCase() : String(cell || '').trim().toUpperCase();
+                        const mapped = INVESTING_COM_MAP[s];
+                        if (mapped && G10_CURRENCIES.includes(mapped)) {
+                            normalizedCurrency = mapped;
                             break;
                         }
                     }
                 }
-                if (!targetCurr) {
-                    targetCurr = inferCurrencyFromText(rawEvent);
+
+                if (!G10_CURRENCIES.includes(normalizedCurrency)) {
+                    const inferred = inferCurrencyFromText(rawEvent);
+                    if (inferred && G10_CURRENCIES.includes(inferred)) {
+                        normalizedCurrency = inferred;
+                    }
                 }
 
-                const G10_CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'NZD', 'CAD', 'CHF'];
-                if (!targetCurr || !G10_CURRENCIES.includes(targetCurr) || !appData[targetCurr]) return;
+                // 4. Update the subsequent if statement (checking if currency is in G10 list) and state assignment using normalizedCurrency
+                if (!G10_CURRENCIES.includes(normalizedCurrency) || !appData[normalizedCurrency]) return;
+
+                const targetCurr = normalizedCurrency;
 
                 const searchCurrencies = [targetCurr];
 

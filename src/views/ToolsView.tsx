@@ -852,6 +852,18 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
     return isNaN(num) ? null : num;
   };
 
+  // 1. INVESTING.COM 2-LETTER COUNTRY TO 3-LETTER G10 CURRENCY MAP
+  const INVESTING_COM_MAP: Record<string, string> = {
+    'US': 'USD', 'USD': 'USD',
+    'UK': 'GBP', 'GBP': 'GBP',
+    'EU': 'EUR', 'EA': 'EUR', 'DE': 'EUR', 'FR': 'EUR', 'IT': 'EUR', 'ES': 'EUR', 'EUR': 'EUR',
+    'JP': 'JPY', 'JPY': 'JPY',
+    'AU': 'AUD', 'AUD': 'AUD',
+    'NZ': 'NZD', 'NZD': 'NZD',
+    'CA': 'CAD', 'CAD': 'CAD',
+    'CH': 'CHF', 'CHF': 'CHF'
+  };
+
   const processCurrencySpreadsheet = (file: File) => {
     if (!file) return;
     const fileName = file.name.toLowerCase();
@@ -964,7 +976,9 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
           for (let c = 0; c < numCols; c++) {
             let ccyMatches = 0;
             sampleRows.forEach(row => {
-              const mappedVal = normalizeCurrencyCode(row[c]);
+              const cellVal = row[c];
+              const s = typeof cellVal === 'string' ? cellVal.trim().toUpperCase() : String(cellVal || '').trim().toUpperCase();
+              const mappedVal = INVESTING_COM_MAP[s] || normalizeCurrencyCode(cellVal);
               if (isG10Currency(mappedVal) || mappedVal === 'CNH') {
                 ccyMatches++;
               }
@@ -1073,32 +1087,44 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
 
           if (!rawEvent || rawEvent.length < 3) return;
 
-          // Determine target currency from column or infer from event text
-          let targetCurr: string | null = null;
-          if (currCol !== -1 && row[currCol]) {
-            // Intercept raw string from Cur. (or Currency) column and normalize
-            const normalizedCur = normalizeCurrencyCode(row[currCol]);
-            if (isG10Currency(normalizedCur)) {
-              targetCurr = normalizedCur;
-            }
+          // 2. Extract raw currency value (from column index or object properties)
+          let rawCur: any = '';
+          if (currCol !== -1 && row[currCol] !== undefined && row[currCol] !== '') {
+            rawCur = row[currCol];
+          } else if (typeof row === 'object' && row !== null && !Array.isArray(row)) {
+            rawCur = (row as any)['Cur.'] || (row as any)['Currency'] || (row as any)['Cur'] || (row as any)['cur.'] || (row as any)['currency'] || (row as any)['Country'] || (row as any)['country'] || '';
           }
-          if (!targetCurr || !isG10Currency(targetCurr)) {
-            // Fallback: check all cells for 2-letter country or 3-letter currency codes
-            for (const cell of row) {
-              const mappedCell = normalizeCurrencyCode(cell);
-              if (isG10Currency(mappedCell)) {
-                targetCurr = mappedCell;
+
+          // 3. Immediately after extracting that raw value, aggressively normalize it BEFORE the G10 check:
+          const safeStr = typeof rawCur === 'string' ? rawCur.trim().toUpperCase() : String(rawCur || '').trim().toUpperCase();
+          let normalizedCurrency = INVESTING_COM_MAP[safeStr] || safeStr;
+
+          const G10_CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'NZD', 'CAD', 'CHF'];
+
+          // Fallback if currCol missed or cell was empty: scan row cells for a recognized country/currency
+          if (!G10_CURRENCIES.includes(normalizedCurrency)) {
+            const cells = Array.isArray(row) ? row : Object.values(row);
+            for (const cell of cells) {
+              const s = typeof cell === 'string' ? cell.trim().toUpperCase() : String(cell || '').trim().toUpperCase();
+              const mapped = INVESTING_COM_MAP[s];
+              if (mapped && G10_CURRENCIES.includes(mapped)) {
+                normalizedCurrency = mapped;
                 break;
               }
             }
           }
-          if (!targetCurr) {
-            targetCurr = inferCurrencyFromText(rawEvent);
+
+          if (!G10_CURRENCIES.includes(normalizedCurrency)) {
+            const inferred = inferCurrencyFromText(rawEvent);
+            if (inferred && G10_CURRENCIES.includes(inferred)) {
+              normalizedCurrency = inferred;
+            }
           }
 
-          // Strict G10 currency filter check: ['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'NZD', 'CAD', 'CHF']
-          if (!targetCurr || !isG10Currency(targetCurr) || !nextState[targetCurr]) return;
+          // 4. Update the subsequent if statement (checking if currency is in G10 list) and state assignment using normalizedCurrency
+          if (!G10_CURRENCIES.includes(normalizedCurrency) || !nextState[normalizedCurrency]) return;
 
+          const targetCurr = normalizedCurrency;
           const indList = [...nextState[targetCurr]];
           const matchedIdx = findIndicatorIndex(targetCurr, rawEvent, indList);
 
