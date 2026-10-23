@@ -701,114 +701,52 @@
         }
 
         function evaluateIndicator(ind) {
-            const w = parseWeight(ind.weight);
-            if (ind.actual === null || ind.actual === undefined) {
-                return { rawDeviation: 0, standardizedDeviation: 0, netChange: 0, score: 0, eventScore: 0, weight: w };
-            }
-
-            const target = ind.forecast !== null && ind.forecast !== undefined
-                ? ind.forecast
-                : (ind.previous !== null && ind.previous !== undefined ? ind.previous : null);
-
-            if (target === null) {
-                return { rawDeviation: 0, standardizedDeviation: 0, netChange: 0, score: 0, eventScore: 0, weight: w };
-            }
-
-            const actual = ind.actual;
-            const rawDeviation = parseFloat((actual - target).toFixed(6));
-            let standardizedDeviation = 0;
+            let netChange = 0;
+            if (ind.actual !== null && ind.previous !== null) netChange = ind.actual - ind.previous;
+            netChange = parseFloat(netChange.toFixed(4));
             let score = 0;
-
-            const type = (ind.type || '').toUpperCase();
-
-            switch (type) {
-                case 'CPI':
-                case 'PCT_GROWTH':
-                case 'GBP_RETAIL':
-                case 'CARD_TRANS': {
-                    standardizedDeviation = (actual - target) * 100;
-                    const threshold = 0.0005;
-                    if (actual > target + threshold) score = 1.0;
-                    else if (actual < target - threshold) score = -1.0;
-                    else score = 0.0;
-                    break;
-                }
-
-                case 'PMI':
-                case 'CONFIDENCE':
-                case 'INDEX_SMALL':
-                case 'SURVEY_5':
-                case 'ANZ_BIZ':
-                case 'AUD_SERVICES': {
-                    standardizedDeviation = actual - target;
-                    const threshold = 0.2;
-                    if (actual > target + threshold) score = 1.0;
-                    else if (actual < target - threshold) score = -1.0;
-                    else score = 0.0;
-                    break;
-                }
-
-                case 'UNEMP_RATE':
-                case 'EUR_UNEMP_FIXED':
-                case 'GER_UNEMP_CHANGE':
-                case 'GBP_CLAIMANT':
-                case 'CHF_UNEMP_CHANGE': {
-                    standardizedDeviation = (target - actual) * 100;
-                    const threshold = Math.abs(target) > 1.0 ? 0.5 : 0.0005;
-                    if (actual < target - threshold) score = 1.0;
-                    else if (actual > target + threshold) score = -1.0;
-                    else score = 0.0;
-                    break;
-                }
-
-                case 'NFP':
-                case 'JOBS_K':
-                case 'CAD_JOBS': {
-                    standardizedDeviation = (actual - target) / 10;
-                    const threshold = 5.0;
-                    if (actual > target + threshold) score = 1.0;
-                    else if (actual < target - threshold) score = -1.0;
-                    else score = 0.0;
-                    break;
-                }
-
-                default: {
-                    standardizedDeviation = actual - target;
-                    if (actual > target) score = 1.0;
-                    else if (actual < target) score = -1.0;
-                    else score = 0.0;
-                    break;
-                }
+            switch(ind.type) {
+                case "PMI":
+                case "AUD_SERVICES":
+                    if (netChange >= 2.0) score = 2; else if (netChange >= 0.5) score = 1; else if (netChange > -0.5) score = 0; else if (netChange > -2.0) score = -1; else score = -2; break;
+                case "CPI":
+                case "PCT_GROWTH":
+                case "GBP_RETAIL":
+                case "CARD_TRANS":
+                    if (netChange >= 0.003) score = 2; else if (netChange >= 0.001) score = 1; else if (netChange > -0.001) score = 0; else if (netChange > -0.003) score = -1; else score = -2; break;
+                case "UNEMP_RATE":
+                case "EUR_UNEMP_FIXED":
+                    if (netChange <= -0.002) score = 2; else if (netChange <= -0.001) score = 1; else if (netChange === 0) score = 0; else if (netChange < 0.002) score = -1; else score = -2; break;
+                case "GBP_CLAIMANT":
+                case "GER_UNEMP_CHANGE":
+                case "CHF_UNEMP_CHANGE":
+                    if (netChange <= -15.0) score = 2; else if (netChange <= -3.0) score = 1; else if (netChange < 3.0) score = 0; else if (netChange < 15.0) score = -1; else score = -2; break;
+                case "JOBS_K":
+                case "CAD_JOBS":
+                    if (netChange >= 40.0) score = 2; else if (netChange >= 10.0) score = 1; else if (netChange > -10.0) score = 0; else if (netChange > -40.0) score = -1; else score = -2; break;
+                case "NFP":
+                    if (netChange >= 50) score = 2; else if (netChange >= 15) score = 1; else if (netChange > -15) score = 0; else if (netChange > -50) score = -1; else score = -2; break;
+                case "CONFIDENCE":
+                case "INDEX_SMALL":
+                case "SURVEY_5":
+                case "ANZ_BIZ":
+                    if (netChange >= 4.0) score = 2; else if (netChange >= 1.0) score = 1; else if (netChange > -1.0) score = 0; else if (netChange > -4.0) score = -1; else score = -2; break;
+                default: score = netChange > 0 ? 1 : netChange < 0 ? -1 : 0;
             }
-
-            standardizedDeviation = parseFloat(standardizedDeviation.toFixed(4));
-            const eventScore = parseFloat((score * w).toFixed(4));
-
-            return {
-                rawDeviation,
-                standardizedDeviation,
-                netChange: standardizedDeviation,
-                score,
-                eventScore,
-                weight: w
-            };
+            return { netChange, score };
         }
 
         function calculateTotals() {
             const totals = {};
             for (const c in appData) {
-                let sumWeightedDeviation = 0;
-                let sumWeights = 0;
+                let sum = 0;
                 appData[c].forEach(ind => {
                     const evalResult = evaluateIndicator(ind);
                     ind.netChange = evalResult.netChange;
                     ind.score = evalResult.score;
-                    if (ind.actual !== null && ind.actual !== undefined) {
-                        sumWeightedDeviation += evalResult.standardizedDeviation * evalResult.weight;
-                        sumWeights += evalResult.weight;
-                    }
+                    sum += ind.score;
                 });
-                totals[c] = sumWeights > 0 ? parseFloat((sumWeightedDeviation / sumWeights).toFixed(2)) : 0;
+                totals[c] = sum;
             }
             return totals;
         }
