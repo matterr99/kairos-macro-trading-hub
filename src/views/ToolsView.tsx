@@ -2031,20 +2031,11 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
                     </p>
                   </div>
 
-                  <div className="mt-6 sm:mt-8 pt-4 border-t border-zinc-800 flex justify-between items-center font-mono text-xs">
+                  <div className="mt-6 sm:mt-8 pt-4 border-t border-zinc-800 flex items-center font-mono text-xs">
                     <button onClick={() => handleTabSwitch('quant-desk')} className="text-cyan-400 hover:text-cyan-300 font-bold uppercase tracking-wider flex items-center gap-1 cursor-pointer">
                       <span>{language === 'es' ? 'Abrir Quant Desk' : 'Open Quant Desk'}</span>
                       <span className="group-hover:translate-x-1 transition-transform">&rarr;</span>
                     </button>
-                    <a
-                      href="/tools/quant-desk.html"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-2.5 py-1 text-[10px] bg-zinc-900 hover:bg-zinc-800 text-cyan-300 rounded border border-zinc-800 uppercase font-bold flex items-center gap-1"
-                    >
-                      <span>New Tab</span>
-                      <span>&nearr;</span>
-                    </a>
                   </div>
                 </div>
 
@@ -2070,20 +2061,11 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
                     </p>
                   </div>
 
-                  <div className="mt-6 sm:mt-8 pt-4 border-t border-zinc-800 flex justify-between items-center font-mono text-xs relative z-10">
+                  <div className="mt-6 sm:mt-8 pt-4 border-t border-zinc-800 flex items-center font-mono text-xs relative z-10">
                     <button onClick={() => handleTabSwitch('calendar-filter')} className="text-cyan-400 hover:text-cyan-300 font-bold uppercase tracking-wider flex items-center gap-1 cursor-pointer">
                       <span>{language === 'es' ? 'Abrir Motor' : 'Open Engine'}</span>
                       <span className="group-hover:translate-x-1 transition-transform">&rarr;</span>
                     </button>
-                    <a
-                      href="/tools/calendar.html"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-2.5 py-1 text-[10px] bg-cyan-500 hover:bg-cyan-400 text-black rounded font-bold uppercase flex items-center gap-1 shadow-md"
-                    >
-                      <span>New Tab</span>
-                      <span>&nearr;</span>
-                    </a>
                   </div>
                 </div>
 
@@ -2108,20 +2090,11 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
                     </p>
                   </div>
 
-                  <div className="mt-6 sm:mt-8 pt-4 border-t border-zinc-800 flex justify-between items-center font-mono text-xs">
+                  <div className="mt-6 sm:mt-8 pt-4 border-t border-zinc-800 flex items-center font-mono text-xs">
                     <button onClick={() => handleTabSwitch('currency-strength')} className="text-cyan-400 hover:text-cyan-300 font-bold uppercase tracking-wider flex items-center gap-1 cursor-pointer">
                       <span>{language === 'es' ? 'Abrir Consola' : 'Open Console'}</span>
                       <span className="group-hover:translate-x-1 transition-transform">&rarr;</span>
                     </button>
-                    <a
-                      href="/tools/valuation.html"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-2.5 py-1 text-[10px] bg-zinc-900 hover:bg-zinc-800 text-cyan-300 rounded border border-zinc-800 uppercase font-bold flex items-center gap-1"
-                    >
-                      <span>New Tab</span>
-                      <span>&nearr;</span>
-                    </a>
                   </div>
                 </div>
 
@@ -2168,20 +2141,11 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
                       Realized variance matrix calculating average daily pip ranges, 100k cash equivalencies, and % realized ranges for 28 currency pairs.
                     </p>
                   </div>
-                  <div className="mt-6 sm:mt-8 pt-3 border-t border-zinc-800/80 flex justify-between items-center font-mono text-xs">
+                  <div className="mt-6 sm:mt-8 pt-3 border-t border-zinc-800/80 flex items-center font-mono text-xs">
                     <button onClick={() => handleTabSwitch('volatility')} className="text-cyan-500 hover:text-cyan-400 font-bold uppercase flex items-center gap-1 cursor-pointer">
                       <span>Open Volatility Grid</span>
                       <span className="group-hover:translate-x-1 transition-transform">&rarr;</span>
                     </button>
-                    <a
-                      href="/tools/volatility-index.html"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-2.5 py-1 text-[10px] bg-zinc-900 hover:bg-zinc-800 text-cyan-300 rounded border border-zinc-800 uppercase font-bold flex items-center gap-1"
-                    >
-                      <span>New Tab</span>
-                      <span>&nearr;</span>
-                    </a>
                   </div>
                 </div>
 
@@ -2201,20 +2165,11 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
                       Calculate standard lot sizes and pip cash values based on invalidation points, account equity, and dynamic cross-rate parities.
                     </p>
                   </div>
-                  <div className="mt-6 sm:mt-8 pt-3 border-t border-zinc-800/80 flex justify-between items-center font-mono text-xs">
+                  <div className="mt-6 sm:mt-8 pt-3 border-t border-zinc-800/80 flex items-center font-mono text-xs">
                     <button onClick={() => handleTabSwitch('calculator')} className="text-emerald-400 hover:text-emerald-300 font-bold uppercase flex items-center gap-1 cursor-pointer">
                       <span>Launch Calculator</span>
                       <span className="group-hover:translate-x-1 transition-transform">&rarr;</span>
                     </button>
-                    <a
-                      href="/tools/risk-calculator.html"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-2.5 py-1 text-[10px] bg-zinc-900 hover:bg-zinc-800 text-emerald-300 rounded border border-zinc-800 uppercase font-bold flex items-center gap-1"
-                    >
-                      <span>New Tab</span>
-                      <span>&nearr;</span>
-                    </a>
                   </div>
                 </div>
 
@@ -2270,7 +2225,7 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
                       Monetary policy rate expectations, automated Hawkish/Dovish classifications, and decision countdown timers.
                     </p>
                   </div>
-                  <div className="mt-6 pt-3 border-t border-zinc-800/80 flex justify-between items-center font-mono text-xs">
+                  <div className="mt-6 pt-3 border-t border-zinc-800/80 flex items-center font-mono text-xs">
                     <a
                       href="https://central-bank-tool.onrender.com/"
                       target="_blank"
@@ -2279,15 +2234,6 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
                     >
                       <span>Open Bank Terminal</span>
                       <span className="group-hover:translate-x-1 transition-transform">&nearr;</span>
-                    </a>
-                    <a
-                      href="https://central-bank-tool.onrender.com/"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-2.5 py-1 text-[10px] bg-zinc-900 hover:bg-zinc-800 text-cyan-300 rounded border border-zinc-800 uppercase font-bold flex items-center gap-1"
-                    >
-                      <span>Launch App</span>
-                      <span>&nearr;</span>
                     </a>
                   </div>
                 </div>
@@ -2305,20 +2251,11 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
                       Macroeconomic expectation ranges, actual result deviations, and Beat/Miss surprise tracking.
                     </p>
                   </div>
-                  <div className="mt-6 pt-3 border-t border-zinc-800/80 flex justify-between items-center font-mono text-xs">
+                  <div className="mt-6 pt-3 border-t border-zinc-800/80 flex items-center font-mono text-xs">
                     <button onClick={() => handleTabSwitch('consensus')} className="text-cyan-500 hover:text-cyan-400 font-bold uppercase flex items-center gap-1 cursor-pointer">
                       <span>Open Consensus Hub</span>
                       <span className="group-hover:translate-x-1 transition-transform">&rarr;</span>
                     </button>
-                    <a
-                      href="/tools/consensus-filter-engine.html"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-2.5 py-1 text-[10px] bg-zinc-900 hover:bg-zinc-800 text-cyan-300 rounded border border-zinc-800 uppercase font-bold flex items-center gap-1"
-                    >
-                      <span>New Tab</span>
-                      <span>&nearr;</span>
-                    </a>
                   </div>
                 </div>
 
