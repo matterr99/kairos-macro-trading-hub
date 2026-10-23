@@ -13,22 +13,26 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script>
-      // Global error shield to prevent third-party cross-origin scripts (e.g. TradingView embed) from triggering noisy Script error overlays
+      // Global error shield to prevent third-party cross-origin scripts (e.g. TradingView embed) or HMR WebSocket from triggering noisy overlays
       (function() {
-        function shouldSuppress(msg, source) {
+        function shouldSuppress(msg, source, err) {
           if (!msg) msg = '';
           var m = String(msg).toLowerCase();
-          var s = String(source || '').toLowerCase();
+          var s = String(source || (err && (err.stack || err.message)) || '').toLowerCase();
           if (m.indexOf('script error') !== -1) return true;
           if (m.indexOf('contentwindow') !== -1) return true;
           if (m.indexOf('cannot listen to the event') !== -1) return true;
           if (m.indexOf('tradingview') !== -1) return true;
+          if (m.indexOf('websocket') !== -1) return true;
+          if (m.indexOf('closed without opened') !== -1) return true;
+          if (m.indexOf('vite:ws') !== -1) return true;
+          if (s.indexOf('@vite/client') !== -1) return true;
           if (s && s.indexOf(window.location.host) === -1 && s.indexOf('localhost') === -1) return true;
           return false;
         }
 
         window.onerror = function(message, source, lineno, colno, error) {
-          if (shouldSuppress(message, source)) {
+          if (shouldSuppress(message, source, error)) {
             return true;
           }
         };
@@ -37,7 +41,7 @@
           if (!e) return;
           var msg = e.message || (e.error && e.error.message) || '';
           var src = e.filename || '';
-          if (shouldSuppress(msg, src)) {
+          if (shouldSuppress(msg, src, e.error)) {
             e.preventDefault && e.preventDefault();
             e.stopPropagation && e.stopPropagation();
             e.stopImmediatePropagation && e.stopImmediatePropagation();
@@ -47,8 +51,9 @@
 
         window.addEventListener('unhandledrejection', function(e) {
           if (!e) return;
-          var reasonStr = String((e.reason && (e.reason.message || e.reason)) || '');
-          if (shouldSuppress(reasonStr, '')) {
+          var reasonStr = String((e.reason && (e.reason.message || e.reason.stack || e.reason)) || '');
+          var stack = String((e.reason && e.reason.stack) || '');
+          if (shouldSuppress(reasonStr, stack, e.reason)) {
             e.preventDefault && e.preventDefault();
             e.stopPropagation && e.stopPropagation();
             e.stopImmediatePropagation && e.stopImmediatePropagation();

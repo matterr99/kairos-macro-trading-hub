@@ -71,6 +71,10 @@ export default function App() {
   };
 
   const handleTabChange = (tab: NavigationTab, subTab?: ToolSubTab) => {
+    if (subTab === 'central-banks') {
+      window.open('https://central-bank-tool.onrender.com/', '_blank');
+      return;
+    }
     setCurrentTab(tab);
     if (subTab) {
       setToolsSubTab(subTab);

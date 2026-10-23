@@ -250,18 +250,21 @@ export function ConsoleView({ onSelectTab, onOpenArticle, language = 'en' }: Con
             </div>
 
             {/* Tool 5: CENTRAL BANKS */}
-            <div
-              onClick={() => onSelectTab('tools', 'central-banks')}
+            <a
+              href="https://central-bank-tool.onrender.com/"
+              target="_blank"
+              rel="noopener noreferrer"
               className="group macro-card p-6 sm:p-7 cursor-pointer flex flex-col justify-between relative overflow-hidden"
             >
               <div className="space-y-3.5 font-mono">
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-zinc-400 uppercase">{language === 'es' ? 'Política Monetaria' : 'Monetary Policy'}</span>
-                  <span className="text-cyan-400 text-[10px] font-bold">G10 Banks</span>
+                  <span className="text-cyan-400 text-[10px] font-bold">G10 Banks &nearr;</span>
                 </div>
 
-                <h3 className="text-base sm:text-lg font-bold text-white group-hover:text-cyan-400 transition-colors uppercase tracking-wide">
-                  {t.tools.hubCard5Title}
+                <h3 className="text-base sm:text-lg font-bold text-white group-hover:text-cyan-400 transition-colors uppercase tracking-wide flex items-center gap-1.5">
+                  <span>{t.tools.hubCard5Title}</span>
+                  <span className="text-cyan-400 text-xs font-mono">&nearr;</span>
                 </h3>
 
                 <p className="text-xs sm:text-sm text-zinc-400 font-sans leading-relaxed font-light">
@@ -273,7 +276,7 @@ export function ConsoleView({ onSelectTab, onOpenArticle, language = 'en' }: Con
                 <span>{t.tools.hubCard5Btn}</span>
                 <span className="group-hover:translate-x-1.5 transition-transform">&rarr;</span>
               </div>
-            </div>
+            </a>
 
             {/* Tool 6: CONSENSUS ENGINE */}
             <div

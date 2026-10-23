@@ -18,9 +18,9 @@ export default defineConfig(({ command }) => {
       },
     },
     server: {
-      // HMR is disabled in AI Studio via DISABLE_HMR env var.
-      hmr: process.env.DISABLE_HMR !== 'true',
-      watch: process.env.DISABLE_HMR === 'true' ? null : {},
+      // HMR is disabled in AI Studio (ignore WebSocket errors)
+      hmr: false,
+      watch: null,
     },
     build: {
       rollupOptions: {

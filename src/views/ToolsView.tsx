@@ -29,7 +29,6 @@ import { QuantDesk } from '../components/QuantDesk';
 import { ValuationRankingChart } from '../components/ValuationRankingChart';
 import { CurrencyIndicatorChart } from '../components/CurrencyIndicatorChart';
 import { SectionDivider } from '../components/SectionDivider';
-import { CentralBankTerminal } from '../components/CentralBankTerminal';
 import {
   normalizeCurrencyCode,
   isG10Currency,
@@ -65,11 +64,15 @@ interface ToolsViewProps {
 }
 
 export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'en' }: ToolsViewProps) {
-  const [activeTab, setActiveTab] = useState<ToolSubTab>(initialSubTab);
+  const [activeTab, setActiveTab] = useState<ToolSubTab>(initialSubTab === 'central-banks' ? 'all' : initialSubTab);
 
   const t = TRANSLATIONS[language];
 
   const handleTabSwitch = (tab: ToolSubTab) => {
+    if (tab === 'central-banks') {
+      window.open('https://central-bank-tool.onrender.com/', '_blank');
+      return;
+    }
     setActiveTab(tab);
     onSubTabChange?.(tab);
   };
@@ -1942,68 +1945,41 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
 
       {/* SUB-NAVIGATION BAR - STICKY FULL WIDTH (Touch-scrollable on mobile & iPad) */}
       <div className="w-full bg-[#040406] border-b border-zinc-900 py-3 sticky top-16 sm:top-18 z-30 shadow-md">
-        <div className="max-w-7xl 2xl:max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 flex items-center justify-between gap-3 overflow-x-auto no-scrollbar touch-scroll font-mono text-xs">
-          <div className="flex items-center gap-2 shrink-0">
-            {[
-              { id: 'all', label: t.tools.subTabs.all },
-              { id: 'quant-desk', label: t.tools.subTabs.quantDesk },
-              { id: 'calendar-filter', label: t.tools.subTabs.calendarFilter, isPrimary: true },
-              { id: 'currency-strength', label: t.tools.subTabs.currencyStrength },
-              { id: 'volatility', label: t.tools.subTabs.volatility },
-              { id: 'calculator', label: t.tools.subTabs.calculator },
-              { id: 'central-banks', label: t.tools.subTabs.centralBanks },
-              { id: 'consensus', label: t.tools.subTabs.consensus },
-            ].map((tab) => (
+        <div className="max-w-7xl 2xl:max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 flex items-center gap-2 overflow-x-auto no-scrollbar touch-scroll font-mono text-xs">
+          {[
+            { id: 'all', label: t.tools.subTabs.all },
+            { id: 'quant-desk', label: t.tools.subTabs.quantDesk },
+            { id: 'calendar-filter', label: t.tools.subTabs.calendarFilter },
+            { id: 'currency-strength', label: t.tools.subTabs.currencyStrength },
+            { id: 'volatility', label: t.tools.subTabs.volatility },
+            { id: 'calculator', label: t.tools.subTabs.calculator },
+            { id: 'central-banks', label: t.tools.subTabs.centralBanks, isExternal: true, href: 'https://central-bank-tool.onrender.com/' },
+            { id: 'consensus', label: t.tools.subTabs.consensus },
+          ].map((tab) => (
+            (tab as any).isExternal ? (
+              <a
+                key={tab.id}
+                href={(tab as any).href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3.5 py-2 uppercase tracking-wider text-[11px] transition-all cursor-pointer whitespace-nowrap flex items-center shrink-0 min-h-[36px] bg-[#0c0c12] text-zinc-400 border border-zinc-800 hover:text-white"
+              >
+                {tab.label}
+              </a>
+            ) : (
               <button
                 key={tab.id}
                 onClick={() => handleTabSwitch(tab.id as ToolSubTab)}
-                className={`px-3.5 py-2 uppercase tracking-wider text-[11px] transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 shrink-0 min-h-[36px] ${
+                className={`px-3.5 py-2 uppercase tracking-wider text-[11px] transition-all cursor-pointer whitespace-nowrap flex items-center shrink-0 min-h-[36px] ${
                   activeTab === tab.id
                     ? 'bg-cyan-500 text-black font-bold shadow-[0_0_12px_rgba(6,182,212,0.4)]'
-                    : (tab as any).isPrimary
-                    ? 'bg-cyan-950/40 text-cyan-300 border border-cyan-700/70 hover:border-cyan-400 hover:text-white font-semibold'
                     : 'bg-[#0c0c12] text-zinc-400 border border-zinc-800 hover:text-white'
                 }`}
               >
-                {(tab as any).isPrimary && (
-                  <span className="w-1.5 h-1.5 bg-cyan-400 animate-ping"></span>
-                )}
                 {tab.label}
               </button>
-            ))}
-          </div>
-
-          <div className="shrink-0 flex items-center gap-2 pl-2 border-l border-zinc-800">
-            {activeTab !== 'all' ? (
-              <a
-                href={
-                  activeTab === 'quant-desk' ? '/tools/quant-desk.html' :
-                  activeTab === 'calendar-filter' ? '/tools/calendar.html' :
-                  activeTab === 'currency-strength' ? '/tools/valuation.html' :
-                  activeTab === 'volatility' ? '/tools/volatility-index.html' :
-                  activeTab === 'calculator' ? '/tools/risk-calculator.html' :
-                  activeTab === 'central-banks' ? '/tools/central-banks.html' :
-                  activeTab === 'consensus' ? '/tools/consensus-filter-engine.html' : '/tools.html'
-                }
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-3 py-1.5 bg-cyan-950/80 hover:bg-cyan-900 text-cyan-300 border border-cyan-700/80 rounded-sm uppercase tracking-wider text-[11px] font-bold flex items-center gap-1.5 transition shadow-sm"
-              >
-                <span>{language === 'es' ? 'Abrir en pestaña nueva' : 'Open in New Tab'}</span>
-                <span className="text-cyan-400 font-black">&nearr;</span>
-              </a>
-            ) : (
-              <a
-                href="/tools.html"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-3 py-1.5 bg-[#0c0c14] hover:bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800 rounded-sm uppercase tracking-wider text-[11px] font-bold flex items-center gap-1.5 transition"
-              >
-                <span>{language === 'es' ? 'Hub Independiente' : 'Standalone Hub'}</span>
-                <span className="text-cyan-400">&nearr;</span>
-              </a>
-            )}
-          </div>
+            )
+          ))}
         </div>
       </div>
 
@@ -2274,26 +2250,43 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
                   className="group macro-card p-6 sm:p-8 flex flex-col justify-between"
                 >
                   <div className="space-y-3 font-mono">
-                    <span className="text-cyan-400 text-[10px] font-bold uppercase">// POLICY_RADAR_V2</span>
-                    <h3 className="text-base font-bold text-white uppercase tracking-wide cursor-pointer" onClick={() => handleTabSwitch('central-banks')}>
-                      Central Bank Rate Terminal
-                    </h3>
+                    <div className="flex items-center justify-between text-[10px]">
+                      <span className="text-cyan-400 font-bold uppercase">// POLICY_RADAR_V2</span>
+                      <span className="bg-cyan-950/70 text-cyan-300 border border-cyan-700/60 px-2 py-0.5 text-[9px] font-bold uppercase flex items-center gap-1">
+                        <span>EXTERNAL APP</span>
+                        <span className="text-[10px]">&nearr;</span>
+                      </span>
+                    </div>
+                    <a
+                      href="https://central-bank-tool.onrender.com/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-base font-bold text-white group-hover:text-cyan-400 transition-colors uppercase tracking-wide flex items-center gap-2 cursor-pointer block"
+                    >
+                      <span>Central Bank Rate Terminal</span>
+                      <span className="text-cyan-400 text-xs font-mono">&nearr;</span>
+                    </a>
                     <p className="text-xs text-zinc-400 font-sans leading-relaxed font-light">
                       Monetary policy rate expectations, automated Hawkish/Dovish classifications, and decision countdown timers.
                     </p>
                   </div>
                   <div className="mt-6 pt-3 border-t border-zinc-800/80 flex justify-between items-center font-mono text-xs">
-                    <button onClick={() => handleTabSwitch('central-banks')} className="text-cyan-500 hover:text-cyan-400 font-bold uppercase flex items-center gap-1 cursor-pointer">
-                      <span>Open Bank Terminal</span>
-                      <span className="group-hover:translate-x-1 transition-transform">&rarr;</span>
-                    </button>
                     <a
-                      href="/tools/central-banks.html"
+                      href="https://central-bank-tool.onrender.com/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-cyan-500 hover:text-cyan-400 font-bold uppercase flex items-center gap-1 cursor-pointer"
+                    >
+                      <span>Open Bank Terminal</span>
+                      <span className="group-hover:translate-x-1 transition-transform">&nearr;</span>
+                    </a>
+                    <a
+                      href="https://central-bank-tool.onrender.com/"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="px-2.5 py-1 text-[10px] bg-zinc-900 hover:bg-zinc-800 text-cyan-300 rounded border border-zinc-800 uppercase font-bold flex items-center gap-1"
                     >
-                      <span>New Tab</span>
+                      <span>Launch App</span>
                       <span>&nearr;</span>
                     </a>
                   </div>
@@ -2926,14 +2919,7 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
         </section>
       )}
 
-      {/* SUB-VIEW: CENTRAL BANK TERMINAL */}
-      {activeTab === 'central-banks' && (
-        <section className="w-full py-10 sm:py-16 border-b border-zinc-900 bg-[#020203]">
-          <div className="max-w-7xl 2xl:max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
-            <CentralBankTerminal language={language} />
-          </div>
-        </section>
-      )}
+
 
       {/* SUB-VIEW: CONSENSUS ENGINE */}
       {activeTab === 'consensus' && (
