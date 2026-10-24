@@ -550,25 +550,23 @@
         // ==========================================
         // 2. INPUT SANITIZATION & VALUE PARSER
         // ==========================================
-        function parseInputValue(input, type) {
+        function parseInputValue(input, type, eventName = '') {
             if (input === null || input === undefined || input === '') return null;
 
             // Clean string, normalize whitespace and non-breaking spaces
-            let strVal = String(input).trim().replace(/[\u00A0\u200B\r\n]/g, '');
-            if (strVal === '-' || strVal === 'N/A' || strVal === 'n/a' || strVal === 'ND' || strVal === '') return null;
+            let strVal = String(input).trim().replace(/[\u00A0\u200B\r\n\t]/g, '');
+            if (strVal === '-' || strVal === 'N/A' || strVal === 'n/a' || strVal === 'ND' || strVal === '' || strVal === 'NaN') return null;
 
             const isExplicitPercent = strVal.includes('%');
             const hasK = /k$/i.test(strVal) || /k\b/i.test(strVal);
-            const hasM = /m$/i.test(strVal) || /m\b/i.test(strVal);
-            const hasB = /b$/i.test(strVal) || /b\b/i.test(strVal);
 
-            // Thousand commas & European comma decimal sanitization
+            // European comma decimal sanitization (e.g. "55,6" -> "55.6", "0,2%" -> "0.2%")
             if (strVal.includes(',') && !strVal.includes('.')) {
                 const commaParts = strVal.split(',');
                 if (commaParts.length === 2 && commaParts[1].replace(/[^0-9]/g, '').length === 3 && parseInt(commaParts[0], 10) > 0 && !isExplicitPercent) {
-                    strVal = strVal.replace(/,/g, '');
+                    strVal = strVal.replace(/,/g, ''); // thousand separator e.g. 145,000
                 } else {
-                    strVal = strVal.replace(',', '.');
+                    strVal = strVal.replace(',', '.'); // decimal separator e.g. 55,6
                 }
             } else if (strVal.includes(',') && strVal.includes('.')) {
                 if (strVal.indexOf('.') < strVal.indexOf(',')) {
@@ -578,116 +576,53 @@
                 }
             }
 
-            let cleanStr = strVal.replace(/[%+]/g, '').trim();
+            let cleanStr = strVal.replace(/[%+]/g, '').replace(/k/gi, '').trim();
+            let num = parseFloat(cleanStr);
+            if (isNaN(num)) return null;
 
-            // A. Jobs in Thousands (NFP, Jobs changes)
-            const jobsInThousands = ["NFP", "JOBS_K", "CAD_JOBS", "GER_UNEMP_CHANGE", "CHF_UNEMP_CHANGE", "GBP_CLAIMANT"];
-            if (jobsInThousands.includes(type)) {
-                cleanStr = cleanStr.replace(/k/gi, '').trim();
-                let num = parseFloat(cleanStr);
-                if (isNaN(num)) return null;
-                // If user/file provided raw thousands (e.g. 145000 or -23000), scale down to thousands (145)
+            const evLower = String(eventName || '').toLowerCase();
+            const typeUpper = String(type || '').toUpperCase();
+
+            // 1. Fix PMI & 0-100 Indices scaling (< 1.0 malformed decimals)
+            if (typeUpper === 'PMI' || typeUpper === 'AUD_SERVICES' || evLower.includes('pmi')) {
+                if (Math.abs(num) < 1.0 && Math.abs(num) > 0) {
+                    if (Math.abs(num) >= 0.3) num = num * 100;
+                    else if (Math.abs(num) >= 0.03) num = num * 1000;
+                    else num = 50 + (num * 100);
+                }
+                return parseFloat(num.toFixed(1));
+            }
+
+            // 2. Fix Unemployment scaling (rate vs change)
+            if (typeUpper === 'UNEMP_RATE' || typeUpper === 'EUR_UNEMP_FIXED' || (evLower.includes('unemp') && (evLower.includes('rate') || evLower.includes('tasa') || evLower.includes('paro')))) {
+                if (Math.abs(num) < 0.01 && Math.abs(num) > 0) {
+                    num = num * 10; // e.g. 0.0041 -> 0.041
+                } else if (isExplicitPercent || Math.abs(num) >= 0.20) {
+                    num = num / 100.0; // e.g. 4.1% or 4.1 -> 0.041
+                }
+                return parseFloat(num.toFixed(4));
+            }
+
+            // 3. Jobs in Thousands (NFP, Jobs changes)
+            const thousandsTypes = ["NFP", "JOBS_K", "CAD_JOBS", "GBP_CLAIMANT", "GER_UNEMP_CHANGE", "CHF_UNEMP_CHANGE"];
+            if (thousandsTypes.includes(typeUpper) || evLower.includes('nfp') || evLower.includes('payrolls') || evLower.includes('claimant')) {
                 if (Math.abs(num) >= 1000 && !hasK) {
                     num = num / 1000;
                 }
-                return num;
+                return parseFloat(num.toFixed(1));
             }
 
-            // B. Percentage Indicators (Unemployment Rate, CPI, Retail Sales, GDP)
-            const percentTypes = ["CPI", "UNEMP_RATE", "PCT_GROWTH", "EUR_UNEMP_FIXED", "CARD_TRANS", "GBP_RETAIL"];
-            if (percentTypes.includes(type)) {
-                cleanStr = cleanStr.replace(/k/gi, '').trim();
-                let num = parseFloat(cleanStr);
-                if (isNaN(num)) return null;
-
-                if (isExplicitPercent) {
-                    // If input is a percentage string (e.g., "4.1%" or "4.18%"), convert to decimal (0.041 or 0.0418)
-                    // If already a tiny decimal with accidental % (e.g. "0.041%" or "0.0618%"):
-                    if (Math.abs(num) > 0 && Math.abs(num) <= 0.20 && String(cleanStr).startsWith('0.')) {
-                        return num;
-                    }
-                    return num / 100.0;
-                } else {
-                    // If input is already in standard decimal form (between 0.01 and 0.20, e.g., 0.041 for 4.1%), DO NOT divide by 100 again (prevents 0.00618 bug).
-                    // Also handles small MoM decimal rates (e.g. 0.002 for 0.2%)
-                    if (Math.abs(num) <= 0.20) {
-                        return num;
-                    }
-                    // If input is a whole number above 0.20 (e.g., 4.1 or 6.3), divide by 100 to get decimal (0.041 / 0.063)
-                    return num / 100.0;
+            // 4. Percentage metrics (CPI, Retail Sales, GDP, Card Transactions)
+            const percentTypes = ["CPI", "PCT_GROWTH", "CARD_TRANS", "GBP_RETAIL"];
+            if (percentTypes.includes(typeUpper) || isExplicitPercent) {
+                if (isExplicitPercent || Math.abs(num) >= 0.05) {
+                    num = num / 100.0; // e.g. "0.2%" or "0.2" -> 0.002; "2.5%" -> 0.025
                 }
+                return parseFloat(num.toFixed(4));
             }
 
-            // C. Large suffix scales
-            if (hasK) {
-                let num = parseFloat(cleanStr.replace(/k/gi, ''));
-                return isNaN(num) ? null : num * 1000;
-            }
-            if (hasM) {
-                let num = parseFloat(cleanStr.replace(/m/gi, ''));
-                return isNaN(num) ? null : num * 1000000;
-            }
-            if (hasB) {
-                let num = parseFloat(cleanStr.replace(/b/gi, ''));
-                return isNaN(num) ? null : num * 1000000000;
-            }
-
-            // D. Index / Survey / PMI / General numbers
-            let num = parseFloat(cleanStr);
-            return isNaN(num) ? null : num;
-        }
-
-        // ==========================================
-        // 3. INDEX & SURVEY SCALE MATCHING
-        // ==========================================
-        function normalizeIndexIndicatorScales(ind) {
-            if (!ind) return;
-            const indexTypes = ["PMI", "CONFIDENCE", "INDEX_SMALL", "SURVEY_5", "ANZ_BIZ", "AUD_SERVICES"];
-            const isIndexIndicator = indexTypes.includes(ind.type) ||
-                /\b(index|sentiment|confidence|survey|climate|barometer|westpac|ifo|nfib|cfib|tankan|kof|seco|ivey|cbi|gfk|aig)\b/i.test(ind.name);
-            
-            if (!isIndexIndicator) return;
-
-            const fields = ['previous', 'forecast', 'actual'];
-            
-            // Determine if there is a known raw index level (>= 15, e.g. 89.1, 85.5, 93.1)
-            let rawIndexBaseline = null;
-            for (const f of fields) {
-                if (typeof ind[f] === 'number' && Math.abs(ind[f]) >= 15) {
-                    rawIndexBaseline = ind[f];
-                    break;
-                }
-            }
-
-            if (rawIndexBaseline !== null) {
-                // If one value is an index level (e.g. 89.1) and another is a decimal net change (e.g. -0.06),
-                // do not mix them in the same row. Normalize or ignore mismatched scale fields to prevent false -2 max scoring spikes.
-                for (const f of fields) {
-                    const val = ind[f];
-                    if (typeof val === 'number' && Math.abs(val) > 0 && Math.abs(val) < 1.0) {
-                        const normalized = parseFloat((rawIndexBaseline * (1 + val)).toFixed(1));
-                        if (Math.abs(normalized - rawIndexBaseline) < 15) {
-                            ind[f] = normalized;
-                        } else {
-                            ind[f] = null;
-                        }
-                    }
-                }
-
-                // Safety guard: ensure actual and previous are on the exact same scale
-                if (typeof ind.actual === 'number' && typeof ind.previous === 'number') {
-                    const isActualLevel = Math.abs(ind.actual) >= 15;
-                    const isPrevLevel = Math.abs(ind.previous) >= 15;
-                    if (isActualLevel !== isPrevLevel) {
-                        // Prevent mixing raw index total with decimal net change
-                        if (isActualLevel && !isPrevLevel) {
-                            ind.previous = ind.actual;
-                        } else if (!isActualLevel && isPrevLevel) {
-                            ind.actual = ind.previous;
-                        }
-                    }
-                }
-            }
+            // 5. General numbers / surveys / confidence indices
+            return num;
         }
 
         function parseWeight(weight) {
@@ -820,7 +755,7 @@
             else if (currentFilter === 'bullish') pairsData = pairsData.filter(p => p.diff > 0);
             else if (currentFilter === 'bearish') pairsData = pairsData.filter(p => p.diff < 0);
 
-            if (currentSort === 'divergence') pairsData.sort((a, b) => b.absDiff - a.diff);
+            if (currentSort === 'divergence') pairsData.sort((a, b) => b.absDiff - a.absDiff);
             else if (currentSort === 'bullish') pairsData.sort((a, b) => b.diff - a.diff);
             else if (currentSort === 'bearish') pairsData.sort((a, b) => a.diff - b.diff);
 
@@ -884,8 +819,7 @@
             if (field === 'date' || field === 'name') {
                 appData[curr][index][field] = val;
             } else {
-                appData[curr][index][field] = parseInputValue(val, appData[curr][index].type);
-                normalizeIndexIndicatorScales(appData[curr][index]);
+                appData[curr][index][field] = parseInputValue(val, appData[curr][index].type, appData[curr][index].name);
             }
             saveToLocalStorage();
             refreshApp();
@@ -960,13 +894,28 @@
             }
         }
 
+        function validateAppData(data) {
+            const requiredCurrencies = ["USD", "EUR", "GBP", "JPY", "AUD", "NZD", "CAD", "CHF"];
+            if (typeof data !== 'object' || data === null) return false;
+            return requiredCurrencies.every(curr => Array.isArray(data[curr]));
+        }
+
         function exportData() {
             try {
-                // 1. Fix Backup Export Engine: Deep-clone appData before stringifying
+                // Ensure calculations are freshly computed
+                calculateTotals();
                 const cleanData = JSON.parse(JSON.stringify(appData));
+                Object.keys(cleanData).forEach(curr => {
+                    if (Array.isArray(cleanData[curr])) {
+                        cleanData[curr].forEach(ind => {
+                            const evalRes = evaluateIndicator(ind);
+                            ind.netChange = evalRes.netChange;
+                            ind.score = evalRes.score;
+                        });
+                    }
+                });
                 const jsonStr = JSON.stringify(cleanData, null, 2);
                 const fileName = `kairos_valuation_backup_${new Date().toISOString().slice(0, 10)}.json`;
-                // iOS / Safari compatible Blob download
                 const blob = new Blob([jsonStr], { type: "application/json;charset=utf-8;" });
 
                 if (window.navigator && window.navigator.msSaveOrOpenBlob) {
@@ -998,6 +947,42 @@
 
         function triggerImport() { document.getElementById('jsonFileInput').click(); }
 
+        function sanitizeImportedData(rawObj) {
+            let targetObj = rawObj;
+            if (rawObj && typeof rawObj === 'object') {
+                if (rawObj.data && validateAppData(rawObj.data)) targetObj = rawObj.data;
+                else if (rawObj.appData && validateAppData(rawObj.appData)) targetObj = rawObj.appData;
+            }
+            if (!validateAppData(targetObj)) return null;
+
+            const cleaned = JSON.parse(JSON.stringify(targetObj));
+            Object.keys(cleaned).forEach(k => {
+                if (Array.isArray(cleaned[k])) {
+                    cleaned[k] = cleaned[k].map(item => {
+                        if (!item) return item;
+                        let cleanTime = item.time || "—";
+                        if (typeof cleanTime === 'string' && (cleanTime.includes("1899") || cleanTime.includes("1900"))) {
+                            const timeMatch = cleanTime.match(/\b(\d{1,2}:\d{2})(:\d{2})?\b/);
+                            cleanTime = timeMatch ? timeMatch[1] : "—";
+                        }
+                        let cleanDate = item.date;
+                        if (typeof cleanDate === 'string' && (cleanDate.includes("1899") || cleanDate.includes("1900"))) {
+                            cleanDate = new Date().toISOString().slice(0, 10);
+                        }
+                        const evalRes = evaluateIndicator(item);
+                        return {
+                            ...item,
+                            time: cleanTime,
+                            date: cleanDate !== undefined ? cleanDate : item.date,
+                            netChange: evalRes.netChange,
+                            score: evalRes.score
+                        };
+                    });
+                }
+            });
+            return cleaned;
+        }
+
         function importData(event) {
             const file = event.target && event.target.files && event.target.files[0];
             if (!file) return;
@@ -1012,33 +997,10 @@
             reader.onload = function(e) {
                 try {
                     const content = e.target.result;
-                    const imported = JSON.parse(content);
-                    if (imported && typeof imported === 'object' && Object.keys(imported).length > 0) {
-                        // Auto-repair 1899 ghost date strings from previous backups
-                        Object.keys(imported).forEach(k => {
-                            if (Array.isArray(imported[k])) {
-                                imported[k] = imported[k].map(item => {
-                                    if (!item) return item;
-                                    let cleanTime = item.time || "—";
-                                    if (typeof cleanTime === 'string' && (cleanTime.includes("1899") || cleanTime.includes("1900"))) {
-                                       const timeMatch = cleanTime.match(/\b(\d{1,2}:\d{2})(:\d{2})?\b/);
-                                       if (timeMatch) cleanTime = timeMatch[1];
-                                       else cleanTime = "—";
-                                    }
-                                    let cleanDate = item.date;
-                                    if (typeof cleanDate === 'string' && (cleanDate.includes("1899") || cleanDate.includes("1900"))) {
-                                       cleanDate = new Date().toISOString().slice(0, 10);
-                                    }
-                                    return {
-                                        ...item,
-                                        time: cleanTime,
-                                        date: cleanDate !== undefined ? cleanDate : item.date
-                                    };
-                                });
-                            }
-                        });
-                        // Independent deep-cloned instance to avoid reference contamination
-                        appData = JSON.parse(JSON.stringify(imported));
+                    const parsed = JSON.parse(content);
+                    const sanitized = sanitizeImportedData(parsed);
+                    if (sanitized) {
+                        appData = sanitized;
                         saveToLocalStorage();
                         refreshApp();
                         if (typeof switchTab === 'function') switchTab(activeTab);
@@ -1117,14 +1079,41 @@
             const clean = normalizeEventName(rawEventName);
             const ev = String(rawEventName).toLowerCase();
 
+            const isYoYEvent = /\b(yoy|y\/y|year on year|interanual|anual|año sobre año)\b/i.test(ev) || /\(yoy\)/i.test(ev);
+            const isMoMEvent = /\b(mom|m\/m|month on month|mensual|mes sobre mes)\b/i.test(ev) || /\(mom\)/i.test(ev);
+            const isCoreEvent = /\b(core|subyacente|ex food|sin alimentos)\b/i.test(ev);
+            const isServicesEvent = /\b(services|servicios|non-manufacturing|no manufacturero)\b/i.test(ev);
+            const isMfgEvent = /\b(mfg|manufacturing|manufacturero|manufactura)\b/i.test(ev);
+            const isChangeJobEvent = /\b(change|cambio|claimant|subsidio|creation|creacion|payrolls|nominas)\b/i.test(ev);
+            const isRateJobEvent = /\b(rate|tasa|paro|jobless rate)\b/i.test(ev) && !isChangeJobEvent;
+
+            const isCompatible = (ind) => {
+                const iname = ind.name.toLowerCase();
+                // If indicator tracks MoM specifically, do not match YoY event
+                if (iname.includes('mom') && isYoYEvent && !iname.includes('yoy')) return false;
+                // If event is MoM and indicator is YoY
+                if (iname.includes('yoy') && isMoMEvent && !iname.includes('mom')) return false;
+                // Core CPI shouldn't match headline CPI MoM unless indicator itself is core
+                if (isCoreEvent && !iname.includes('core') && !iname.includes('subyacente')) return false;
+                // Services vs Mfg
+                if (isServicesEvent && !isMfgEvent && (iname.includes('mfg') || iname.includes('manufacturing'))) return false;
+                if (isMfgEvent && !isServicesEvent && (iname.includes('services') || iname.includes('non-mfg'))) return false;
+                // Jobs rate vs change
+                if (isChangeJobEvent && (iname.includes('unemployment rate') || iname === 'unemp rate')) return false;
+                if (isRateJobEvent && (iname.includes('change') || iname.includes('claimant'))) return false;
+                return true;
+            };
+
             // 1. Direct exact or normalized match
             for (const ind of indicators) {
+                if (!isCompatible(ind)) continue;
                 if (ind.name.toLowerCase() === ev) return ind;
                 if (normalizeEventName(ind.name) === clean) return ind;
             }
 
             // 2. High-precision domain keyword matching
             for (const ind of indicators) {
+                if (!isCompatible(ind)) continue;
                 const iname = ind.name.toLowerCase();
 
                 // PMIs
@@ -1192,6 +1181,7 @@
 
             // 3. Normalized substring inclusion
             for (const ind of indicators) {
+                if (!isCompatible(ind)) continue;
                 const inameNorm = normalizeEventName(ind.name);
                 if (inameNorm.length >= 4 && (clean.includes(inameNorm) || inameNorm.includes(clean))) return ind;
             }
@@ -1201,6 +1191,7 @@
             let bestScore = 0;
             const cleanWords = clean.split(/\s+/).filter(w => w.length > 2);
             for (const ind of indicators) {
+                if (!isCompatible(ind)) continue;
                 const inameWords = normalizeEventName(ind.name).split(/\s+/).filter(w => w.length > 2);
                 if (!inameWords.length) continue;
                 const common = cleanWords.filter(w => inameWords.includes(w));
@@ -1492,7 +1483,7 @@
                         let hasChanges = false;
 
                         if (actualCol !== -1 && row[actualCol] !== undefined && row[actualCol] !== '' && row[actualCol] !== '-' && row[actualCol] !== 'N/A') {
-                            const parsed = parseInputValue(row[actualCol], matchedInd.type);
+                            const parsed = parseInputValue(row[actualCol], matchedInd.type, matchedInd.name);
                             if (parsed !== null) {
                                 matchedInd.actual = parsed;
                                 hasChanges = true;
@@ -1500,7 +1491,7 @@
                         }
 
                         if (forecastCol !== -1 && row[forecastCol] !== undefined && row[forecastCol] !== '' && row[forecastCol] !== '-' && row[forecastCol] !== 'N/A') {
-                            const parsed = parseInputValue(row[forecastCol], matchedInd.type);
+                            const parsed = parseInputValue(row[forecastCol], matchedInd.type, matchedInd.name);
                             if (parsed !== null) {
                                 matchedInd.forecast = parsed;
                                 hasChanges = true;
@@ -1508,7 +1499,7 @@
                         }
 
                         if (prevCol !== -1 && row[prevCol] !== undefined && row[prevCol] !== '' && row[prevCol] !== '-' && row[prevCol] !== 'N/A') {
-                            const parsed = parseInputValue(row[prevCol], matchedInd.type);
+                            const parsed = parseInputValue(row[prevCol], matchedInd.type, matchedInd.name);
                             if (parsed !== null) {
                                 matchedInd.previous = parsed;
                                 hasChanges = true;
@@ -1516,9 +1507,6 @@
                         }
 
                         if (hasChanges) {
-                            // Enforce Index & Survey Scale Matching (Westpac, IFO, NFIB, Sentiment)
-                            normalizeIndexIndicatorScales(matchedInd);
-
                             // Format release date with serial number converter
                             matchedInd.date = (dateCol !== -1 && row[dateCol]) ? formatToYMD(row[dateCol]) : currentDateHeader;
                             updatedCount++;
@@ -1560,33 +1548,15 @@
                 reader.onload = function(e) {
                     try {
                         const imported = JSON.parse(e.target.result);
-                        if (imported && typeof imported === 'object') {
-                            Object.keys(imported).forEach(k => {
-                                if (Array.isArray(imported[k])) {
-                                    imported[k] = imported[k].map(item => {
-                                        if (!item) return item;
-                                        let cleanTime = item.time || "—";
-                                        if (typeof cleanTime === 'string' && (cleanTime.includes("1899") || cleanTime.includes("1900"))) {
-                                           const timeMatch = cleanTime.match(/\b(\d{1,2}:\d{2})(:\d{2})?\b/);
-                                           if (timeMatch) cleanTime = timeMatch[1];
-                                           else cleanTime = "—";
-                                        }
-                                        let cleanDate = item.date;
-                                        if (typeof cleanDate === 'string' && (cleanDate.includes("1899") || cleanDate.includes("1900"))) {
-                                           cleanDate = new Date().toISOString().slice(0, 10);
-                                        }
-                                        return {
-                                            ...item,
-                                            time: cleanTime,
-                                            date: cleanDate !== undefined ? cleanDate : item.date
-                                        };
-                                    });
-                                }
-                            });
-                            appData = imported;
+                        const sanitized = sanitizeImportedData(imported);
+                        if (sanitized) {
+                            appData = sanitized;
                             saveToLocalStorage();
                             refreshApp();
+                            if (typeof switchTab === 'function') switchTab(activeTab);
                             alert('Backup loaded successfully!');
+                        } else {
+                            alert('Invalid JSON file format. Must contain valid G10 currency indicator arrays.');
                         }
                     } catch(err) {
                         alert('Invalid JSON file.');

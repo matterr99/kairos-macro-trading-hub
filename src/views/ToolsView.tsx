@@ -379,9 +379,61 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
     });
   };
 
+  const validateAppData = (data: any): boolean => {
+    const requiredCurrencies = ["USD", "EUR", "GBP", "JPY", "AUD", "NZD", "CAD", "CHF"];
+    if (typeof data !== 'object' || data === null) return false;
+    return requiredCurrencies.every(curr => Array.isArray(data[curr]));
+  };
+
+  const sanitizeImportedState = (rawObj: any): Record<string, MacroIndicator[]> | null => {
+    let targetObj = rawObj;
+    if (rawObj && typeof rawObj === 'object') {
+      if (rawObj.data && validateAppData(rawObj.data)) targetObj = rawObj.data;
+      else if (rawObj.appData && validateAppData(rawObj.appData)) targetObj = rawObj.appData;
+    }
+    if (!validateAppData(targetObj)) return null;
+
+    const cleaned: Record<string, MacroIndicator[]> = JSON.parse(JSON.stringify(targetObj));
+    Object.keys(cleaned).forEach(k => {
+      if (Array.isArray(cleaned[k])) {
+        cleaned[k] = cleaned[k].map((item: any) => {
+          if (!item) return item;
+          let cleanTime = item.time || "—";
+          if (typeof cleanTime === 'string' && (cleanTime.includes("1899") || cleanTime.includes("1900"))) {
+            const timeMatch = cleanTime.match(/\b(\d{1,2}:\d{2})(:\d{2})?\b/);
+            cleanTime = timeMatch ? timeMatch[1] : "—";
+          }
+          let cleanDate = item.date;
+          if (typeof cleanDate === 'string' && (cleanDate.includes("1899") || cleanDate.includes("1900"))) {
+            cleanDate = new Date().toISOString().slice(0, 10);
+          }
+          const evalRes = evaluateIndicator(item);
+          return {
+            ...item,
+            time: cleanTime,
+            date: cleanDate !== undefined ? cleanDate : item.date,
+            netChange: evalRes.netChange,
+            score: evalRes.score
+          };
+        });
+      }
+    });
+    return cleaned;
+  };
+
   const handleExportData = () => {
     try {
+      calculateCurrencyTotals();
       const cleanData = JSON.parse(JSON.stringify(currencyIndicators));
+      Object.keys(cleanData).forEach(curr => {
+        if (Array.isArray(cleanData[curr])) {
+          cleanData[curr].forEach((ind: MacroIndicator) => {
+            const evalRes = evaluateIndicator(ind);
+            ind.netChange = evalRes.netChange;
+            ind.score = evalRes.score;
+          });
+        }
+      });
       const jsonStr = JSON.stringify(cleanData, null, 2);
       const fileName = `kairos_macro_valuation_data_${new Date().toISOString().split('T')[0]}.json`;
       const blob = new Blob([jsonStr], { type: "application/json;charset=utf-8;" });
@@ -463,37 +515,15 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
     fileReader.onload = (event) => {
       try {
         const parsed = JSON.parse(event.target?.result as string);
-        if (parsed && typeof parsed === 'object') {
-          Object.keys(parsed).forEach(k => {
-            if (Array.isArray(parsed[k])) {
-              parsed[k] = parsed[k].map((item: any) => {
-                if (!item) return item;
-                let cleanTime = item.time || "—";
-                if (typeof cleanTime === 'string' && (cleanTime.includes("1899") || cleanTime.includes("1900"))) {
-                   const timeMatch = cleanTime.match(/\b(\d{1,2}:\d{2})(:\d{2})?\b/);
-                   if (timeMatch) cleanTime = timeMatch[1];
-                   else cleanTime = "—";
-                }
-                let cleanDate = item.date;
-                if (typeof cleanDate === 'string' && (cleanDate.includes("1899") || cleanDate.includes("1900"))) {
-                   cleanDate = new Date().toISOString().slice(0, 10);
-                }
-                return {
-                  ...item,
-                  time: cleanTime,
-                  date: cleanDate !== undefined ? cleanDate : item.date
-                };
-              });
-            }
-          });
-          const cleanParsed = JSON.parse(JSON.stringify(parsed));
-          setCurrencyIndicators(cleanParsed);
+        const sanitized = sanitizeImportedState(parsed);
+        if (sanitized) {
+          setCurrencyIndicators(sanitized);
           try {
-            localStorage.setItem('forex_dashboard_data_v2', JSON.stringify(cleanParsed));
+            localStorage.setItem('forex_dashboard_data_v2', JSON.stringify(sanitized));
           } catch {}
           alert(language === 'es' ? "¡Copia de seguridad de valoración importada con éxito!" : "Macro Valuation Data Imported Successfully.");
         } else {
-          alert(language === 'es' ? "Formato de archivo JSON inválido." : "Invalid JSON data file format.");
+          alert(language === 'es' ? "Formato de archivo JSON inválido. Debe contener las 8 divisas G10." : "Invalid JSON data file format. Must contain valid G10 currency arrays.");
         }
       } catch (err) {
         alert(language === 'es' ? "Formato de archivo JSON inválido." : "Invalid JSON data file format.");
@@ -572,9 +602,30 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
     const clean = normalizeEventText(rawEvent);
     const ev = rawEvent.toLowerCase();
 
+    const isYoYEvent = /\b(yoy|y\/y|year on year|interanual|anual|año sobre año)\b/i.test(ev) || /\(yoy\)/i.test(ev);
+    const isMoMEvent = /\b(mom|m\/m|month on month|mensual|mes sobre mes)\b/i.test(ev) || /\(mom\)/i.test(ev);
+    const isCoreEvent = /\b(core|subyacente|ex food|sin alimentos)\b/i.test(ev);
+    const isServicesEvent = /\b(services|servicios|non-manufacturing|no manufacturero)\b/i.test(ev);
+    const isMfgEvent = /\b(mfg|manufacturing|manufacturero|manufactura)\b/i.test(ev);
+    const isChangeJobEvent = /\b(change|cambio|claimant|subsidio|creation|creacion|payrolls|nominas)\b/i.test(ev);
+    const isRateJobEvent = /\b(rate|tasa|paro|jobless rate)\b/i.test(ev) && !isChangeJobEvent;
+
+    const isCompatible = (ind: MacroIndicator) => {
+      const iname = ind.name.toLowerCase();
+      if (iname.includes('mom') && isYoYEvent && !iname.includes('yoy')) return false;
+      if (iname.includes('yoy') && isMoMEvent && !iname.includes('mom')) return false;
+      if (isCoreEvent && !iname.includes('core') && !iname.includes('subyacente')) return false;
+      if (isServicesEvent && !isMfgEvent && (iname.includes('mfg') || iname.includes('manufacturing'))) return false;
+      if (isMfgEvent && !isServicesEvent && (iname.includes('services') || iname.includes('non-mfg'))) return false;
+      if (isChangeJobEvent && (iname.includes('unemployment rate') || iname === 'unemp rate')) return false;
+      if (isRateJobEvent && (iname.includes('change') || iname.includes('claimant'))) return false;
+      return true;
+    };
+
     // 1. Direct match on name or normalized string
     for (let i = 0; i < indList.length; i++) {
       const ind = indList[i];
+      if (!isCompatible(ind)) continue;
       if (ind.name.toLowerCase() === ev) return i;
       if (normalizeEventText(ind.name) === clean) return i;
     }
@@ -582,6 +633,7 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
     // 2. High-precision domain keyword matching per currency
     for (let i = 0; i < indList.length; i++) {
       const ind = indList[i];
+      if (!isCompatible(ind)) continue;
       const iname = ind.name.toLowerCase();
 
       // PMIs
@@ -687,6 +739,7 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
 
     // 3. Normalized substring inclusion
     for (let i = 0; i < indList.length; i++) {
+      if (!isCompatible(indList[i])) continue;
       const inameNorm = normalizeEventText(indList[i].name);
       if (inameNorm.length >= 4 && (clean.includes(inameNorm) || inameNorm.includes(clean))) {
         return i;
@@ -698,6 +751,7 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
     let bestScore = 0;
     const cleanWords = clean.split(/\s+/).filter(w => w.length > 2);
     for (let i = 0; i < indList.length; i++) {
+      if (!isCompatible(indList[i])) continue;
       const inameWords = normalizeEventText(indList[i].name).split(/\s+/).filter(w => w.length > 2);
       if (!inameWords.length) continue;
       const common = cleanWords.filter(w => inameWords.includes(w));
@@ -905,13 +959,24 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
       reader.onload = (evt) => {
         try {
           const imported = JSON.parse(evt.target?.result as string);
-          if (imported && typeof imported === 'object') {
-            setCurrencyIndicators(imported);
+          const sanitized = sanitizeImportedState(imported);
+          if (sanitized) {
+            setCurrencyIndicators(sanitized);
+            try {
+              localStorage.setItem('forex_dashboard_data_v2', JSON.stringify(sanitized));
+            } catch {}
             setUploadModal({
               isOpen: true,
               type: 'success',
               title: language === 'es' ? "Importación Exitosa" : "Backup Restored",
               message: language === 'es' ? "¡Copia de seguridad de Valoración restaurada con éxito!" : "Currency Indicators backup restored successfully!"
+            });
+          } else {
+            setUploadModal({
+              isOpen: true,
+              type: 'error',
+              title: language === 'es' ? "Error en Archivo" : "Invalid Backup",
+              message: language === 'es' ? "Archivo JSON inválido. Debe contener las 8 divisas G10." : "Invalid backup JSON file. Must contain valid G10 currency arrays."
             });
           }
         } catch {
