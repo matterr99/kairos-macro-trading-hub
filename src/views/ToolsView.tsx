@@ -612,11 +612,15 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
 
     const isCompatible = (ind: MacroIndicator) => {
       const iname = ind.name.toLowerCase();
-      if (iname.includes('mom') && isYoYEvent && !iname.includes('yoy')) return false;
-      if (iname.includes('yoy') && isMoMEvent && !iname.includes('mom')) return false;
+      // Allow Australia's CPI Indicator, Japan's Cash Earnings, and Tokyo CPI to match annual/headline releases
+      const isExemptAnnual = iname.includes('cpi indicator') || iname.includes('cash earnings') || iname.includes('tokyo cpi');
+      if (!isExemptAnnual) {
+        if (iname.includes('mom') && isYoYEvent && !iname.includes('yoy')) return false;
+        if (iname.includes('yoy') && isMoMEvent && !iname.includes('mom')) return false;
+      }
       if (isCoreEvent && !iname.includes('core') && !iname.includes('subyacente')) return false;
       if (isServicesEvent && !isMfgEvent && (iname.includes('mfg') || iname.includes('manufacturing'))) return false;
-      if (isMfgEvent && !isServicesEvent && (iname.includes('services') || iname.includes('non-mfg'))) return false;
+      if (isMfgEvent && !isServicesEvent && (iname.includes('services') || iname.includes('non-mfg') || iname.includes('psi'))) return false;
       if (isChangeJobEvent && (iname.includes('unemployment rate') || iname === 'unemp rate')) return false;
       if (isRateJobEvent && (iname.includes('change') || iname.includes('claimant'))) return false;
       return true;
@@ -637,6 +641,7 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
       const iname = ind.name.toLowerCase();
 
       // PMIs
+      if (targetCurr === 'NZD' && (iname.includes('services pmi') || iname.includes('busnz services')) && (ev.includes('psi') || clean.includes('psi') || ev.includes('services') || ev.includes('performance of services'))) return i;
       if (iname.includes('mfg pmi') || iname.includes('manufacturing pmi')) {
         if ((ev.includes('manufacturing') || ev.includes('manufactur') || clean.includes('mfg')) && (ev.includes('pmi') || clean.includes('pmi'))) {
           return i;
@@ -653,6 +658,8 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
       if (iname === 'nfp' && (clean.includes('nfp') || ev.includes('nonfarm') || ev.includes('non-farm') || ev.includes('nóminas') || ev.includes('nominas'))) {
         return i;
       }
+      if (targetCurr === 'CAD' && iname.includes('net employment') && (ev.includes('employment change') || ev.includes('cambio del empleo') || ev.includes('net employment')) && !ev.includes('full') && !ev.includes('part')) return i;
+      if (targetCurr === 'NZD' && iname.includes('jobs change') && (ev.includes('employment') || ev.includes('empleo') || ev.includes('jobs') || ev.includes('mei'))) return i;
       if ((iname.includes('unemployment rate') || iname === 'unemp rate') && !iname.includes('change')) {
         if ((ev.includes('unemployment rate') || ev.includes('tasa de desempleo') || ev.includes('tasa de paro') || ev.includes('jobless rate')) && !ev.includes('change') && !ev.includes('cambio')) {
           return i;
@@ -673,6 +680,8 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
       }
 
       // Inflation / CPI
+      if (targetCurr === 'AUD' && iname.includes('cpi indicator') && (ev.includes('cpi indicator') || (ev.includes('cpi') && ev.includes('monthly')) || ev.includes('ipc'))) return i;
+      if (targetCurr === 'JPY' && iname.includes('tokyo cpi') && (ev.includes('tokyo') || ev.includes('tokio')) && (ev.includes('cpi') || ev.includes('ipc'))) return i;
       if (iname.includes('cpi') || iname.includes('food prices')) {
         if (iname.includes('tokyo') && (ev.includes('tokyo') || ev.includes('tokio'))) return i;
         if (iname.includes('food') && (ev.includes('food') || ev.includes('alimento'))) return i;
@@ -683,15 +692,16 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
         }
       }
 
-      // Retail Sales
+      // Retail Sales & Card Transactions
+      if (iname.includes('card transactions') && (ev.includes('card') || ev.includes('tarjetas') || ev.includes('electronic card'))) {
+        return i;
+      }
       if (iname.includes('retail sales') && (ev.includes('retail') || ev.includes('minorista') || ev.includes('ventas minoristas'))) {
         return i;
       }
-      if (iname.includes('card transactions') && (ev.includes('card transaction') || ev.includes('tarjetas'))) {
-        return i;
-      }
 
-      // GDP & Output
+      // GDP & Earnings & Output
+      if (targetCurr === 'JPY' && iname.includes('cash earnings') && (ev.includes('cash earnings') || ev.includes('labor cash') || ev.includes('salarios') || ev.includes('earnings'))) return i;
       if (iname.includes('gdpnow') && (ev.includes('gdpnow') || (ev.includes('atlanta') && ev.includes('gdp')))) {
         return i;
       }
@@ -701,6 +711,7 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
           return i;
         }
       }
+      if (targetCurr === 'NZD' && iname.includes('activity index') && (ev.includes('activity') || ev.includes('actividad') || ev.includes('composite'))) return i;
 
       // Business & Consumer Confidence Surveys (including Household Confidence for JPY)
       if (iname.includes('consumer confidence') || iname.includes('consumer sentiment') || iname.includes('consumer survey') || iname.includes('confidence') || iname.includes('survey')) {
@@ -733,8 +744,6 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
       if (iname.includes('kof') && (ev.includes('kof') || ev.includes('leading indicator'))) return i;
       if (iname.includes('seco') && (ev.includes('seco') || ev.includes('economic indicators') || ev.includes('consumer climate'))) return i;
       if (iname.includes('industrial production') && (ev.includes('industrial production') || ev.includes('producción industrial') || ev.includes('produccion industrial'))) return i;
-      if (iname.includes('cash earnings') && (ev.includes('cash earnings') || ev.includes('earnings') || ev.includes('salarios'))) return i;
-      if (iname.includes('activity index') && (ev.includes('activity index') || ev.includes('busnz'))) return i;
     }
 
     // 3. Normalized substring inclusion
@@ -873,51 +882,42 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
         } else if (Math.abs(num) >= 0.03) {
           num = num * 1000;
         } else {
-          // Normalize tiny decimal offset around baseline 50
           num = 50 + (num * 100);
         }
       }
       return parseFloat(num.toFixed(1));
     }
 
-    // Fix Unemployment scaling: If event includes "Unemp" and parsed value is a tiny decimal
-    if (evLower.includes('unemp') && (evLower.includes('rate') || evLower.includes('tasa') || type === 'UNEMP_RATE' || type === 'EUR_UNEMP_FIXED')) {
-      // In this dashboard, UNEMP_RATE is stored as a decimal: 0.041 for 4.1%, 0.063 for 6.3%
-      // If parsed value was a tiny decimal (e.g. 0.0065 or 0.00065), scale it to align with percentage display
+    // Fix Unemployment scaling (rate vs change)
+    if (type === 'UNEMP_RATE' || type === 'EUR_UNEMP_FIXED' || (evLower.includes('unemp') && (evLower.includes('rate') || evLower.includes('tasa') || evLower.includes('paro')))) {
       if (Math.abs(num) < 0.01 && Math.abs(num) > 0) {
         num = num * 10;
-      } else if (Math.abs(num) >= 1.0) {
+      } else if (isExplicitPercent || Math.abs(num) >= 0.20) {
         num = num / 100.0;
       }
       return parseFloat(num.toFixed(4));
     }
 
-    // Thousands types stored in thousands (NFP, Jobs)
+    // Thousands types stored in thousands (NFP, Jobs changes, Claims, Unemployment change)
     const thousandsTypes = ["NFP", "JOBS_K", "CAD_JOBS", "GBP_CLAIMANT", "GER_UNEMP_CHANGE", "CHF_UNEMP_CHANGE"];
     if (thousandsTypes.includes(type) || evLower.includes('nfp') || evLower.includes('payrolls') || evLower.includes('claimant')) {
-      if (Math.abs(num) >= 1000 && !hasK) {
+      if (Math.abs(num) >= 500 && !hasK) {
         return parseFloat((num / 1000).toFixed(1));
       }
       return parseFloat(num.toFixed(1));
     }
 
-    // Percentage types stored as decimals (CPI, GDP, Retail Sales)
+    // Percentage types stored as decimals (CPI, GDP, Retail Sales, Card Transactions)
     const percentTypes = ["CPI", "PCT_GROWTH", "CARD_TRANS", "GBP_RETAIL"];
     if (percentTypes.includes(type) || isExplicitPercent) {
-      if (isExplicitPercent) {
-        if (Math.abs(num) >= 0.08) num = num / 100.0;
-      } else {
-        if (Math.abs(num) >= 0.08) num = num / 100.0;
+      if (isExplicitPercent || Math.abs(num) >= 0.05) {
+        num = num / 100.0;
       }
       return parseFloat(num.toFixed(4));
     }
 
-    // Large suffix multipliers for non-index numbers
-    if (hasK) return num * 1000;
-    if (hasM) return num * 1000000;
-    if (hasB) return num * 1000000000;
-
-    return num;
+    // Surveys & Confidence Indices (CONFIDENCE, INDEX_SMALL, SURVEY_5, ANZ_BIZ)
+    return parseFloat(num.toFixed(2));
   };
 
   // 2. REGION TO G10 CURRENCY MAPPING
@@ -1121,11 +1121,16 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
           if (currCol === -1 && row.length >= 7 && (row[1] === 'cur' || cleanRows[r][1]?.toLowerCase().includes('cur'))) {
             currCol = 1;
           }
-          if (eventCol === -1 && row.length >= 7 && (row[2] === 'event' || cleanRows[r][2]?.toLowerCase().includes('event'))) {
-            eventCol = 2;
+          if (eventCol === -1 && row.length >= 7) {
+            if (row[3] === 'event' || cleanRows[r][3]?.toLowerCase().includes('event') || cleanRows[r][3]?.toLowerCase().includes('evento') || cleanRows[r][3]?.toLowerCase().includes('indicat')) {
+              eventCol = 3;
+            } else if (row[2] === 'event' || cleanRows[r][2]?.toLowerCase().includes('event') || cleanRows[r][2]?.toLowerCase().includes('evento')) {
+              eventCol = 2;
+            }
           }
-          if (impCol === -1 && row.length >= 7 && (row[3] === 'imp' || cleanRows[r][3]?.toLowerCase().includes('imp'))) {
-            impCol = 3;
+          if (impCol === -1 && row.length >= 7) {
+            if (row[2] === 'imp' || cleanRows[r][2]?.toLowerCase().includes('imp')) impCol = 2;
+            else if (row[3] === 'imp' || cleanRows[r][3]?.toLowerCase().includes('imp')) impCol = 3;
           }
           if (actualCol === -1 && row.length >= 7 && (row[4] === 'actual' || cleanRows[r][4]?.toLowerCase().includes('actual'))) {
             actualCol = 4;
@@ -1340,29 +1345,14 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
             }
 
             if (hasChange) {
-              // Index & Survey Scale Matching (Westpac, IFO, NFIB, Sentiment)
-              const indexTypes = ["PMI", "CONFIDENCE", "INDEX_SMALL", "SURVEY_5", "ANZ_BIZ", "AUD_SERVICES"];
-              const isIndexIndicator = indexTypes.includes(item.type) ||
-                /\b(index|sentiment|confidence|survey|climate|barometer|westpac|ifo|nfib|cfib|tankan|kof|seco|ivey|cbi|gfk|aig)\b/i.test(item.name);
-              if (isIndexIndicator) {
-                const fields: Array<'previous' | 'forecast' | 'actual'> = ['previous', 'forecast', 'actual'];
-                let rawIndexBaseline: number | null = null;
-                for (const f of fields) {
-                  if (typeof item[f] === 'number' && Math.abs(item[f] as number) >= 15) {
-                    rawIndexBaseline = item[f] as number;
-                    break;
-                  }
+              if (timeCol !== -1 && row[timeCol] !== undefined && row[timeCol] !== '') {
+                let cleanTime = String(row[timeCol]).trim();
+                if (cleanTime.includes('1899') || cleanTime.includes('1900')) {
+                  const timeMatch = cleanTime.match(/\b(\d{1,2}:\d{2})(:\d{2})?\b/);
+                  cleanTime = timeMatch ? timeMatch[1] : '—';
                 }
-                if (rawIndexBaseline !== null) {
-                  for (const f of fields) {
-                    const val = item[f];
-                    if (typeof val === 'number' && Math.abs(val) > 0 && Math.abs(val) < 1.0) {
-                      item[f] = parseFloat((rawIndexBaseline * (1 + val)).toFixed(1));
-                    }
-                  }
-                }
+                item.time = cleanTime || '—';
               }
-
               item.date = (dateCol !== -1 && row[dateCol]) ? formatSpreadsheetDate(row[dateCol]) : currentDate;
               indList[matchedIdx] = item;
               nextState[targetCurr] = indList;

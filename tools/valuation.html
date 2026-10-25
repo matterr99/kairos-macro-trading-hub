@@ -603,10 +603,10 @@
                 return parseFloat(num.toFixed(4));
             }
 
-            // 3. Jobs in Thousands (NFP, Jobs changes)
+            // 3. Jobs in Thousands (NFP, Jobs changes, Claims, Unemployment change)
             const thousandsTypes = ["NFP", "JOBS_K", "CAD_JOBS", "GBP_CLAIMANT", "GER_UNEMP_CHANGE", "CHF_UNEMP_CHANGE"];
             if (thousandsTypes.includes(typeUpper) || evLower.includes('nfp') || evLower.includes('payrolls') || evLower.includes('claimant')) {
-                if (Math.abs(num) >= 1000 && !hasK) {
+                if (Math.abs(num) >= 500 && !hasK) {
                     num = num / 1000;
                 }
                 return parseFloat(num.toFixed(1));
@@ -621,8 +621,8 @@
                 return parseFloat(num.toFixed(4));
             }
 
-            // 5. General numbers / surveys / confidence indices
-            return num;
+            // 5. Surveys & Confidence Indices (CONFIDENCE, INDEX_SMALL, SURVEY_5, ANZ_BIZ)
+            return parseFloat(num.toFixed(2));
         }
 
         function parseWeight(weight) {
@@ -1089,15 +1089,19 @@
 
             const isCompatible = (ind) => {
                 const iname = ind.name.toLowerCase();
-                // If indicator tracks MoM specifically, do not match YoY event
-                if (iname.includes('mom') && isYoYEvent && !iname.includes('yoy')) return false;
-                // If event is MoM and indicator is YoY
-                if (iname.includes('yoy') && isMoMEvent && !iname.includes('mom')) return false;
+                // Allow Australia's CPI Indicator, Japan's Cash Earnings, and Tokyo CPI to match annual/headline releases
+                const isExemptAnnual = iname.includes('cpi indicator') || iname.includes('cash earnings') || iname.includes('tokyo cpi');
+                if (!isExemptAnnual) {
+                    // If indicator tracks MoM specifically, do not match YoY event
+                    if (iname.includes('mom') && isYoYEvent && !iname.includes('yoy')) return false;
+                    // If event is MoM and indicator is YoY
+                    if (iname.includes('yoy') && isMoMEvent && !iname.includes('mom')) return false;
+                }
                 // Core CPI shouldn't match headline CPI MoM unless indicator itself is core
                 if (isCoreEvent && !iname.includes('core') && !iname.includes('subyacente')) return false;
                 // Services vs Mfg
                 if (isServicesEvent && !isMfgEvent && (iname.includes('mfg') || iname.includes('manufacturing'))) return false;
-                if (isMfgEvent && !isServicesEvent && (iname.includes('services') || iname.includes('non-mfg'))) return false;
+                if (isMfgEvent && !isServicesEvent && (iname.includes('services') || iname.includes('non-mfg') || iname.includes('psi'))) return false;
                 // Jobs rate vs change
                 if (isChangeJobEvent && (iname.includes('unemployment rate') || iname === 'unemp rate')) return false;
                 if (isRateJobEvent && (iname.includes('change') || iname.includes('claimant'))) return false;
@@ -1117,6 +1121,7 @@
                 const iname = ind.name.toLowerCase();
 
                 // PMIs
+                if (curr === 'NZD' && (iname.includes('services pmi') || iname.includes('busnz services')) && (ev.includes('psi') || clean.includes('psi') || ev.includes('services') || ev.includes('performance of services'))) return ind;
                 if (iname.includes('mfg pmi') || iname.includes('manufacturing pmi')) {
                     if ((ev.includes('manufacturing') || ev.includes('manufactur') || clean.includes('mfg')) && (ev.includes('pmi') || clean.includes('pmi'))) return ind;
                 }
@@ -1127,6 +1132,8 @@
 
                 // NFP & Labor Market
                 if (iname === 'nfp' && (clean.includes('nfp') || ev.includes('nonfarm') || ev.includes('non-farm') || ev.includes('nóminas') || ev.includes('nominas'))) return ind;
+                if (curr === 'CAD' && iname.includes('net employment') && (ev.includes('employment change') || ev.includes('cambio del empleo') || ev.includes('net employment')) && !ev.includes('full') && !ev.includes('part')) return ind;
+                if (curr === 'NZD' && iname.includes('jobs change') && (ev.includes('employment') || ev.includes('empleo') || ev.includes('jobs') || ev.includes('mei'))) return ind;
                 if ((iname.includes('unemployment rate') || iname === 'unemp rate') && !iname.includes('change')) {
                     if ((ev.includes('unemployment rate') || ev.includes('tasa de desempleo') || ev.includes('tasa de paro') || ev.includes('jobless rate')) && !ev.includes('change') && !ev.includes('cambio')) return ind;
                 }
@@ -1139,6 +1146,8 @@
                 }
 
                 // Inflation / CPI
+                if (curr === 'AUD' && iname.includes('cpi indicator') && (ev.includes('cpi indicator') || (ev.includes('cpi') && ev.includes('monthly')) || ev.includes('ipc'))) return ind;
+                if (curr === 'JPY' && iname.includes('tokyo cpi') && (ev.includes('tokyo') || ev.includes('tokio')) && (ev.includes('cpi') || ev.includes('ipc'))) return ind;
                 if (iname.includes('cpi') || iname.includes('food prices')) {
                     if (iname.includes('tokyo') && (ev.includes('tokyo') || ev.includes('tokio'))) return ind;
                     if (iname.includes('food') && (ev.includes('food') || ev.includes('alimento'))) return ind;
@@ -1147,16 +1156,18 @@
                     }
                 }
 
-                // Retail Sales
+                // Retail Sales & Card Transactions
+                if (iname.includes('card transactions') && (ev.includes('card') || ev.includes('tarjetas') || ev.includes('electronic card'))) return ind;
                 if (iname.includes('retail sales') && (ev.includes('retail') || ev.includes('minorista') || ev.includes('ventas minoristas'))) return ind;
-                if (iname.includes('card transactions') && (ev.includes('card transaction') || ev.includes('tarjetas'))) return ind;
 
-                // GDP
+                // GDP & Earnings & Output
+                if (curr === 'JPY' && iname.includes('cash earnings') && (ev.includes('cash earnings') || ev.includes('labor cash') || ev.includes('salarios') || ev.includes('earnings'))) return ind;
                 if (iname.includes('gdpnow') && (ev.includes('gdpnow') || (ev.includes('atlanta') && ev.includes('gdp')))) return ind;
                 if (iname.includes('jcer') && ev.includes('jcer')) return ind;
                 if (iname.includes('gdp') && !iname.includes('gdpnow') && !iname.includes('jcer')) {
                     if (ev.includes('gdp') || ev.includes('pib') || ev.includes('gross domestic') || ev.includes('producto interior')) return ind;
                 }
+                if (curr === 'NZD' && iname.includes('activity index') && (ev.includes('activity') || ev.includes('actividad') || ev.includes('composite'))) return ind;
 
                 // Confidence / Business Surveys (including Household Confidence for JPY)
                 if (iname.includes('consumer confidence') || iname.includes('consumer sentiment') || iname.includes('consumer survey') || iname.includes('confidence') || iname.includes('survey')) {
@@ -1175,8 +1186,6 @@
                 if (iname.includes('kof') && (ev.includes('kof') || ev.includes('leading indicator'))) return ind;
                 if (iname.includes('seco') && (ev.includes('seco') || ev.includes('economic indicators') || ev.includes('consumer climate'))) return ind;
                 if (iname.includes('industrial production') && (ev.includes('industrial production') || ev.includes('producción industrial') || ev.includes('produccion industrial'))) return ind;
-                if (iname.includes('cash earnings') && (ev.includes('cash earnings') || ev.includes('earnings') || ev.includes('salarios'))) return ind;
-                if (iname.includes('activity index') && (ev.includes('activity index') || ev.includes('busnz'))) return ind;
             }
 
             // 3. Normalized substring inclusion
@@ -1270,6 +1279,7 @@
             let actualCol = -1;
             let forecastCol = -1;
             let prevCol = -1;
+            let impCol = -1;
             let dateCol = -1;
             let timeCol = -1;
 
@@ -1279,6 +1289,7 @@
             const isActualHeader = (h) => /^(actual|act|dato actual|real|current|publicado|latest|valor actual|valor real)/.test(h) || h.includes('actual') || h.includes('real');
             const isForecastHeader = (h) => /^(forecast|fcst|prevision|previsto|pronostico|consenso|consensus|expected|est|estimado|median)/.test(h) || h.includes('forecast') || h.includes('previs') || h.includes('pronost') || h.includes('consen');
             const isPrevHeader = (h) => /^(previous|prev|prior|previo|anterior|revisado|last|previo valor)/.test(h) || h.includes('prev') || h.includes('prior') || h.includes('anter');
+            const isImpHeader = (h) => /^(imp|importance|importancia|vol|volatilidad|impact|impacto)/.test(h) || h === 'imp' || h.includes('imp');
             const isDateHeader = (h) => /^(date|fecha|day|dia|release date|period|periodo)/.test(h) || h.includes('fecha') || h.includes('date');
             const isTimeHeader = (h) => /^(time|hora|hour)/.test(h) || h.includes('time') || h.includes('hora');
 
@@ -1296,16 +1307,22 @@
                         if (isDateHeader(cell) && dateCol === -1) dateCol = idx;
                         else if (isTimeHeader(cell) && timeCol === -1) timeCol = idx;
                         else if (isCcyHeader(cell) && currCol === -1) currCol = idx;
+                        else if (isImpHeader(cell) && impCol === -1) impCol = idx;
                         else if (isEventHeader(cell) && eventCol === -1) eventCol = idx;
                         else if (isActualHeader(cell) && actualCol === -1) actualCol = idx;
                         else if (isForecastHeader(cell) && forecastCol === -1) forecastCol = idx;
                         else if (isPrevHeader(cell) && prevCol === -1) prevCol = idx;
                     });
-                    if (currCol === -1 && row.length >= 7 && (row[1] === 'cur' || cleanRows[r][1]?.toLowerCase().includes('cur'))) currCol = 1;
-                    if (eventCol === -1 && row.length >= 7 && (row[2] === 'event' || cleanRows[r][2]?.toLowerCase().includes('event'))) eventCol = 2;
-                    if (actualCol === -1 && row.length >= 7 && (row[4] === 'actual' || cleanRows[r][4]?.toLowerCase().includes('actual'))) actualCol = 4;
-                    if (forecastCol === -1 && row.length >= 7 && (row[5] === 'forecast' || cleanRows[r][5]?.toLowerCase().includes('forecast'))) forecastCol = 5;
-                    if (prevCol === -1 && row.length >= 7 && (row[6] === 'previous' || cleanRows[r][6]?.toLowerCase().includes('prev'))) prevCol = 6;
+                    if (timeCol === -1 && row.length >= 7 && (row[0] === 'time' || cleanRows[r][0]?.toLowerCase().includes('time') || cleanRows[r][0]?.toLowerCase().includes('hora'))) timeCol = 0;
+                    if (currCol === -1 && row.length >= 7 && (row[1] === 'cur' || cleanRows[r][1]?.toLowerCase().includes('cur') || cleanRows[r][1]?.toLowerCase().includes('div'))) currCol = 1;
+                    if (impCol === -1 && row.length >= 7 && (row[2] === 'imp' || cleanRows[r][2]?.toLowerCase().includes('imp'))) impCol = 2;
+                    if (eventCol === -1 && row.length >= 7) {
+                        if (row[3] === 'event' || cleanRows[r][3]?.toLowerCase().includes('event') || cleanRows[r][3]?.toLowerCase().includes('evento') || cleanRows[r][3]?.toLowerCase().includes('indicat')) eventCol = 3;
+                        else if (row[2] === 'event' || cleanRows[r][2]?.toLowerCase().includes('event') || cleanRows[r][2]?.toLowerCase().includes('evento')) eventCol = 2;
+                    }
+                    if (actualCol === -1 && row.length >= 7 && (row[4] === 'actual' || cleanRows[r][4]?.toLowerCase().includes('actual') || cleanRows[r][4]?.toLowerCase().includes('real'))) actualCol = 4;
+                    if (forecastCol === -1 && row.length >= 7 && (row[5] === 'forecast' || cleanRows[r][5]?.toLowerCase().includes('forecast') || cleanRows[r][5]?.toLowerCase().includes('previs'))) forecastCol = 5;
+                    if (prevCol === -1 && row.length >= 7 && (row[6] === 'previous' || cleanRows[r][6]?.toLowerCase().includes('prev') || cleanRows[r][6]?.toLowerCase().includes('anterior'))) prevCol = 6;
                     break;
                 }
             }
@@ -1507,6 +1524,17 @@
                         }
 
                         if (hasChanges) {
+                            if (impCol !== -1 && row[impCol] !== undefined && row[impCol] !== '') {
+                                matchedInd.weight = parseWeight(row[impCol]);
+                            }
+                            if (timeCol !== -1 && row[timeCol] !== undefined && row[timeCol] !== '') {
+                                let cleanTime = String(row[timeCol]).trim();
+                                if (cleanTime.includes('1899') || cleanTime.includes('1900')) {
+                                    const timeMatch = cleanTime.match(/\b(\d{1,2}:\d{2})(:\d{2})?\b/);
+                                    cleanTime = timeMatch ? timeMatch[1] : '—';
+                                }
+                                matchedInd.time = cleanTime || '—';
+                            }
                             // Format release date with serial number converter
                             matchedInd.date = (dateCol !== -1 && row[dateCol]) ? formatToYMD(row[dateCol]) : currentDateHeader;
                             updatedCount++;
