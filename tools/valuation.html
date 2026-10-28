@@ -228,6 +228,9 @@
                             <button onclick="openPasteModal()" class="px-2 py-1 text-[10px] uppercase tracking-wider bg-purple-950/40 hover:bg-purple-900/60 text-purple-300 rounded-sm border border-purple-800/60 transition cursor-pointer">
                                 <i class="fa-solid fa-paste mr-1"></i> Paste
                             </button>
+                            <button onclick="resetToZero()" class="px-2 py-1 text-[10px] uppercase tracking-wider bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 rounded-sm border border-rose-800/60 transition cursor-pointer" title="Reset all indicator values to 0">
+                                <i class="fa-solid fa-rotate-left mr-1"></i> Reset (0)
+                            </button>
                         </div>
                         <div class="flex items-center gap-1 bg-[#0c0c12] border border-zinc-800 rounded-sm px-2.5 py-1 text-[10px] text-zinc-400 uppercase tracking-wider">
                             <span class="text-zinc-500 mr-1">Sort:</span>
@@ -319,92 +322,92 @@
     <script>
         const defaultData = {
             "USD": [
-                { name: "ISM Mfg PMI", date: "2026-08-03", previous: 53.3, forecast: 54.5, actual: 55.6, type: "PMI", weight: "5.0" },
-                { name: "ISM Services PMI", date: "2026-08-05", previous: 54.0, forecast: 54.6, actual: 54.1, type: "PMI", weight: "5.0" },
-                { name: "CPI MoM", date: "2026-08-12", previous: 0.002, forecast: 0.002, actual: 0.001, type: "CPI", weight: "5.0" },
-                { name: "Unemployment Rate", date: "2026-08-07", previous: 0.042, forecast: 0.041, actual: 0.041, type: "UNEMP_RATE", weight: "5.0" },
-                { name: "NFP", date: "2026-08-07", previous: 57, forecast: 145, actual: -23, type: "NFP", weight: "5.0" },
-                { name: "Retail Sales MoM", date: "2026-08-14", previous: 0.002, forecast: 0.004, actual: 0.005, type: "PCT_GROWTH", weight: "4.0" },
-                { name: "CB Consumer Confidence", date: "2026-07-28", previous: 99.5, forecast: 100.2, actual: 100.8, type: "CONFIDENCE", weight: "4.0" },
-                { name: "NFIB Small Business Index", date: "2026-08-11", previous: 93.1, forecast: 93.5, actual: 93.9, type: "INDEX_SMALL", weight: "3.0" },
-                { name: "Atlanta Fed GDPNow", date: "2026-08-19", previous: 0.021, forecast: 0.024, actual: 0.025, type: "PCT_GROWTH", weight: "4.0" }
+                { name: "ISM Mfg PMI", date: "2026-08-03", time: "10:00:00", previous: 53.3, forecast: 54.5, actual: 55.6, type: "PMI", weight: "5.0" },
+                { name: "ISM Services PMI", date: "2026-08-05", time: "10:00:00", previous: 54.0, forecast: 54.6, actual: 54.1, type: "PMI", weight: "5.0" },
+                { name: "CPI MoM", date: "2026-08-12", time: "08:30:00", previous: 0.002, forecast: 0.002, actual: 0.001, type: "CPI", weight: "5.0" },
+                { name: "Unemployment Rate", date: "2026-08-07", time: "08:30:00", previous: 0.042, forecast: 0.041, actual: 0.041, type: "UNEMP_RATE", weight: "5.0" },
+                { name: "NFP", date: "2026-08-07", time: "08:30:00", previous: 57, forecast: 145, actual: -23, type: "NFP", weight: "5.0" },
+                { name: "Retail Sales MoM", date: "2026-08-14", time: "08:30:00", previous: 0.002, forecast: 0.004, actual: 0.005, type: "PCT_GROWTH", weight: "4.0" },
+                { name: "CB Consumer Confidence", date: "2026-07-28", time: "10:00:00", previous: 99.5, forecast: 100.2, actual: 100.8, type: "CONFIDENCE", weight: "4.0" },
+                { name: "NFIB Small Business Index", date: "2026-08-11", time: "06:00:00", previous: 93.1, forecast: 93.5, actual: 93.9, type: "INDEX_SMALL", weight: "3.0" },
+                { name: "Atlanta Fed GDPNow", date: "2026-08-19", time: "11:50:00", previous: 0.021, forecast: 0.024, actual: 0.025, type: "PCT_GROWTH", weight: "4.0" }
             ],
             "EUR": [
-                { name: "HCOB Mfg PMI", date: "2026-08-21", previous: 51.9, forecast: 51.8, actual: 52.8, type: "PMI", weight: "High" },
-                { name: "HCOB Services PMI", date: "2026-08-05", previous: 52.0, forecast: 51.5, actual: 51.7, type: "PMI", weight: "High" },
-                { name: "CPI MoM", date: "2026-08-18", previous: 0.002, forecast: 0.002, actual: 0.002, type: "CPI", weight: "High" },
-                { name: "Unemployment Rate", date: "2026-08-03", previous: 0.063, forecast: 0.063, actual: 0.063, type: "EUR_UNEMP_FIXED", weight: "Med" },
-                { name: "Germany Unemp Change", date: "2026-08-04", previous: 17, forecast: 15, actual: 18, type: "GER_UNEMP_CHANGE", weight: "Med" },
-                { name: "Retail Sales MoM", date: "2026-08-06", previous: -0.003, forecast: 0.001, actual: 0.003, type: "PCT_GROWTH", weight: "Med" },
-                { name: "Consumer Confidence", date: "2026-08-20", previous: -13.0, forecast: -12.5, actual: -12.2, type: "CONFIDENCE", weight: "Low" },
-                { name: "IFO Business Climate", date: "2026-08-26", previous: 85.5, forecast: 86.0, actual: 86.5, type: "INDEX_SMALL", weight: "Med" },
-                { name: "Industrial Production MoM", date: "2026-08-13", previous: -0.006, forecast: 0.002, actual: 0.005, type: "PCT_GROWTH", weight: "Low" }
+                { name: "HCOB Mfg PMI", date: "2026-08-21", time: "04:00:00", previous: 51.9, forecast: 51.8, actual: 52.8, type: "PMI", weight: "5.0" },
+                { name: "HCOB Services PMI", date: "2026-08-05", time: "04:00:00", previous: 52.0, forecast: 51.5, actual: 51.7, type: "PMI", weight: "5.0" },
+                { name: "CPI MoM", date: "2026-08-18", time: "05:00:00", previous: 0.002, forecast: 0.002, actual: 0.002, type: "CPI", weight: "5.0" },
+                { name: "Unemployment Rate", date: "2026-08-03", time: "05:00:00", previous: 0.063, forecast: 0.063, actual: 0.063, type: "EUR_UNEMP_FIXED", weight: "4.0" },
+                { name: "Germany Unemp Change", date: "2026-08-04", time: "03:55:00", previous: 17, forecast: 15, actual: 18, type: "GER_UNEMP_CHANGE", weight: "4.0" },
+                { name: "Retail Sales MoM", date: "2026-08-06", time: "05:00:00", previous: -0.003, forecast: 0.001, actual: 0.003, type: "PCT_GROWTH", weight: "4.0" },
+                { name: "Consumer Confidence", date: "2026-08-20", time: "10:00:00", previous: -13.0, forecast: -12.5, actual: -12.2, type: "CONFIDENCE", weight: "3.0" },
+                { name: "IFO Business Climate", date: "2026-08-26", time: "04:00:00", previous: 85.5, forecast: 86.0, actual: 86.5, type: "INDEX_SMALL", weight: "4.0" },
+                { name: "Industrial Production MoM", date: "2026-08-13", time: "05:00:00", previous: -0.006, forecast: 0.002, actual: 0.005, type: "PCT_GROWTH", weight: "3.0" }
             ],
             "GBP": [
-                { name: "S&P Mfg PMI", date: "2026-08-21", previous: 52.1, forecast: 51.4, actual: 52.5, type: "PMI", weight: "5.0" },
-                { name: "S&P Services PMI", date: "2026-08-21", previous: 52.1, forecast: 51.6, actual: 52.8, type: "PMI", weight: "5.0" },
-                { name: "CPI MoM", date: "2026-08-19", previous: 0.001, forecast: 0.002, actual: 0.002, type: "CPI", weight: "5.0" },
-                { name: "Unemployment Rate", date: "2026-08-11", previous: 0.044, forecast: 0.044, actual: 0.044, type: "UNEMP_RATE", weight: "5.0" },
-                { name: "Claimant Count", date: "2026-08-11", previous: 13.5, forecast: 22.0, actual: 23.7, type: "GBP_CLAIMANT", weight: "4.0" },
-                { name: "Retail Sales MoM", date: "2026-08-21", previous: 0.005, forecast: -0.002, actual: -0.001, type: "GBP_RETAIL", weight: "4.0" },
-                { name: "GfK Consumer Confidence", date: "2026-08-21", previous: -13, forecast: -12, actual: -11, type: "CONFIDENCE", weight: "4.0" },
-                { name: "CBI Industrial Trends", date: "2026-08-20", previous: -20, forecast: -18, actual: -15, type: "SURVEY_5", weight: "3.0" },
-                { name: "Monthly GDP", date: "2026-08-14", previous: 0.002, forecast: 0.001, actual: 0.001, type: "PCT_GROWTH", weight: "5.0" }
+                { name: "S&P Mfg PMI", date: "2026-08-21", time: "04:30:00", previous: 52.1, forecast: 51.4, actual: 52.5, type: "PMI", weight: "5.0" },
+                { name: "S&P Services PMI", date: "2026-08-21", time: "04:30:00", previous: 52.1, forecast: 51.6, actual: 52.8, type: "PMI", weight: "5.0" },
+                { name: "CPI MoM", date: "2026-08-19", time: "02:00:00", previous: 0.001, forecast: 0.002, actual: 0.002, type: "CPI", weight: "5.0" },
+                { name: "Unemployment Rate", date: "2026-08-11", time: "02:00:00", previous: 0.044, forecast: 0.044, actual: 0.044, type: "UNEMP_RATE", weight: "5.0" },
+                { name: "Claimant Count", date: "2026-08-11", time: "02:00:00", previous: 13.5, forecast: 22.0, actual: 23.7, type: "GBP_CLAIMANT", weight: "4.0" },
+                { name: "Retail Sales MoM", date: "2026-08-21", time: "02:00:00", previous: 0.005, forecast: -0.002, actual: -0.001, type: "GBP_RETAIL", weight: "4.0" },
+                { name: "GfK Consumer Confidence", date: "2026-08-21", time: "19:01:00", previous: -13, forecast: -12, actual: -11, type: "CONFIDENCE", weight: "4.0" },
+                { name: "CBI Industrial Trends", date: "2026-08-20", time: "06:00:00", previous: -20, forecast: -18, actual: -15, type: "SURVEY_5", weight: "3.0" },
+                { name: "Monthly GDP", date: "2026-08-14", time: "02:00:00", previous: 0.002, forecast: 0.001, actual: 0.001, type: "PCT_GROWTH", weight: "5.0" }
             ],
             "JPY": [
-                { name: "Jibun Mfg PMI", date: "2026-08-21", previous: 49.1, forecast: 49.5, actual: 49.8, type: "PMI", weight: "5.0" },
-                { name: "Jibun Services PMI", date: "2026-08-21", previous: 53.7, forecast: 54.0, actual: 54.1, type: "PMI", weight: "5.0" },
-                { name: "Tokyo CPI MoM", date: "2026-07-31", previous: 0.002, forecast: 0.001, actual: 0.002, type: "CPI", weight: "5.0" },
-                { name: "Unemployment Rate", date: "2026-07-31", previous: 0.025, forecast: 0.025, actual: 0.025, type: "UNEMP_RATE", weight: "5.0" },
-                { name: "Cash Earnings MoM", date: "2026-08-06", previous: 0.045, forecast: 0.023, actual: 0.021, type: "PCT_GROWTH", weight: "5.0" },
-                { name: "Retail Sales MoM", date: "2026-07-30", previous: 0.006, forecast: 0.002, actual: 0.004, type: "PCT_GROWTH", weight: "4.0" },
-                { name: "Consumer Survey", date: "2026-08-05", previous: 36.7, forecast: 37.0, actual: 36.4, type: "CONFIDENCE", weight: "4.0" },
-                { name: "Reuters Tankan", date: "2026-08-19", previous: 7, forecast: 9, actual: 10, type: "SURVEY_5", weight: "4.0" },
-                { name: "JCER Monthly GDP", date: "2026-08-17", previous: 0.002, forecast: -0.001, actual: 0.001, type: "PCT_GROWTH", weight: "4.0" }
+                { name: "Jibun Mfg PMI", date: "2026-08-21", time: "20:30:00", previous: 49.1, forecast: 49.5, actual: 49.8, type: "PMI", weight: "5.0" },
+                { name: "Jibun Services PMI", date: "2026-08-21", time: "20:30:00", previous: 53.7, forecast: 54.0, actual: 54.1, type: "PMI", weight: "5.0" },
+                { name: "Tokyo CPI MoM", date: "2026-07-31", time: "19:30:00", previous: 0.002, forecast: 0.001, actual: 0.002, type: "CPI", weight: "5.0" },
+                { name: "Unemployment Rate", date: "2026-07-31", time: "19:30:00", previous: 0.025, forecast: 0.025, actual: 0.025, type: "UNEMP_RATE", weight: "5.0" },
+                { name: "Cash Earnings MoM", date: "2026-08-06", time: "19:30:00", previous: 0.045, forecast: 0.023, actual: 0.021, type: "PCT_GROWTH", weight: "5.0" },
+                { name: "Retail Sales MoM", date: "2026-07-30", time: "19:50:00", previous: 0.006, forecast: 0.002, actual: 0.004, type: "PCT_GROWTH", weight: "4.0" },
+                { name: "Consumer Survey", date: "2026-08-05", time: "01:00:00", previous: 36.7, forecast: 37.0, actual: 36.4, type: "CONFIDENCE", weight: "4.0" },
+                { name: "Reuters Tankan", date: "2026-08-19", time: "19:00:00", previous: 7, forecast: 9, actual: 10, type: "SURVEY_5", weight: "4.0" },
+                { name: "JCER Monthly GDP", date: "2026-08-17", time: "19:50:00", previous: 0.002, forecast: -0.001, actual: 0.001, type: "PCT_GROWTH", weight: "4.0" }
             ],
             "AUD": [
-                { name: "Judo Mfg PMI", date: "2026-08-21", previous: 47.5, forecast: 48.0, actual: 48.2, type: "PMI", weight: "5.0" },
-                { name: "Judo Services PMI", date: "2026-08-21", previous: 50.4, forecast: 50.6, actual: 50.8, type: "AUD_SERVICES", weight: "5.0" },
-                { name: "CPI Indicator MoM", date: "2026-07-31", previous: 0.038, forecast: 0.036, actual: 0.035, type: "CPI", weight: "5.0" },
-                { name: "Unemployment Rate", date: "2026-08-20", previous: 0.044, forecast: 0.044, actual: 0.045, type: "UNEMP_RATE", weight: "5.0" },
-                { name: "Employment Change", date: "2026-08-20", previous: 80.3, forecast: 15.0, actual: -15.8, type: "JOBS_K", weight: "5.0" },
-                { name: "Retail Sales MoM", date: "2026-08-04", previous: 0.005, forecast: 0.003, actual: 0.005, type: "PCT_GROWTH", weight: "4.0" },
-                { name: "Westpac Sentiment", date: "2026-08-11", previous: 82.7, forecast: 83.5, actual: 84.1, type: "CONFIDENCE", weight: "4.0" },
-                { name: "NAB Business Confidence", date: "2026-08-11", previous: 4, forecast: 5, actual: 6, type: "SURVEY_5", weight: "4.0" },
-                { name: "AIG Industry Index", date: "2026-08-17", previous: -6.1, forecast: -5.0, actual: -4.2, type: "SURVEY_5", weight: "3.0" }
+                { name: "Judo Mfg PMI", date: "2026-08-21", time: "19:00:00", previous: 47.5, forecast: 48.0, actual: 48.2, type: "PMI", weight: "5.0" },
+                { name: "Judo Services PMI", date: "2026-08-21", time: "19:00:00", previous: 50.4, forecast: 50.6, actual: 50.8, type: "AUD_SERVICES", weight: "5.0" },
+                { name: "CPI Indicator MoM", date: "2026-07-31", time: "21:30:00", previous: 0.0049, forecast: 0.0036, actual: 0.0005, type: "CPI", weight: "5.0" },
+                { name: "Unemployment Rate", date: "2026-08-20", time: "21:30:00", previous: 0.044, forecast: 0.044, actual: 0.045, type: "UNEMP_RATE", weight: "5.0" },
+                { name: "Employment Change", date: "2026-08-20", time: "21:30:00", previous: 80.3, forecast: 15.0, actual: -15.8, type: "JOBS_K", weight: "5.0" },
+                { name: "Retail Sales MoM", date: "2026-08-04", time: "21:30:00", previous: 0.005, forecast: 0.003, actual: 0.005, type: "PCT_GROWTH", weight: "4.0" },
+                { name: "Westpac Sentiment", date: "2026-08-11", time: "19:30:00", previous: 82.7, forecast: 83.5, actual: 84.1, type: "CONFIDENCE", weight: "4.0" },
+                { name: "NAB Business Confidence", date: "2026-08-11", time: "20:30:00", previous: 4, forecast: 5, actual: 6, type: "SURVEY_5", weight: "4.0" },
+                { name: "AIG Industry Index", date: "2026-08-17", time: "18:00:00", previous: -6.1, forecast: -5.0, actual: -4.2, type: "SURVEY_5", weight: "3.0" }
             ],
             "NZD": [
-                { name: "BusNZ Mfg PMI", date: "2026-08-14", previous: 41.1, forecast: 42.5, actual: 43.0, type: "PMI", weight: "5.0" },
-                { name: "BusNZ Services PMI", date: "2026-08-17", previous: 40.2, forecast: 42.0, actual: 41.5, type: "PMI", weight: "5.0" },
-                { name: "Food Prices MoM", date: "2026-08-13", previous: -0.002, forecast: 0.001, actual: 0.002, type: "CPI", weight: "4.0" },
-                { name: "Unemployment Rate", date: "2026-08-05", previous: 0.046, forecast: 0.047, actual: 0.046, type: "UNEMP_RATE", weight: "5.0" },
-                { name: "MEI Jobs Change", date: "2026-07-29", previous: 0.001, forecast: 0.001, actual: 0.001, type: "PCT_GROWTH", weight: "4.0" },
-                { name: "Card Transactions", date: "2026-08-11", previous: -0.003, forecast: 0.001, actual: 0.002, type: "CARD_TRANS", weight: "4.0" },
-                { name: "ANZ Consumer Confidence", date: "2026-07-31", previous: 87.9, forecast: 89.0, actual: 88.2, type: "CONFIDENCE", weight: "4.0" },
-                { name: "ANZ Business Confidence", date: "2026-07-30", previous: 27.1, forecast: 30.0, actual: 29.5, type: "ANZ_BIZ", weight: "4.0" },
-                { name: "BusNZ Activity Index", date: "2026-08-18", previous: -0.002, forecast: 0.001, actual: 0.001, type: "PCT_GROWTH", weight: "4.0" }
+                { name: "BusNZ Mfg PMI", date: "2026-08-14", time: "18:30:00", previous: 41.1, forecast: 42.5, actual: 43.0, type: "PMI", weight: "5.0" },
+                { name: "BusNZ Services PMI", date: "2026-08-17", time: "17:30:00", previous: 40.2, forecast: 42.0, actual: 41.5, type: "PMI", weight: "5.0" },
+                { name: "Food Prices MoM", date: "2026-08-13", time: "17:45:00", previous: -0.002, forecast: 0.001, actual: 0.002, type: "CPI", weight: "4.0" },
+                { name: "Unemployment Rate", date: "2026-08-05", time: "17:45:00", previous: 0.046, forecast: 0.047, actual: 0.046, type: "UNEMP_RATE", weight: "5.0" },
+                { name: "MEI Jobs Change", date: "2026-07-29", time: "17:45:00", previous: 0.001, forecast: 0.001, actual: 0.001, type: "PCT_GROWTH", weight: "4.0" },
+                { name: "Card Transactions", date: "2026-08-11", time: "17:45:00", previous: -0.003, forecast: 0.001, actual: 0.002, type: "CARD_TRANS", weight: "4.0" },
+                { name: "ANZ Consumer Confidence", date: "2026-07-31", time: "21:00:00", previous: 87.9, forecast: 89.0, actual: 88.2, type: "CONFIDENCE", weight: "4.0" },
+                { name: "ANZ Business Confidence", date: "2026-07-30", time: "20:00:00", previous: 27.1, forecast: 30.0, actual: 29.5, type: "ANZ_BIZ", weight: "4.0" },
+                { name: "BusNZ Activity Index", date: "2026-08-18", time: "17:30:00", previous: -0.002, forecast: 0.001, actual: 0.001, type: "PCT_GROWTH", weight: "4.0" }
             ],
             "CAD": [
-                { name: "S&P Mfg PMI", date: "2026-08-04", previous: 47.8, forecast: 48.5, actual: 48.1, type: "PMI", weight: "5.0" },
-                { name: "Ivey PMI", date: "2026-08-07", previous: 57.6, forecast: 56.5, actual: 57.1, type: "PMI", weight: "5.0" },
-                { name: "CPI MoM", date: "2026-08-18", previous: -0.001, forecast: 0.002, actual: 0.001, type: "CPI", weight: "5.0" },
-                { name: "Unemployment Rate", date: "2026-08-07", previous: 0.064, forecast: 0.064, actual: 0.064, type: "UNEMP_RATE", weight: "5.0" },
-                { name: "Net Employment Change", date: "2026-08-07", previous: -1.4, forecast: 22.0, actual: -2.8, type: "CAD_JOBS", weight: "5.0" },
-                { name: "Retail Sales MoM", date: "2026-08-21", previous: -0.008, forecast: 0.004, actual: 0.003, type: "PCT_GROWTH", weight: "4.0" },
-                { name: "CB Consumer Survey", date: "2026-08-11", previous: 50.15, forecast: 51.0, actual: 50.8, type: "CONFIDENCE", weight: "4.0" },
-                { name: "CFIB Business Barometer", date: "2026-08-06", previous: 55.4, forecast: 56.0, actual: 55.9, type: "CONFIDENCE", weight: "3.0" },
-                { name: "Monthly GDP MoM", date: "2026-07-31", previous: 0.003, forecast: 0.002, actual: 0.002, type: "PCT_GROWTH", weight: "5.0" }
+                { name: "S&P Mfg PMI", date: "2026-08-04", time: "09:30:00", previous: 47.8, forecast: 48.5, actual: 48.1, type: "PMI", weight: "5.0" },
+                { name: "Ivey PMI", date: "2026-08-07", time: "10:00:00", previous: 57.6, forecast: 56.5, actual: 57.1, type: "PMI", weight: "5.0" },
+                { name: "CPI MoM", date: "2026-08-18", time: "08:30:00", previous: -0.001, forecast: 0.002, actual: 0.001, type: "CPI", weight: "5.0" },
+                { name: "Unemployment Rate", date: "2026-08-07", time: "08:30:00", previous: 0.064, forecast: 0.064, actual: 0.064, type: "UNEMP_RATE", weight: "5.0" },
+                { name: "Net Employment Change", date: "2026-08-07", time: "08:30:00", previous: -1.4, forecast: 22.0, actual: -2.8, type: "CAD_JOBS", weight: "5.0" },
+                { name: "Retail Sales MoM", date: "2026-08-21", time: "08:30:00", previous: -0.008, forecast: 0.004, actual: 0.003, type: "PCT_GROWTH", weight: "4.0" },
+                { name: "CB Consumer Survey", date: "2026-08-11", time: "11:00:00", previous: 50.15, forecast: 51.0, actual: 50.8, type: "CONFIDENCE", weight: "4.0" },
+                { name: "CFIB Business Barometer", date: "2026-08-06", time: "10:00:00", previous: 55.4, forecast: 56.0, actual: 55.9, type: "CONFIDENCE", weight: "3.0" },
+                { name: "Monthly GDP MoM", date: "2026-07-31", time: "08:30:00", previous: 0.003, forecast: 0.002, actual: 0.002, type: "PCT_GROWTH", weight: "5.0" }
             ],
             "CHF": [
-                { name: "Procure Mfg PMI", date: "2026-08-04", previous: 43.1, forecast: 44.5, actual: 43.9, type: "PMI", weight: "5.0" },
-                { name: "Procure Services PMI", date: "2026-08-05", previous: 52.4, forecast: 53.0, actual: 52.7, type: "PMI", weight: "5.0" },
-                { name: "CPI MoM", date: "2026-08-04", previous: -0.002, forecast: 0.001, actual: -0.001, type: "CPI", weight: "5.0" },
-                { name: "Unemp Rate", date: "2026-08-07", previous: 0.024, forecast: 0.024, actual: 0.025, type: "UNEMP_RATE", weight: "5.0" },
-                { name: "Unemp Change", date: "2026-08-07", previous: 1.2, forecast: 1.0, actual: 1.1, type: "CHF_UNEMP_CHANGE", weight: "4.0" },
-                { name: "Retail Sales MoM", date: "2026-07-31", previous: 0.003, forecast: 0.002, actual: 0.001, type: "PCT_GROWTH", weight: "4.0" },
-                { name: "Consumer Sentiment", date: "2026-08-06", previous: -34.0, forecast: -32.0, actual: -33.0, type: "CONFIDENCE", weight: "4.0" },
-                { name: "KOF Indicator", date: "2026-07-30", previous: 101.0, forecast: 101.5, actual: 101.2, type: "CONFIDENCE", weight: "4.0" },
-                { name: "SECO Economic Indicators", date: "2026-08-18", previous: 0.012, forecast: 0.013, actual: 0.013, type: "PCT_GROWTH", weight: "5.0" }
+                { name: "Procure Mfg PMI", date: "2026-08-04", time: "03:30:00", previous: 43.1, forecast: 44.5, actual: 43.9, type: "PMI", weight: "5.0" },
+                { name: "Procure Services PMI", date: "2026-08-05", time: "03:30:00", previous: 52.4, forecast: 53.0, actual: 52.7, type: "PMI", weight: "5.0" },
+                { name: "CPI MoM", date: "2026-08-04", time: "02:30:00", previous: -0.002, forecast: 0.001, actual: -0.001, type: "CPI", weight: "5.0" },
+                { name: "Unemp Rate", date: "2026-08-07", time: "03:00:00", previous: 0.024, forecast: 0.024, actual: 0.025, type: "UNEMP_RATE", weight: "5.0" },
+                { name: "Unemp Change", date: "2026-08-07", time: "03:00:00", previous: 1.2, forecast: 1.0, actual: 1.1, type: "CHF_UNEMP_CHANGE", weight: "4.0" },
+                { name: "Retail Sales MoM", date: "2026-07-31", time: "02:30:00", previous: 0.003, forecast: 0.002, actual: 0.001, type: "PCT_GROWTH", weight: "4.0" },
+                { name: "Consumer Sentiment", date: "2026-08-06", time: "03:00:00", previous: -34.0, forecast: -32.0, actual: -33.0, type: "CONFIDENCE", weight: "4.0" },
+                { name: "KOF Indicator", date: "2026-07-30", time: "03:00:00", previous: 101.0, forecast: 101.5, actual: 101.2, type: "CONFIDENCE", weight: "4.0" },
+                { name: "SECO Economic Indicators", date: "2026-08-18", time: "03:00:00", previous: 0.012, forecast: 0.013, actual: 0.013, type: "PCT_GROWTH", weight: "5.0" }
             ]
         };
 
@@ -595,10 +598,16 @@
 
             // 2. Fix Unemployment scaling (rate vs change)
             if (typeUpper === 'UNEMP_RATE' || typeUpper === 'EUR_UNEMP_FIXED' || (evLower.includes('unemp') && (evLower.includes('rate') || evLower.includes('tasa') || evLower.includes('paro')))) {
-                if (Math.abs(num) < 0.01 && Math.abs(num) > 0) {
-                    num = num * 10; // e.g. 0.0041 -> 0.041
-                } else if (isExplicitPercent || Math.abs(num) >= 0.20) {
-                    num = num / 100.0; // e.g. 4.1% or 4.1 -> 0.041
+                if (isExplicitPercent) {
+                    num = num / 100.0;
+                } else {
+                    if (Math.abs(num) >= 1.0) {
+                        num = num / 100.0; // e.g. 4.1 -> 0.041
+                    } else if (Math.abs(num) >= 0.15) {
+                        num = num / 10.0;  // e.g. 0.62 -> 0.062, 0.41 -> 0.041
+                    } else if (Math.abs(num) < 0.015 && Math.abs(num) > 0.001) {
+                        num = num * 10.0;  // recover accidental 0.0062 -> 0.062 or 0.0041 -> 0.041
+                    }
                 }
                 return parseFloat(num.toFixed(4));
             }
@@ -615,6 +624,8 @@
             // 4. Percentage metrics (CPI, Retail Sales, GDP, Card Transactions)
             const percentTypes = ["CPI", "PCT_GROWTH", "CARD_TRANS", "GBP_RETAIL"];
             if (percentTypes.includes(typeUpper) || isExplicitPercent) {
+                // Reject raw price index levels (e.g. 336.65, 143.6) from being ingested into MoM decimal rates
+                if (!isExplicitPercent && Math.abs(num) >= 20.0) return null;
                 if (isExplicitPercent || Math.abs(num) >= 0.05) {
                     num = num / 100.0; // e.g. "0.2%" or "0.2" -> 0.002; "2.5%" -> 0.025
                 }
@@ -622,17 +633,72 @@
             }
 
             // 5. Surveys & Confidence Indices (CONFIDENCE, INDEX_SMALL, SURVEY_5, ANZ_BIZ)
+            if (evLower.includes('westpac') && isExplicitPercent) {
+                // AU Westpac Consumer Sentiment reported as relative change (-4.70%) vs index baseline (83.5)
+                num = parseFloat((83.5 * (1 + num / 100)).toFixed(1));
+            }
             return parseFloat(num.toFixed(2));
         }
 
-        function parseWeight(weight) {
-            if (typeof weight === 'number' && !isNaN(weight) && weight > 0) return weight;
+        function formatWeight(weight) {
+            if (typeof weight === 'number' && !isNaN(weight) && weight > 0) return weight.toFixed(1);
             const s = String(weight || '').trim().toLowerCase();
-            if (s === 'high' || s === 'h' || s === '5.0' || s === '5') return 5.0;
-            if (s === 'med' || s === 'medium' || s === 'm' || s === '4.0' || s === '4') return 4.0;
-            if (s === 'low' || s === 'l' || s === '3.0' || s === '3') return 3.0;
+            if (s === 'high' || s === 'h' || s === '5.0' || s === '5') return "5.0";
+            if (s === 'med' || s === 'medium' || s === 'm' || s === '4.0' || s === '4') return "4.0";
+            if (s === 'low' || s === 'l' || s === '3.0' || s === '3') return "3.0";
             const num = parseFloat(s);
-            return !isNaN(num) && num > 0 ? num : 4.0;
+            return (!isNaN(num) && num > 0) ? num.toFixed(1) : "4.0";
+        }
+
+        function parseWeight(weight) {
+            return parseFloat(formatWeight(weight));
+        }
+
+        function formatTimeTo24h(val, fallback = "08:30:00") {
+            if (val === null || val === undefined || val === '') return fallback;
+            if (typeof val === 'number' && !isNaN(val)) {
+                if (val >= 0 && val < 1) {
+                    const totalSec = Math.round(val * 86400);
+                    const h = Math.floor(totalSec / 3600) % 24;
+                    const m = Math.floor((totalSec % 3600) / 60);
+                    const s = totalSec % 60;
+                    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+                }
+            }
+            const s = String(val).trim();
+            if (!s || s === '—' || s === '-' || s === 'N/A' || s === 'ND') return fallback;
+
+            if (/^0\.\d+$/.test(s)) {
+                const num = parseFloat(s);
+                if (!isNaN(num)) {
+                    const totalSec = Math.round(num * 86400);
+                    const h = Math.floor(totalSec / 3600) % 24;
+                    const m = Math.floor((totalSec % 3600) / 60);
+                    const sec = totalSec % 60;
+                    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+                }
+            }
+
+            const ampmMatch = s.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(am|pm)$/i);
+            if (ampmMatch) {
+                let h = parseInt(ampmMatch[1], 10);
+                const m = ampmMatch[2];
+                const sec = ampmMatch[3] || '00';
+                const isPm = ampmMatch[4].toLowerCase() === 'pm';
+                if (isPm && h < 12) h += 12;
+                if (!isPm && h === 12) h = 0;
+                return `${String(h).padStart(2, '0')}:${m}:${sec}`;
+            }
+
+            const match24 = s.match(/\b(\d{1,2}):(\d{2})(?::(\d{2}))?\b/);
+            if (match24) {
+                const h = String(parseInt(match24[1], 10)).padStart(2, '0');
+                const m = match24[2];
+                const sec = match24[3] ? match24[3].padStart(2, '0') : '00';
+                return `${h}:${m}:${sec}`;
+            }
+
+            return fallback;
         }
 
         function evaluateIndicator(ind) {
@@ -911,6 +977,10 @@
                             const evalRes = evaluateIndicator(ind);
                             ind.netChange = evalRes.netChange;
                             ind.score = evalRes.score;
+                            const defaultInd = (defaultData[curr] || []).find(d => d.name === ind.name);
+                            const fallbackTime = defaultInd ? defaultInd.time : "08:30:00";
+                            ind.time = formatTimeTo24h(ind.time, fallbackTime);
+                            ind.weight = formatWeight(ind.weight);
                         });
                     }
                 });
@@ -956,24 +1026,35 @@
             if (!validateAppData(targetObj)) return null;
 
             const cleaned = JSON.parse(JSON.stringify(targetObj));
-            Object.keys(cleaned).forEach(k => {
-                if (Array.isArray(cleaned[k])) {
-                    cleaned[k] = cleaned[k].map(item => {
+            Object.keys(cleaned).forEach(curr => {
+                if (Array.isArray(cleaned[curr])) {
+                    cleaned[curr] = cleaned[curr].map(item => {
                         if (!item) return item;
-                        let cleanTime = item.time || "—";
-                        if (typeof cleanTime === 'string' && (cleanTime.includes("1899") || cleanTime.includes("1900"))) {
-                            const timeMatch = cleanTime.match(/\b(\d{1,2}:\d{2})(:\d{2})?\b/);
-                            cleanTime = timeMatch ? timeMatch[1] : "—";
-                        }
+                        const defaultInd = (defaultData[curr] || []).find(d => d.name === item.name);
+                        const fallbackTime = defaultInd ? defaultInd.time : "08:30:00";
+                        const cleanTime = formatTimeTo24h(item.time, fallbackTime);
                         let cleanDate = item.date;
                         if (typeof cleanDate === 'string' && (cleanDate.includes("1899") || cleanDate.includes("1900"))) {
                             cleanDate = new Date().toISOString().slice(0, 10);
                         }
+                        if (item.name && String(item.name).toLowerCase().includes('cpi indicator') && String(item.name).toLowerCase().includes('mom')) {
+                            if (typeof item.previous === 'number' && Math.abs(item.previous) >= 0.015) {
+                                item.previous = parseFloat((item.previous / 10).toFixed(4));
+                            }
+                            if (typeof item.forecast === 'number' && Math.abs(item.forecast) >= 0.015) {
+                                item.forecast = parseFloat((item.forecast / 10).toFixed(4));
+                            }
+                            if (typeof item.actual === 'number' && Math.abs(item.actual) >= 0.015) {
+                                item.actual = parseFloat((item.actual / 10).toFixed(4));
+                            }
+                        }
+                        const cleanWeight = formatWeight(item.weight);
                         const evalRes = evaluateIndicator(item);
                         return {
                             ...item,
                             time: cleanTime,
                             date: cleanDate !== undefined ? cleanDate : item.date,
+                            weight: cleanWeight,
                             netChange: evalRes.netChange,
                             score: evalRes.score
                         };
@@ -1024,15 +1105,36 @@
             importData(event);
         }
 
-        function resetToDefaults() {
-            if (confirm("Reset to baseline defaults? Any unsaved changes will be cleared.")) {
-                appData = JSON.parse(JSON.stringify(defaultData));
-                localStorage.removeItem('forex_dashboard_data_v2');
-                saveToLocalStorage();
-                refreshApp();
-                switchTab(activeTab);
-                alert("Dashboard reset to baseline defaults!");
+        function resetToZero() {
+            const today = new Date().toISOString().slice(0, 10);
+            const zeroData = {};
+            for (const c in defaultData) {
+                zeroData[c] = defaultData[c].map(ind => ({
+                    name: ind.name,
+                    date: today,
+                    time: ind.time || "08:30:00",
+                    previous: 0,
+                    forecast: 0,
+                    actual: 0,
+                    type: ind.type,
+                    weight: formatWeight(ind.weight),
+                    score: 0,
+                    netChange: 0
+                }));
             }
+            appData = zeroData;
+            saveToLocalStorage();
+            refreshApp();
+            if (typeof switchTab === 'function') switchTab(activeTab);
+            const notice = document.getElementById('lastUpdatedNotice');
+            if (notice) {
+                notice.innerText = 'Valuation Reset: All indicators set to 0';
+            }
+            alert('All valuation indicators have been reset to 0!');
+        }
+
+        function resetToDefaults() {
+            resetToZero();
         }
 
         // ==========================================
@@ -1089,20 +1191,33 @@
 
             const isCompatible = (ind) => {
                 const iname = ind.name.toLowerCase();
-                // Allow Australia's CPI Indicator, Japan's Cash Earnings, and Tokyo CPI to match annual/headline releases
-                const isExemptAnnual = iname.includes('cpi indicator') || iname.includes('cash earnings') || iname.includes('tokyo cpi');
+                // Exclude unrelated calendar event rows (auctions, speeches, minutes, energy, positioning)
+                if (/\b(auction|subasta|speaks|speech|discurso|habla|minutes|actas|rig count|speculative|positions|posiciones|cftc|trade balance|balanza comercial|bond|bono|gilt)\b/i.test(ev)) return false;
+
+                // PMIs vs Production / Output
+                if ((ind.type === 'PMI' || iname.includes('pmi')) && !/\b(pmi|purchasing|psi)\b/i.test(ev)) return false;
+                if (/\b(production|producción|produccion|output)\b/i.test(ev) && (ind.type === 'PMI' || iname.includes('pmi'))) return false;
+
+                // CPI price index level exclusion (e.g. US CPI Index n.s.a. 336.65, UK CPI n.s.a. 143.6)
+                if (iname.includes('cpi mom') || (iname.includes('cpi') && !iname.includes('indicator') && !iname.includes('index'))) {
+                    if (/\b(index|indice|índice|n\.s\.a|nsa|s\.a\b)\b/i.test(ev) && !/\b(mom|m\/m|mensual)\b/i.test(ev)) return false;
+                }
+
+                // Strictly isolate branded surveys
+                if (iname.includes('ifo') && !ev.includes('ifo')) return false;
+                if (iname.includes('anz') && !ev.includes('anz')) return false;
+                if (iname.includes('westpac') && !ev.includes('westpac')) return false;
+                if (ev.includes('nzier')) return false;
+
+                // Allow headline Tokyo CPI or Cash Earnings to match; CPI MoM indicators must strictly match MoM
+                const isExemptAnnual = (iname.includes('cpi indicator') && !iname.includes('mom')) || iname.includes('cash earnings') || iname.includes('tokyo cpi');
                 if (!isExemptAnnual) {
-                    // If indicator tracks MoM specifically, do not match YoY event
                     if (iname.includes('mom') && isYoYEvent && !iname.includes('yoy')) return false;
-                    // If event is MoM and indicator is YoY
                     if (iname.includes('yoy') && isMoMEvent && !iname.includes('mom')) return false;
                 }
-                // Core CPI shouldn't match headline CPI MoM unless indicator itself is core
                 if (isCoreEvent && !iname.includes('core') && !iname.includes('subyacente')) return false;
-                // Services vs Mfg
                 if (isServicesEvent && !isMfgEvent && (iname.includes('mfg') || iname.includes('manufacturing'))) return false;
                 if (isMfgEvent && !isServicesEvent && (iname.includes('services') || iname.includes('non-mfg') || iname.includes('psi'))) return false;
-                // Jobs rate vs change
                 if (isChangeJobEvent && (iname.includes('unemployment rate') || iname === 'unemp rate')) return false;
                 if (isRateJobEvent && (iname.includes('change') || iname.includes('claimant'))) return false;
                 return true;
@@ -1169,14 +1284,14 @@
                 }
                 if (curr === 'NZD' && iname.includes('activity index') && (ev.includes('activity') || ev.includes('actividad') || ev.includes('composite'))) return ind;
 
-                // Confidence / Business Surveys (including Household Confidence for JPY)
+                // Confidence / Business Surveys (strictly verified)
                 if (iname.includes('consumer confidence') || iname.includes('consumer sentiment') || iname.includes('consumer survey') || iname.includes('confidence') || iname.includes('survey')) {
                     if (ev.includes('consumer confidence') || ev.includes('confianza del consumidor') || ev.includes('consumer sentiment') || ev.includes('sentimiento del consumidor') || ev.includes('consumer survey') || ev.includes('household confidence') || ev.includes('confianza de los hogares') || ev.includes('household spending') || ev.includes('consumer climate')) return ind;
                 }
-                if (iname.includes('ifo') && (ev.includes('ifo') || ev.includes('business climate') || ev.includes('clima empresarial'))) return ind;
+                if (iname.includes('ifo') && ev.includes('ifo')) return ind;
                 if (iname.includes('nfib') && (ev.includes('nfib') || ev.includes('small business'))) return ind;
                 if (iname.includes('cfib') && (ev.includes('cfib') || ev.includes('business barometer'))) return ind;
-                if (iname.includes('westpac') && (ev.includes('westpac') || ev.includes('sentiment'))) return ind;
+                if (iname.includes('westpac') && ev.includes('westpac')) return ind;
                 if (iname.includes('nab') && (ev.includes('nab') || ev.includes('business confidence'))) return ind;
                 if (iname.includes('anz') && iname.includes('business') && (ev.includes('anz') && ev.includes('business'))) return ind;
                 if (iname.includes('tankan') && (ev.includes('tankan') || ev.includes('reuters'))) return ind;
@@ -1195,22 +1310,7 @@
                 if (inameNorm.length >= 4 && (clean.includes(inameNorm) || inameNorm.includes(clean))) return ind;
             }
 
-            // 4. Token overlap similarity
-            let bestMatch = null;
-            let bestScore = 0;
-            const cleanWords = clean.split(/\s+/).filter(w => w.length > 2);
-            for (const ind of indicators) {
-                if (!isCompatible(ind)) continue;
-                const inameWords = normalizeEventName(ind.name).split(/\s+/).filter(w => w.length > 2);
-                if (!inameWords.length) continue;
-                const common = cleanWords.filter(w => inameWords.includes(w));
-                const score = common.length / Math.max(cleanWords.length, inameWords.length);
-                if (score > bestScore && score >= 0.35) {
-                    bestScore = score;
-                    bestMatch = ind;
-                }
-            }
-            return bestMatch;
+            return null;
         }
 
         function parseSpreadsheetData(rows) {
@@ -1525,15 +1625,10 @@
 
                         if (hasChanges) {
                             if (impCol !== -1 && row[impCol] !== undefined && row[impCol] !== '') {
-                                matchedInd.weight = parseWeight(row[impCol]);
+                                matchedInd.weight = formatWeight(row[impCol]);
                             }
                             if (timeCol !== -1 && row[timeCol] !== undefined && row[timeCol] !== '') {
-                                let cleanTime = String(row[timeCol]).trim();
-                                if (cleanTime.includes('1899') || cleanTime.includes('1900')) {
-                                    const timeMatch = cleanTime.match(/\b(\d{1,2}:\d{2})(:\d{2})?\b/);
-                                    cleanTime = timeMatch ? timeMatch[1] : '—';
-                                }
-                                matchedInd.time = cleanTime || '—';
+                                matchedInd.time = formatTimeTo24h(row[timeCol], matchedInd.time || "08:30:00");
                             }
                             // Format release date with serial number converter
                             matchedInd.date = (dateCol !== -1 && row[dateCol]) ? formatToYMD(row[dateCol]) : currentDateHeader;

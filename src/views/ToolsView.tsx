@@ -243,28 +243,109 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
     }
   };
 
-  // --- Currency Strength Mathematical Evaluator ---
-  const parseInputValue = (input: any, type: string): number | null => {
-    if (input === null || input === undefined || input === '') return null;
-    const strVal = input.toString().trim().toUpperCase().replace('K', '');
-    if (strVal === '-' || strVal === 'N/A') return null;
-    const isExplicitPercent = strVal.includes('%');
-    const num = parseFloat(strVal.replace('%', ''));
-    if (isNaN(num)) return null;
-    const percentTypes = ["CPI", "UNEMP_RATE", "PCT_GROWTH", "EUR_UNEMP_FIXED", "CARD_TRANS"];
-    if (percentTypes.includes(type) && (isExplicitPercent || Math.abs(num) >= 0.08)) return num / 100.0;
-    return num;
+  // Helper to format weights ("High" -> "5.0", "Med" -> "4.0", "Low" -> "3.0", or numeric strings)
+  const formatWeight = (weight: any): string => {
+    if (typeof weight === 'number' && !isNaN(weight) && weight > 0) return weight.toFixed(1);
+    const s = String(weight || '').trim().toLowerCase();
+    if (s === 'high' || s === 'h' || s === '5.0' || s === '5') return "5.0";
+    if (s === 'med' || s === 'medium' || s === 'm' || s === '4.0' || s === '4') return "4.0";
+    if (s === 'low' || s === 'l' || s === '3.0' || s === '3') return "3.0";
+    const num = parseFloat(s);
+    return (!isNaN(num) && num > 0) ? num.toFixed(1) : "4.0";
   };
 
-  // Helper to parse weights ("High" -> 5.0, "Med" -> 4.0, "Low" -> 3.0, or numeric strings)
   const parseWeight = (weight: any): number => {
-    if (typeof weight === 'number' && !isNaN(weight) && weight > 0) return weight;
-    const s = String(weight || '').trim().toLowerCase();
-    if (s === 'high' || s === 'h' || s === '5.0' || s === '5') return 5.0;
-    if (s === 'med' || s === 'medium' || s === 'm' || s === '4.0' || s === '4') return 4.0;
-    if (s === 'low' || s === 'l' || s === '3.0' || s === '3') return 3.0;
-    const num = parseFloat(s);
-    return !isNaN(num) && num > 0 ? num : 4.0;
+    return parseFloat(formatWeight(weight));
+  };
+
+  const formatTimeTo24h = (val: any, fallback: string = "08:30:00"): string => {
+    if (val === null || val === undefined || val === '') return fallback;
+    if (typeof val === 'number' && !isNaN(val)) {
+      if (val >= 0 && val < 1) {
+        const totalSec = Math.round(val * 86400);
+        const h = Math.floor(totalSec / 3600) % 24;
+        const m = Math.floor((totalSec % 3600) / 60);
+        const s = totalSec % 60;
+        return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+      }
+    }
+    const s = String(val).trim();
+    if (!s || s === '—' || s === '-' || s === 'N/A' || s === 'ND') return fallback;
+
+    if (/^0\.\d+$/.test(s)) {
+      const num = parseFloat(s);
+      if (!isNaN(num)) {
+        const totalSec = Math.round(num * 86400);
+        const h = Math.floor(totalSec / 3600) % 24;
+        const m = Math.floor((totalSec % 3600) / 60);
+        const sec = totalSec % 60;
+        return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+      }
+    }
+
+    const ampmMatch = s.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(am|pm)$/i);
+    if (ampmMatch) {
+      let h = parseInt(ampmMatch[1], 10);
+      const m = ampmMatch[2];
+      const sec = ampmMatch[3] || '00';
+      const isPm = ampmMatch[4].toLowerCase() === 'pm';
+      if (isPm && h < 12) h += 12;
+      if (!isPm && h === 12) h = 0;
+      return `${String(h).padStart(2, '0')}:${m}:${sec}`;
+    }
+
+    const match24 = s.match(/\b(\d{1,2}):(\d{2})(?::(\d{2}))?\b/);
+    if (match24) {
+      const h = String(parseInt(match24[1], 10)).padStart(2, '0');
+      const m = match24[2];
+      const sec = match24[3] ? match24[3].padStart(2, '0') : '00';
+      return `${h}:${m}:${sec}`;
+    }
+
+    return fallback;
+  };
+
+  // --- Currency Strength Mathematical Evaluator ---
+  const parseInputValue = (input: any, type: string, eventName: string = ''): number | null => {
+    if (input === null || input === undefined || input === '') return null;
+    const strVal = input.toString().trim().toUpperCase().replace('K', '');
+    if (strVal === '-' || strVal === 'N/A' || strVal === 'ND') return null;
+    const isExplicitPercent = strVal.includes('%');
+    let num = parseFloat(strVal.replace(/[%+]/g, ''));
+    if (isNaN(num)) return null;
+
+    const evLower = eventName.toLowerCase();
+    const typeUpper = type.toUpperCase();
+
+    // Unemployment rate vs change
+    if (typeUpper === 'UNEMP_RATE' || typeUpper === 'EUR_UNEMP_FIXED' || (evLower.includes('unemp') && (evLower.includes('rate') || evLower.includes('tasa') || evLower.includes('paro')))) {
+      if (isExplicitPercent) {
+        num = num / 100.0;
+      } else {
+        if (Math.abs(num) >= 1.0) {
+          num = num / 100.0;
+        } else if (Math.abs(num) >= 0.15) {
+          num = num / 10.0;
+        } else if (Math.abs(num) < 0.015 && Math.abs(num) > 0.001) {
+          num = num * 10.0;
+        }
+      }
+      return parseFloat(num.toFixed(4));
+    }
+
+    // Decimal percentage types
+    const percentTypes = ["CPI", "PCT_GROWTH", "CARD_TRANS", "GBP_RETAIL"];
+    if (percentTypes.includes(typeUpper) || isExplicitPercent) {
+      if (!isExplicitPercent && Math.abs(num) >= 20.0) return null;
+      if (isExplicitPercent || Math.abs(num) >= 0.05) return num / 100.0;
+      return parseFloat(num.toFixed(4));
+    }
+
+    if (evLower.includes('westpac') && isExplicitPercent) {
+      num = parseFloat((83.5 * (1 + num / 100)).toFixed(1));
+    }
+
+    return num;
   };
 
   // --- Mathematical Scoring Engine (Legacy Discrete Integer Engine) ---
@@ -368,7 +449,7 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
       if (field === 'date') {
         item.date = rawVal;
       } else {
-        item[field] = parseInputValue(rawVal, item.type);
+        item[field] = parseInputValue(rawVal, item.type, item.name);
       }
 
       currentList[idx] = item;
@@ -394,24 +475,35 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
     if (!validateAppData(targetObj)) return null;
 
     const cleaned: Record<string, MacroIndicator[]> = JSON.parse(JSON.stringify(targetObj));
-    Object.keys(cleaned).forEach(k => {
-      if (Array.isArray(cleaned[k])) {
-        cleaned[k] = cleaned[k].map((item: any) => {
+    Object.keys(cleaned).forEach(curr => {
+      if (Array.isArray(cleaned[curr])) {
+        cleaned[curr] = cleaned[curr].map((item: any) => {
           if (!item) return item;
-          let cleanTime = item.time || "—";
-          if (typeof cleanTime === 'string' && (cleanTime.includes("1899") || cleanTime.includes("1900"))) {
-            const timeMatch = cleanTime.match(/\b(\d{1,2}:\d{2})(:\d{2})?\b/);
-            cleanTime = timeMatch ? timeMatch[1] : "—";
-          }
+          const defaultInd = (DEFAULT_CURRENCY_INDICATORS[curr] || []).find(d => d.name === item.name);
+          const fallbackTime = defaultInd ? (defaultInd.time || "08:30:00") : "08:30:00";
+          const cleanTime = formatTimeTo24h(item.time, fallbackTime);
           let cleanDate = item.date;
           if (typeof cleanDate === 'string' && (cleanDate.includes("1899") || cleanDate.includes("1900"))) {
             cleanDate = new Date().toISOString().slice(0, 10);
           }
+          if (item.name && String(item.name).toLowerCase().includes('cpi indicator') && String(item.name).toLowerCase().includes('mom')) {
+            if (typeof item.previous === 'number' && Math.abs(item.previous) >= 0.015) {
+              item.previous = parseFloat((item.previous / 10).toFixed(4));
+            }
+            if (typeof item.forecast === 'number' && Math.abs(item.forecast) >= 0.015) {
+              item.forecast = parseFloat((item.forecast / 10).toFixed(4));
+            }
+            if (typeof item.actual === 'number' && Math.abs(item.actual) >= 0.015) {
+              item.actual = parseFloat((item.actual / 10).toFixed(4));
+            }
+          }
+          const cleanWeight = formatWeight(item.weight);
           const evalRes = evaluateIndicator(item);
           return {
             ...item,
             time: cleanTime,
             date: cleanDate !== undefined ? cleanDate : item.date,
+            weight: cleanWeight,
             netChange: evalRes.netChange,
             score: evalRes.score
           };
@@ -431,6 +523,10 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
             const evalRes = evaluateIndicator(ind);
             ind.netChange = evalRes.netChange;
             ind.score = evalRes.score;
+            const defaultInd = (DEFAULT_CURRENCY_INDICATORS[curr] || []).find(d => d.name === ind.name);
+            const fallbackTime = defaultInd ? (defaultInd.time || "08:30:00") : "08:30:00";
+            ind.time = formatTimeTo24h(ind.time, fallbackTime);
+            ind.weight = formatWeight(ind.weight);
           });
         }
       });
@@ -473,7 +569,9 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
           const evalRes = evaluateIndicator(ind);
           const name = `"${(ind.name || '').replace(/"/g, '""')}"`;
           const date = ind.date || '';
-          const time = ind.time || '';
+          const defaultInd = (DEFAULT_CURRENCY_INDICATORS[curr] || []).find(d => d.name === ind.name);
+          const fallbackTime = defaultInd ? (defaultInd.time || "08:30:00") : "08:30:00";
+          const time = formatTimeTo24h(ind.time, fallbackTime);
           const act = ind.actual !== null && ind.actual !== undefined ? ind.actual : '';
           const fcst = ind.forecast !== null && ind.forecast !== undefined ? ind.forecast : '';
           const prev = ind.previous !== null && ind.previous !== undefined ? ind.previous : '';
@@ -536,17 +634,40 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
   };
 
   const handleResetData = () => {
-    const confirmMsg = language === 'es'
-      ? "¿Restablecer todos los datos del panel de valoración a los valores iniciales?"
-      : "Reset all valuation dashboard inputs to default baseline?";
-    if (confirm(confirmMsg)) {
-      const cleanDefaults = JSON.parse(JSON.stringify(DEFAULT_CURRENCY_INDICATORS));
-      setCurrencyIndicators(cleanDefaults);
-      try {
-        localStorage.removeItem('forex_dashboard_data_v2');
-      } catch {}
-      alert(language === 'es' ? "Datos de valoración restablecidos a los valores predeterminados." : "Valuation data reset to baseline defaults.");
-    }
+    const today = new Date().toISOString().slice(0, 10);
+    const zeroIndicators: Record<string, MacroIndicator[]> = {};
+    const currencyKeys = ['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'NZD', 'CAD', 'CHF'];
+
+    currencyKeys.forEach((curr) => {
+      const sourceList = DEFAULT_CURRENCY_INDICATORS[curr] || [];
+      zeroIndicators[curr] = sourceList.map((ind) => ({
+        name: ind.name,
+        date: today,
+        time: ind.time || "08:30:00",
+        previous: 0,
+        forecast: 0,
+        actual: 0,
+        type: ind.type,
+        weight: formatWeight(ind.weight),
+        score: 0,
+        netChange: 0,
+      }));
+    });
+
+    setCurrencyIndicators(zeroIndicators);
+    try {
+      localStorage.setItem('forex_dashboard_data_v2', JSON.stringify(zeroIndicators));
+    } catch {}
+
+    setUploadModal({
+      isOpen: true,
+      type: 'success',
+      title: language === 'es' ? "Valores Restablecidos a Cero (0)" : "Valuation Reset to Zero (0)",
+      message: language === 'es'
+        ? "Todos los indicadores macroeconómicos (actual, previo, previsión) de las 8 divisas G10 han sido reiniciados a 0. Todas las puntuaciones de divergencia y totales están en estado neutral."
+        : "All macroeconomic indicators (actual, previous, forecast) across all 8 G10 currencies have been reset to 0. All divergence spreads and currency scores are now at neutral zero baseline.",
+      currencies: currencyKeys,
+    });
   };
 
   // --- Investing.com Country Mapping & Currency Helpers ---
@@ -612,8 +733,27 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
 
     const isCompatible = (ind: MacroIndicator) => {
       const iname = ind.name.toLowerCase();
-      // Allow Australia's CPI Indicator, Japan's Cash Earnings, and Tokyo CPI to match annual/headline releases
-      const isExemptAnnual = iname.includes('cpi indicator') || iname.includes('cash earnings') || iname.includes('tokyo cpi');
+
+      // Exclude unrelated calendar event rows (auctions, speeches, minutes, energy, positioning)
+      if (/\b(auction|subasta|speaks|speech|discurso|habla|minutes|actas|rig count|speculative|positions|posiciones|cftc|trade balance|balanza comercial|bond|bono|gilt)\b/i.test(ev)) return false;
+
+      // PMIs vs Production / Output
+      if ((ind.type === 'PMI' || iname.includes('pmi')) && !/\b(pmi|purchasing|psi)\b/i.test(ev)) return false;
+      if (/\b(production|producción|produccion|output)\b/i.test(ev) && (ind.type === 'PMI' || iname.includes('pmi'))) return false;
+
+      // CPI price index level exclusion (e.g. US CPI Index n.s.a. 336.65, UK CPI n.s.a. 143.6)
+      if (iname.includes('cpi mom') || (iname.includes('cpi') && !iname.includes('indicator') && !iname.includes('index'))) {
+        if (/\b(index|indice|índice|n\.s\.a|nsa|s\.a\b)\b/i.test(ev) && !/\b(mom|m\/m|mensual)\b/i.test(ev)) return false;
+      }
+
+      // Strictly isolate branded surveys
+      if (iname.includes('ifo') && !ev.includes('ifo')) return false;
+      if (iname.includes('anz') && !ev.includes('anz')) return false;
+      if (iname.includes('westpac') && !ev.includes('westpac')) return false;
+      if (ev.includes('nzier')) return false;
+
+      // Allow headline Tokyo CPI or Cash Earnings to match; CPI MoM indicators must strictly match MoM
+      const isExemptAnnual = (iname.includes('cpi indicator') && !iname.includes('mom')) || iname.includes('cash earnings') || iname.includes('tokyo cpi');
       if (!isExemptAnnual) {
         if (iname.includes('mom') && isYoYEvent && !iname.includes('yoy')) return false;
         if (iname.includes('yoy') && isMoMEvent && !iname.includes('mom')) return false;
@@ -731,10 +871,10 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
           return i;
         }
       }
-      if (iname.includes('ifo') && (ev.includes('ifo') || ev.includes('business climate') || ev.includes('clima empresarial'))) return i;
+      if (iname.includes('ifo') && ev.includes('ifo')) return i;
       if (iname.includes('nfib') && (ev.includes('nfib') || ev.includes('small business'))) return i;
       if (iname.includes('cfib') && (ev.includes('cfib') || ev.includes('business barometer'))) return i;
-      if (iname.includes('westpac') && (ev.includes('westpac') || ev.includes('sentiment'))) return i;
+      if (iname.includes('westpac') && ev.includes('westpac')) return i;
       if (iname.includes('nab') && (ev.includes('nab') || ev.includes('business confidence'))) return i;
       if (iname.includes('anz') && iname.includes('business') && (ev.includes('anz') && ev.includes('business'))) return i;
       if (iname.includes('tankan') && (ev.includes('tankan') || ev.includes('reuters'))) return i;
@@ -755,23 +895,7 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
       }
     }
 
-    // 4. Token overlap matching
-    let bestIdx = -1;
-    let bestScore = 0;
-    const cleanWords = clean.split(/\s+/).filter(w => w.length > 2);
-    for (let i = 0; i < indList.length; i++) {
-      if (!isCompatible(indList[i])) continue;
-      const inameWords = normalizeEventText(indList[i].name).split(/\s+/).filter(w => w.length > 2);
-      if (!inameWords.length) continue;
-      const common = cleanWords.filter(w => inameWords.includes(w));
-      const score = common.length / Math.max(cleanWords.length, inameWords.length);
-      if (score > bestScore && score >= 0.35) {
-        bestScore = score;
-        bestIdx = i;
-      }
-    }
-
-    return bestIdx;
+    return -1;
   };
 
   const formatSpreadsheetDate = (dateVal: any): string => {
@@ -873,9 +997,10 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
     if (isNaN(num)) return null;
 
     const evLower = eventName.toLowerCase();
+    const typeUpper = (type || '').toUpperCase();
 
     // Fix PMI scaling: If event includes "PMI" and value < 1.0 (e.g. 0.022 or 0.528)
-    if (type === 'PMI' || type === 'AUD_SERVICES' || evLower.includes('pmi')) {
+    if (typeUpper === 'PMI' || typeUpper === 'AUD_SERVICES' || evLower.includes('pmi')) {
       if (Math.abs(num) < 1.0 && Math.abs(num) > 0) {
         if (Math.abs(num) >= 0.3) {
           num = num * 100;
@@ -889,18 +1014,24 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
     }
 
     // Fix Unemployment scaling (rate vs change)
-    if (type === 'UNEMP_RATE' || type === 'EUR_UNEMP_FIXED' || (evLower.includes('unemp') && (evLower.includes('rate') || evLower.includes('tasa') || evLower.includes('paro')))) {
-      if (Math.abs(num) < 0.01 && Math.abs(num) > 0) {
-        num = num * 10;
-      } else if (isExplicitPercent || Math.abs(num) >= 0.20) {
+    if (typeUpper === 'UNEMP_RATE' || typeUpper === 'EUR_UNEMP_FIXED' || (evLower.includes('unemp') && (evLower.includes('rate') || evLower.includes('tasa') || evLower.includes('paro')))) {
+      if (isExplicitPercent) {
         num = num / 100.0;
+      } else {
+        if (Math.abs(num) >= 1.0) {
+          num = num / 100.0; // e.g. 4.1 -> 0.041
+        } else if (Math.abs(num) >= 0.15) {
+          num = num / 10.0; // e.g. 0.62 -> 0.062, 0.41 -> 0.041
+        } else if (Math.abs(num) < 0.015 && Math.abs(num) > 0.001) {
+          num = num * 10.0; // recover accidental 0.0062 -> 0.062 or 0.0041 -> 0.041
+        }
       }
       return parseFloat(num.toFixed(4));
     }
 
     // Thousands types stored in thousands (NFP, Jobs changes, Claims, Unemployment change)
     const thousandsTypes = ["NFP", "JOBS_K", "CAD_JOBS", "GBP_CLAIMANT", "GER_UNEMP_CHANGE", "CHF_UNEMP_CHANGE"];
-    if (thousandsTypes.includes(type) || evLower.includes('nfp') || evLower.includes('payrolls') || evLower.includes('claimant')) {
+    if (thousandsTypes.includes(typeUpper) || evLower.includes('nfp') || evLower.includes('payrolls') || evLower.includes('claimant')) {
       if (Math.abs(num) >= 500 && !hasK) {
         return parseFloat((num / 1000).toFixed(1));
       }
@@ -909,7 +1040,8 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
 
     // Percentage types stored as decimals (CPI, GDP, Retail Sales, Card Transactions)
     const percentTypes = ["CPI", "PCT_GROWTH", "CARD_TRANS", "GBP_RETAIL"];
-    if (percentTypes.includes(type) || isExplicitPercent) {
+    if (percentTypes.includes(typeUpper) || isExplicitPercent) {
+      if (!isExplicitPercent && Math.abs(num) >= 20.0) return null;
       if (isExplicitPercent || Math.abs(num) >= 0.05) {
         num = num / 100.0;
       }
@@ -917,6 +1049,9 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
     }
 
     // Surveys & Confidence Indices (CONFIDENCE, INDEX_SMALL, SURVEY_5, ANZ_BIZ)
+    if (evLower.includes('westpac') && isExplicitPercent) {
+      num = parseFloat((83.5 * (1 + num / 100)).toFixed(1));
+    }
     return parseFloat(num.toFixed(2));
   };
 
@@ -1340,20 +1475,20 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
               }
             }
             if (impCol !== -1 && row[impCol] !== undefined && row[impCol] !== '') {
-              item.weight = normalizeImportance(row[impCol]);
+              item.weight = formatWeight(row[impCol]);
               hasChange = true;
             }
 
             if (hasChange) {
               if (timeCol !== -1 && row[timeCol] !== undefined && row[timeCol] !== '') {
-                let cleanTime = String(row[timeCol]).trim();
-                if (cleanTime.includes('1899') || cleanTime.includes('1900')) {
-                  const timeMatch = cleanTime.match(/\b(\d{1,2}:\d{2})(:\d{2})?\b/);
-                  cleanTime = timeMatch ? timeMatch[1] : '—';
-                }
-                item.time = cleanTime || '—';
+                const defaultInd = (DEFAULT_CURRENCY_INDICATORS[targetCurr] || []).find(d => d.name === item.name);
+                const fallbackTime = defaultInd ? (defaultInd.time || "08:30:00") : "08:30:00";
+                item.time = formatTimeTo24h(row[timeCol], item.time || fallbackTime);
               }
               item.date = (dateCol !== -1 && row[dateCol]) ? formatSpreadsheetDate(row[dateCol]) : currentDate;
+              const evalRes = evaluateIndicator(item);
+              item.netChange = evalRes.netChange;
+              item.score = evalRes.score;
               indList[matchedIdx] = item;
               nextState[targetCurr] = indList;
               updatedCount++;
@@ -2307,10 +2442,11 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
                   />
                   <button
                     onClick={handleResetData}
-                    className="px-3.5 py-1.5 text-[10px] uppercase tracking-wider bg-[#0c0c12] hover:bg-zinc-800 text-rose-400 border border-zinc-800 transition cursor-pointer min-h-[36px] flex items-center gap-1.5"
+                    className="px-3.5 py-1.5 text-[10px] uppercase tracking-wider bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 border border-rose-800/60 transition cursor-pointer font-bold min-h-[36px] flex items-center gap-1.5"
+                    title={language === 'es' ? "Reiniciar todos los indicadores a 0" : "Reset all indicator values to 0"}
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
-                    Reset Defaults
+                    {language === 'es' ? 'Restablecer a 0' : 'Reset to Zero (0)'}
                   </button>
                 </div>
               </div>

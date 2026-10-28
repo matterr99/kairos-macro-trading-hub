@@ -1866,18 +1866,6 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
               );
             })}
 
-            <span className="text-zinc-700 mx-1 hidden sm:inline">|</span>
-            <button
-              type="button"
-              onClick={() => setFilterCoreOnly(!filterCoreOnly)}
-              className={`px-2.5 py-1.5 font-bold transition flex items-center gap-1 cursor-pointer text-xs min-h-[32px] ${
-                filterCoreOnly
-                  ? 'bg-amber-500 text-black border border-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.3)]'
-                  : 'bg-amber-950/40 text-amber-300 border border-amber-500/40 hover:bg-amber-900/60'
-              }`}
-            >
-              <span>🎯</span> {isEs ? 'Solo Core Principal' : 'Core Indicators Only'}
-            </button>
           </div>
 
           <div className="w-full md:w-auto flex items-center gap-2">
