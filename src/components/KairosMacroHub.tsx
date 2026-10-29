@@ -317,7 +317,6 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
   });
 
   const [activeCurrencyFilter, setActiveCurrencyFilter] = useState<string>('ALL');
-  const [filterCoreOnly, setFilterCoreOnly] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isDivergenceExpanded, setIsDivergenceExpanded] = useState<boolean>(false);
   const [isDragOver, setIsDragOver] = useState<boolean>(false);
@@ -774,7 +773,6 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
     } else {
       dayKeys.forEach(day => {
         let events = (globalState.daysData[day] || []).filter(e => isWhitelisted(e.ccy, e.event));
-        if (filterCoreOnly) events = events.filter(e => e.isCore);
         if (events.length === 0) return;
 
         let rowsHtml = '';
@@ -786,12 +784,11 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
           const currentCategory = getCategorySentimentTitle(item.ccy, item.event, isEs);
           const nextCategory = nextItem ? getCategorySentimentTitle(nextItem.ccy, nextItem.event, isEs) : null;
 
-          const isCore = item.isCore;
           rowsHtml += `
-            <tr style="border-bottom: 1px solid #e2e8f0; ${isCore ? 'background-color: #fef3c7;' : ''}">
+            <tr style="border-bottom: 1px solid #e2e8f0;">
               <td style="padding: 5px 6px; font-family: monospace; font-size: 10px;">${item.time}</td>
               <td style="padding: 5px 6px; font-weight: bold; font-size: 10px;">${item.ccy}</td>
-              <td style="padding: 5px 6px; font-size: 10px; ${isCore ? 'font-weight: bold; color: #92400e;' : 'color: #0f172a;'}">${item.event} ${isCore ? '🎯' : ''}</td>
+              <td style="padding: 5px 6px; font-size: 10px; color: #0f172a;">${item.event}</td>
               <td style="padding: 5px 6px; font-weight: bold; font-size: 10px; text-align: right;">${item.actual || '—'}</td>
               <td style="padding: 5px 6px; font-size: 10px; text-align: right; color: #64748b;">${item.forecast || '—'}</td>
               <td style="padding: 5px 6px; font-size: 10px; text-align: right; color: #64748b;">${item.previous || '—'}</td>
@@ -1885,7 +1882,6 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
             const rawEvents = globalState.daysData[day] || [];
             let events = rawEvents.filter(e => isWhitelisted(e.ccy, e.event));
 
-            if (filterCoreOnly) events = events.filter(e => e.isCore);
             if (activeCurrencyFilter !== 'ALL') events = events.filter(e => e.ccy === activeCurrencyFilter);
             if (searchQuery) {
               const q = searchQuery.toLowerCase();
@@ -1894,7 +1890,6 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
 
             if (events.length === 0) return null;
 
-            const coreCount = events.filter(e => e.isCore).length;
             const formattedDayTitle = formatDayLabel(day, isEs);
 
             // Group events for sentiment blocks
@@ -1933,11 +1928,6 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
                     <span className="tracking-wider">{formattedDayTitle}</span>
                   </div>
                   <div className="flex items-center gap-2 font-mono text-[10px]">
-                    {coreCount > 0 && (
-                      <span className="bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 font-bold">
-                        🎯 {coreCount} {isEs ? 'Core' : 'Core'}
-                      </span>
-                    )}
                     <span className="text-cyan-200/80 bg-zinc-900/80 px-2.5 py-0.5 border border-zinc-700/60 font-bold">
                       {events.length} {isEs ? 'Eventos' : 'Events'}
                     </span>
@@ -1966,10 +1956,7 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
                         return (
                           <React.Fragment key={block.categoryId}>
                             {block.events.map((item, itemIdx) => {
-                              const isCore = item.isCore;
-                              const rowClass = isCore
-                                ? 'bg-gradient-to-r from-amber-500/10 via-cyan-500/5 to-transparent border-l-3 border-l-amber-500 border-b border-amber-500/20 text-zinc-100'
-                                : itemIdx % 2 === 0
+                              const rowClass = itemIdx % 2 === 0
                                 ? 'bg-transparent border-b border-zinc-800/30'
                                 : 'bg-zinc-900/20 border-b border-zinc-800/30';
 
@@ -1982,16 +1969,9 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
                                     </span>
                                   </td>
                                   <td className="p-2.5 font-sans text-xs font-medium truncate pr-2">
-                                    <div className="flex items-center justify-between gap-2 overflow-hidden">
-                                      <span className={`${isCore ? 'text-amber-200 font-bold' : 'text-zinc-200'} truncate`}>
-                                        {item.event}
-                                      </span>
-                                      {isCore && (
-                                        <span className="bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[9px] px-1.5 py-0.5 font-bold font-mono tracking-wider shrink-0">
-                                          🎯 CORE
-                                        </span>
-                                      )}
-                                    </div>
+                                    <span className="text-zinc-200 truncate">
+                                      {item.event}
+                                    </span>
                                   </td>
                                   <td className="p-2.5 font-bold text-white font-mono truncate">{item.actual || '—'}</td>
                                   <td className="p-2.5 text-zinc-400 font-mono truncate">{item.forecast || '—'}</td>
