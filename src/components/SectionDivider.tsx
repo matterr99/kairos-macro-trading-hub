@@ -7,7 +7,7 @@ interface SectionDividerProps {
 
 export const SectionDivider: React.FC<SectionDividerProps> = ({ className = '' }) => {
   return (
-    <div className={`w-full h-px bg-zinc-800/40 ${className}`} />
+    <div className={`w-full h-px bg-zinc-800/40 print:hidden ${className}`} />
   );
 };
 

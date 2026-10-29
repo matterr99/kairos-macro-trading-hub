@@ -544,11 +544,11 @@
                         MACRO INTELLIGENCE DOSSIER
                     </span>
                 </div>
-                <h1 style="font-size: 22px; font-weight: 900; letter-spacing: -0.02em; color: #0f172a; text-transform: uppercase; margin: 0;">
-                    KAIROS GLOBAL RESEARCH
+                <h1 style="font-size: 20px; font-weight: 900; letter-spacing: -0.02em; color: #0f172a; text-transform: uppercase; margin: 0;" id="print-doc-title">
+                    TRADE IDEA — EUR/AUD // AWAITING EVALUATION
                 </h1>
                 <p style="font-size: 10px; color: #475569; font-weight: 600; font-family: monospace; text-transform: uppercase; letter-spacing: 0.05em; margin: 2px 0 0 0;">
-                    Currency Sentiment Definer // 5-Pillars Quantitative Macro Risk Dossier
+                    Kairos Global Research // Currency Sentiment Definer · 5-Pillars Quantitative Macro Model
                 </p>
             </div>
             <div style="text-align: right;">
@@ -1132,12 +1132,36 @@
                 </tr>
             `;
 
+            const verdict = document.getElementById('decision-status').textContent.trim();
+            let direction = 'NEUTRAL';
+            if (verdict.toLowerCase().includes('approved')) {
+                direction = verdict.toLowerCase().includes('buy') ? 'BUY' : 'SELL';
+            } else if (verdict.toLowerCase().includes('no trade')) {
+                direction = 'NO TRADE';
+            }
+
+            const titleText = `Trade Idea - ${pair} - ${direction}`;
+            const prevTitle = document.title;
+            document.title = titleText;
+
+            const titleEl = document.getElementById('print-doc-title');
+            if (titleEl) {
+                titleEl.textContent = `TRADE IDEA — ${pair} // ${direction}`;
+            }
+
             // Dossier Notes
             document.getElementById('table-print-note-risk').textContent = document.getElementById('p4-notes').value || 'No risk sentiment observations logged.';
             document.getElementById('table-print-note-cb').textContent = document.getElementById('web-note-cb').value || 'No monetary trajectory observations logged.';
             document.getElementById('table-print-note-geo').textContent = document.getElementById('web-note-geo').value || 'No geopolitical hazard observations logged.';
 
+            const cleanup = () => {
+                document.title = prevTitle;
+                window.removeEventListener('afterprint', cleanup);
+            };
+            window.addEventListener('afterprint', cleanup);
+
             window.print();
+            setTimeout(cleanup, 2500);
         }
 
         function formatBias(bias) {

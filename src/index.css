@@ -328,6 +328,7 @@ body {
 
 /* =========================================================
    PRINT STYLES FOR INSTITUTIONAL RESEARCH REPORTS & DOSSIERS
+   ALWAYS PURE WHITE FORMAT INDEPENDENT OF WEBSITE THEME
    ========================================================= */
 @media print {
   header,
@@ -341,13 +342,21 @@ body {
     display: none !important;
   }
 
-  body, html {
+  /* Force pure white background on all ancestors */
+  html,
+  body,
+  #root,
+  #root > div,
+  main,
+  div[class*="min-h-screen"],
+  .dark,
+  .light-theme {
     background-color: #ffffff !important;
     background: #ffffff !important;
     color: #0f172a !important;
-    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
     margin: 0 !important;
     padding: 0 !important;
+    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
   }
 
   @page {
@@ -366,8 +375,25 @@ body {
     max-width: 100% !important;
     margin: 0 auto !important;
     padding: 0 !important;
+    background-color: #ffffff !important;
     background: #ffffff !important;
     color: #0f172a !important;
+  }
+
+  /* Ensure tables and cells inside pdf container always have crisp white/light styling */
+  #pdf-report-container table {
+    background-color: #ffffff !important;
+    border-color: #cbd5e1 !important;
+  }
+
+  #pdf-report-container th {
+    background-color: #f1f5f9 !important;
+    color: #0f172a !important;
+    border-color: #cbd5e1 !important;
+  }
+
+  #pdf-report-container td {
+    border-color: #cbd5e1 !important;
   }
 }
 

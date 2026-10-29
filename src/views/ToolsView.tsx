@@ -349,12 +349,23 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
   };
 
   // --- Mathematical Scoring Engine (Legacy Discrete Integer Engine) ---
-  const evaluateIndicator = (ind: MacroIndicator) => {
-    let netChange = 0;
-    if (ind.actual !== null && ind.actual !== undefined && ind.previous !== null && ind.previous !== undefined) {
-      netChange = ind.actual - ind.previous;
+  const evaluateIndicator = (ind: MacroIndicator): { netChange: number | null; score: number } => {
+    // If actual or previous has not been released yet, prevent score/netChange evaluation
+    if (ind.actual === null || ind.actual === undefined || (ind.actual as any) === '' || isNaN(ind.actual as any)) {
+      return { netChange: null, score: 0 };
     }
-    netChange = parseFloat(netChange.toFixed(4));
+    if (ind.previous === null || ind.previous === undefined || (ind.previous as any) === '' || isNaN(ind.previous as any)) {
+      return { netChange: null, score: 0 };
+    }
+
+    // Safety protection for index-based surveys (PMI, Consumer Surveys, Confidence indices):
+    // An actual of 0 or <= 0 when previous is a non-zero index level (e.g. 35.4) is an unreleased placeholder.
+    const indexTypes = ["PMI", "AUD_SERVICES", "CONFIDENCE", "INDEX_SMALL", "SURVEY_5", "ANZ_BIZ"];
+    if (indexTypes.includes(ind.type) && ind.actual === 0 && (ind.previous > 5 || ind.previous < -5)) {
+      return { netChange: null, score: 0 };
+    }
+
+    const netChange = parseFloat((ind.actual - ind.previous).toFixed(4));
     let score = 0;
     switch(ind.type) {
       case "PMI":
@@ -396,7 +407,7 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
         const evalResult = evaluateIndicator(ind);
         ind.netChange = evalResult.netChange;
         ind.score = evalResult.score;
-        sum += ind.score;
+        sum += (ind.score || 0);
       });
       totals[c] = sum;
     }
@@ -486,6 +497,7 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
           if (typeof cleanDate === 'string' && (cleanDate.includes("1899") || cleanDate.includes("1900"))) {
             cleanDate = new Date().toISOString().slice(0, 10);
           }
+          // 1. Scale normalization for MoM decimal percentage indicators
           if (item.name && String(item.name).toLowerCase().includes('cpi indicator') && String(item.name).toLowerCase().includes('mom')) {
             if (typeof item.previous === 'number' && Math.abs(item.previous) >= 0.015) {
               item.previous = parseFloat((item.previous / 10).toFixed(4));
@@ -496,6 +508,29 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
             if (typeof item.actual === 'number' && Math.abs(item.actual) >= 0.015) {
               item.actual = parseFloat((item.actual / 10).toFixed(4));
             }
+          }
+          if (item.name && (String(item.name).toLowerCase().includes('card transaction') || String(item.name).toLowerCase().includes('card retail'))) {
+            if (typeof item.previous === 'number' && Math.abs(item.previous) >= 0.02) {
+              item.previous = parseFloat((item.previous / 10).toFixed(4));
+            }
+            if (typeof item.forecast === 'number' && Math.abs(item.forecast) >= 0.02) {
+              item.forecast = parseFloat((item.forecast / 10).toFixed(4));
+            }
+            if (typeof item.actual === 'number' && Math.abs(item.actual) >= 0.02) {
+              item.actual = parseFloat((item.actual / 10).toFixed(4));
+            }
+          }
+
+          // 2. Unreleased actuals cleanup (prevent placeholder 0 from causing score distortion)
+          const indexTypes = ["PMI", "AUD_SERVICES", "CONFIDENCE", "INDEX_SMALL", "SURVEY_5", "ANZ_BIZ"];
+          if (indexTypes.includes(item.type) && item.actual === 0 && (item.previous > 5 || item.previous < -5)) {
+            item.actual = null;
+          }
+          if (item.name && item.name.toLowerCase().includes('cpi') && curr === 'CHF' && item.actual === 0 && item.previous !== null && item.previous !== 0) {
+            item.actual = null;
+          }
+          if (item.actual === '' || item.actual === undefined) {
+            item.actual = null;
           }
           const cleanWeight = formatWeight(item.weight);
           const evalRes = evaluateIndicator(item);
@@ -646,11 +681,11 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
         time: ind.time || "08:30:00",
         previous: 0,
         forecast: 0,
-        actual: 0,
+        actual: null,
         type: ind.type,
         weight: formatWeight(ind.weight),
         score: 0,
-        netChange: 0,
+        netChange: null,
       }));
     });
 
@@ -758,6 +793,10 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
         if (iname.includes('mom') && isYoYEvent && !iname.includes('yoy')) return false;
         if (iname.includes('yoy') && isMoMEvent && !iname.includes('mom')) return false;
       }
+
+      // Prevent YoY calendar events from matching monthly MoM indicators (Card Transactions, Retail Sales, CPI, GDP)
+      const percentTypes = ["CPI", "PCT_GROWTH", "CARD_TRANS", "GBP_RETAIL"];
+      if (isYoYEvent && percentTypes.includes(ind.type) && !iname.includes('yoy')) return false;
       if (isCoreEvent && !iname.includes('core') && !iname.includes('subyacente')) return false;
       if (isServicesEvent && !isMfgEvent && (iname.includes('mfg') || iname.includes('manufacturing'))) return false;
       if (isMfgEvent && !isServicesEvent && (iname.includes('services') || iname.includes('non-mfg') || iname.includes('psi'))) return false;
@@ -1453,26 +1492,43 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
             const item = { ...indList[matchedIdx] };
             let hasChange = false;
 
-            if (actualCol !== -1 && row[actualCol] !== undefined && row[actualCol] !== '' && row[actualCol] !== '-') {
+            if (actualCol !== -1 && row[actualCol] !== undefined && row[actualCol] !== '' && row[actualCol] !== '-' && row[actualCol] !== 'ND' && row[actualCol] !== 'N/A') {
               const actVal = parseSpreadsheetValue(row[actualCol], item.type, item.name);
-              if (actVal !== null) {
+              const indexTypes = ["PMI", "AUD_SERVICES", "CONFIDENCE", "INDEX_SMALL", "SURVEY_5", "ANZ_BIZ"];
+              if (actVal === 0 && indexTypes.includes(item.type)) {
+                item.actual = null;
+              } else {
                 item.actual = actVal;
-                hasChange = true;
               }
+              hasChange = true;
+            } else if (actualCol !== -1 && (row[actualCol] === '' || row[actualCol] === '-' || row[actualCol] === 'ND' || row[actualCol] === undefined)) {
+              item.actual = null;
+              hasChange = true;
             }
-            if (forecastCol !== -1 && row[forecastCol] !== undefined && row[forecastCol] !== '' && row[forecastCol] !== '-') {
+            if (forecastCol !== -1 && row[forecastCol] !== undefined && row[forecastCol] !== '' && row[forecastCol] !== '-' && row[forecastCol] !== 'ND' && row[forecastCol] !== 'N/A') {
               const fcVal = parseSpreadsheetValue(row[forecastCol], item.type, item.name);
               if (fcVal !== null) {
                 item.forecast = fcVal;
                 hasChange = true;
               }
             }
-            if (prevCol !== -1 && row[prevCol] !== undefined && row[prevCol] !== '' && row[prevCol] !== '-') {
+            if (prevCol !== -1 && row[prevCol] !== undefined && row[prevCol] !== '' && row[prevCol] !== '-' && row[prevCol] !== 'ND' && row[prevCol] !== 'N/A') {
               const pvVal = parseSpreadsheetValue(row[prevCol], item.type, item.name);
               if (pvVal !== null) {
                 item.previous = pvVal;
                 hasChange = true;
               }
+            }
+            // Auto scale alignment for Card Transactions and CPI Indicator MoM
+            if (item.name && (item.name.toLowerCase().includes('card transaction') || item.name.toLowerCase().includes('card retail'))) {
+              if (typeof item.previous === 'number' && Math.abs(item.previous) >= 0.02) item.previous = parseFloat((item.previous / 10).toFixed(4));
+              if (typeof item.forecast === 'number' && Math.abs(item.forecast) >= 0.02) item.forecast = parseFloat((item.forecast / 10).toFixed(4));
+              if (typeof item.actual === 'number' && Math.abs(item.actual) >= 0.02) item.actual = parseFloat((item.actual / 10).toFixed(4));
+            }
+            if (item.name && item.name.toLowerCase().includes('cpi indicator') && item.name.toLowerCase().includes('mom')) {
+              if (typeof item.previous === 'number' && Math.abs(item.previous) >= 0.015) item.previous = parseFloat((item.previous / 10).toFixed(4));
+              if (typeof item.forecast === 'number' && Math.abs(item.forecast) >= 0.015) item.forecast = parseFloat((item.forecast / 10).toFixed(4));
+              if (typeof item.actual === 'number' && Math.abs(item.actual) >= 0.015) item.actual = parseFloat((item.actual / 10).toFixed(4));
             }
             if (impCol !== -1 && row[impCol] !== undefined && row[impCol] !== '') {
               item.weight = formatWeight(row[impCol]);
@@ -2745,7 +2801,7 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
                             />
                           </td>
                           <td className="p-3.5 text-right tabular-nums text-zinc-300">
-                            {evaluated.netChange > 0 ? `+${evaluated.netChange}` : evaluated.netChange}
+                            {evaluated.netChange === null || evaluated.netChange === undefined ? '—' : (evaluated.netChange > 0 ? `+${evaluated.netChange}` : evaluated.netChange)}
                           </td>
                           <td className="p-3.5 text-center font-bold">
                             <span className={evaluated.score > 0 ? 'text-cyan-400' : evaluated.score < 0 ? 'text-rose-400' : 'text-zinc-500'}>

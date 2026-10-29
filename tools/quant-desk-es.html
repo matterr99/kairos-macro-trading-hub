@@ -546,11 +546,11 @@
                         DOSSIER DE INTELIGENCIA MACRO
                     </span>
                 </div>
-                <h1 style="font-size: 22px; font-weight: 900; letter-spacing: -0.02em; color: #0f172a; text-transform: uppercase; margin: 0;">
-                    KAIROS GLOBAL RESEARCH
+                <h1 style="font-size: 20px; font-weight: 900; letter-spacing: -0.02em; color: #0f172a; text-transform: uppercase; margin: 0;" id="print-doc-title">
+                    TRADE IDEA — EUR/AUD // ESPERANDO EVALUACIÓN
                 </h1>
                 <p style="font-size: 10px; color: #475569; font-weight: 600; font-family: monospace; text-transform: uppercase; letter-spacing: 0.05em; margin: 2px 0 0 0;">
-                    Definidor de Sentimiento de Divisas // Modelo Cuantitativo de 5 Pilares
+                    Kairos Global Research // Definidor de Sentimiento de Divisas · Modelo Cuantitativo de 5 Pilares
                 </p>
             </div>
             <div style="text-align: right;">
@@ -1119,11 +1119,35 @@
                 </tr>
             `;
 
+            const verdict = document.getElementById('decision-status').textContent.trim();
+            let direction = 'NEUTRAL';
+            if (verdict.toLowerCase().includes('aprobad')) {
+                direction = verdict.toLowerCase().includes('compra') ? 'COMPRA' : 'VENTA';
+            } else if (verdict.toLowerCase().includes('sin operaci') || verdict.toLowerCase().includes('sin operaci\u00f3n')) {
+                direction = 'SIN OPERACIÓN';
+            }
+
+            const titleText = `Trade Idea - ${pair} - ${direction}`;
+            const prevTitle = document.title;
+            document.title = titleText;
+
+            const titleEl = document.getElementById('print-doc-title');
+            if (titleEl) {
+                titleEl.textContent = `TRADE IDEA — ${pair} // ${direction}`;
+            }
+
             document.getElementById('table-print-note-risk').textContent = document.getElementById('p4-notes').value || 'Sin observaciones de sentimiento de riesgo.';
             document.getElementById('table-print-note-cb').textContent = document.getElementById('web-note-cb').value || 'Sin observaciones de trayectoria de bancos centrales.';
             document.getElementById('table-print-note-geo').textContent = document.getElementById('web-note-geo').value || 'Sin observaciones de riesgos geopolíticos.';
 
+            const cleanup = () => {
+                document.title = prevTitle;
+                window.removeEventListener('afterprint', cleanup);
+            };
+            window.addEventListener('afterprint', cleanup);
+
             window.print();
+            setTimeout(cleanup, 2500);
         }
 
         function formatBias(bias) {

@@ -702,9 +702,21 @@
         }
 
         function evaluateIndicator(ind) {
-            let netChange = 0;
-            if (ind.actual !== null && ind.previous !== null) netChange = ind.actual - ind.previous;
-            netChange = parseFloat(netChange.toFixed(4));
+            if (ind.actual === null || ind.actual === undefined || ind.actual === '' || isNaN(ind.actual)) {
+                return { netChange: null, score: 0 };
+            }
+            if (ind.previous === null || ind.previous === undefined || ind.previous === '' || isNaN(ind.previous)) {
+                return { netChange: null, score: 0 };
+            }
+
+            // Safety protection for index-based surveys (PMI, Consumer Surveys, Confidence indices):
+            // An actual of 0 or <= 0 when previous is a non-zero index level (e.g. 35.4) is an unreleased placeholder.
+            const indexTypes = ["PMI", "AUD_SERVICES", "CONFIDENCE", "INDEX_SMALL", "SURVEY_5", "ANZ_BIZ"];
+            if (indexTypes.includes(ind.type) && ind.actual === 0 && (ind.previous > 5 || ind.previous < -5)) {
+                return { netChange: null, score: 0 };
+            }
+
+            let netChange = parseFloat((ind.actual - ind.previous).toFixed(4));
             let score = 0;
             switch(ind.type) {
                 case "PMI":
@@ -745,7 +757,7 @@
                     const evalResult = evaluateIndicator(ind);
                     ind.netChange = evalResult.netChange;
                     ind.score = evalResult.score;
-                    sum += ind.score;
+                    sum += (ind.score || 0);
                 });
                 totals[c] = sum;
             }
@@ -1037,6 +1049,7 @@
                         if (typeof cleanDate === 'string' && (cleanDate.includes("1899") || cleanDate.includes("1900"))) {
                             cleanDate = new Date().toISOString().slice(0, 10);
                         }
+                        // 1. Scale normalization for MoM decimal percentage indicators
                         if (item.name && String(item.name).toLowerCase().includes('cpi indicator') && String(item.name).toLowerCase().includes('mom')) {
                             if (typeof item.previous === 'number' && Math.abs(item.previous) >= 0.015) {
                                 item.previous = parseFloat((item.previous / 10).toFixed(4));
@@ -1047,6 +1060,29 @@
                             if (typeof item.actual === 'number' && Math.abs(item.actual) >= 0.015) {
                                 item.actual = parseFloat((item.actual / 10).toFixed(4));
                             }
+                        }
+                        if (item.name && (String(item.name).toLowerCase().includes('card transaction') || String(item.name).toLowerCase().includes('card retail'))) {
+                            if (typeof item.previous === 'number' && Math.abs(item.previous) >= 0.02) {
+                                item.previous = parseFloat((item.previous / 10).toFixed(4));
+                            }
+                            if (typeof item.forecast === 'number' && Math.abs(item.forecast) >= 0.02) {
+                                item.forecast = parseFloat((item.forecast / 10).toFixed(4));
+                            }
+                            if (typeof item.actual === 'number' && Math.abs(item.actual) >= 0.02) {
+                                item.actual = parseFloat((item.actual / 10).toFixed(4));
+                            }
+                        }
+
+                        // 2. Unreleased actuals cleanup (prevent placeholder 0 from causing score distortion)
+                        const indexTypes = ["PMI", "AUD_SERVICES", "CONFIDENCE", "INDEX_SMALL", "SURVEY_5", "ANZ_BIZ"];
+                        if (indexTypes.includes(item.type) && item.actual === 0 && (item.previous > 5 || item.previous < -5)) {
+                            item.actual = null;
+                        }
+                        if (item.name && item.name.toLowerCase().includes('cpi') && curr === 'CHF' && item.actual === 0 && item.previous !== null && item.previous !== 0) {
+                            item.actual = null;
+                        }
+                        if (item.actual === '' || item.actual === undefined) {
+                            item.actual = null;
                         }
                         const cleanWeight = formatWeight(item.weight);
                         const evalRes = evaluateIndicator(item);
@@ -1115,11 +1151,11 @@
                     time: ind.time || "08:30:00",
                     previous: 0,
                     forecast: 0,
-                    actual: 0,
+                    actual: null,
                     type: ind.type,
                     weight: formatWeight(ind.weight),
                     score: 0,
-                    netChange: 0
+                    netChange: null
                 }));
             }
             appData = zeroData;
@@ -1215,6 +1251,10 @@
                     if (iname.includes('mom') && isYoYEvent && !iname.includes('yoy')) return false;
                     if (iname.includes('yoy') && isMoMEvent && !iname.includes('mom')) return false;
                 }
+
+                // Prevent YoY calendar events from matching monthly MoM indicators (Card Transactions, Retail Sales, CPI, GDP)
+                const percentTypes = ["CPI", "PCT_GROWTH", "CARD_TRANS", "GBP_RETAIL"];
+                if (isYoYEvent && percentTypes.includes(ind.type) && !iname.includes('yoy')) return false;
                 if (isCoreEvent && !iname.includes('core') && !iname.includes('subyacente')) return false;
                 if (isServicesEvent && !isMfgEvent && (iname.includes('mfg') || iname.includes('manufacturing'))) return false;
                 if (isMfgEvent && !isServicesEvent && (iname.includes('services') || iname.includes('non-mfg') || iname.includes('psi'))) return false;
@@ -1599,15 +1639,21 @@
                     if (matchedInd) {
                         let hasChanges = false;
 
-                        if (actualCol !== -1 && row[actualCol] !== undefined && row[actualCol] !== '' && row[actualCol] !== '-' && row[actualCol] !== 'N/A') {
+                        if (actualCol !== -1 && row[actualCol] !== undefined && row[actualCol] !== '' && row[actualCol] !== '-' && row[actualCol] !== 'ND' && row[actualCol] !== 'N/A') {
                             const parsed = parseInputValue(row[actualCol], matchedInd.type, matchedInd.name);
-                            if (parsed !== null) {
+                            const indexTypes = ["PMI", "AUD_SERVICES", "CONFIDENCE", "INDEX_SMALL", "SURVEY_5", "ANZ_BIZ"];
+                            if (parsed === 0 && indexTypes.includes(matchedInd.type)) {
+                                matchedInd.actual = null;
+                            } else {
                                 matchedInd.actual = parsed;
-                                hasChanges = true;
                             }
+                            hasChanges = true;
+                        } else if (actualCol !== -1 && (row[actualCol] === '' || row[actualCol] === '-' || row[actualCol] === 'ND' || row[actualCol] === undefined)) {
+                            matchedInd.actual = null;
+                            hasChanges = true;
                         }
 
-                        if (forecastCol !== -1 && row[forecastCol] !== undefined && row[forecastCol] !== '' && row[forecastCol] !== '-' && row[forecastCol] !== 'N/A') {
+                        if (forecastCol !== -1 && row[forecastCol] !== undefined && row[forecastCol] !== '' && row[forecastCol] !== '-' && row[forecastCol] !== 'ND' && row[forecastCol] !== 'N/A') {
                             const parsed = parseInputValue(row[forecastCol], matchedInd.type, matchedInd.name);
                             if (parsed !== null) {
                                 matchedInd.forecast = parsed;
@@ -1615,12 +1661,24 @@
                             }
                         }
 
-                        if (prevCol !== -1 && row[prevCol] !== undefined && row[prevCol] !== '' && row[prevCol] !== '-' && row[prevCol] !== 'N/A') {
+                        if (prevCol !== -1 && row[prevCol] !== undefined && row[prevCol] !== '' && row[prevCol] !== '-' && row[prevCol] !== 'ND' && row[prevCol] !== 'N/A') {
                             const parsed = parseInputValue(row[prevCol], matchedInd.type, matchedInd.name);
                             if (parsed !== null) {
                                 matchedInd.previous = parsed;
                                 hasChanges = true;
                             }
+                        }
+
+                        // Auto scale alignment for Card Transactions and CPI Indicator MoM
+                        if (matchedInd.name && (matchedInd.name.toLowerCase().includes('card transaction') || matchedInd.name.toLowerCase().includes('card retail'))) {
+                            if (typeof matchedInd.previous === 'number' && Math.abs(matchedInd.previous) >= 0.02) matchedInd.previous = parseFloat((matchedInd.previous / 10).toFixed(4));
+                            if (typeof matchedInd.forecast === 'number' && Math.abs(matchedInd.forecast) >= 0.02) matchedInd.forecast = parseFloat((matchedInd.forecast / 10).toFixed(4));
+                            if (typeof matchedInd.actual === 'number' && Math.abs(matchedInd.actual) >= 0.02) matchedInd.actual = parseFloat((matchedInd.actual / 10).toFixed(4));
+                        }
+                        if (matchedInd.name && matchedInd.name.toLowerCase().includes('cpi indicator') && matchedInd.name.toLowerCase().includes('mom')) {
+                            if (typeof matchedInd.previous === 'number' && Math.abs(matchedInd.previous) >= 0.015) matchedInd.previous = parseFloat((matchedInd.previous / 10).toFixed(4));
+                            if (typeof matchedInd.forecast === 'number' && Math.abs(matchedInd.forecast) >= 0.015) matchedInd.forecast = parseFloat((matchedInd.forecast / 10).toFixed(4));
+                            if (typeof matchedInd.actual === 'number' && Math.abs(matchedInd.actual) >= 0.015) matchedInd.actual = parseFloat((matchedInd.actual / 10).toFixed(4));
                         }
 
                         if (hasChanges) {

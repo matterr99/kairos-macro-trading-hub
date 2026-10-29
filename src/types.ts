@@ -69,5 +69,5 @@ export interface MacroIndicator {
   type: string;
   weight: string;
   score?: number;
-  netChange?: number;
+  netChange?: number | null;
 }

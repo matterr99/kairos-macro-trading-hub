@@ -275,9 +275,36 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
     e.target.value = '';
   };
 
-  // Print PDF
+  const getTradeDirectionLabel = () => {
+    if (isApproved) {
+      return step1Direction === 'buy' ? (isEs ? 'COMPRA' : 'BUY') : (isEs ? 'VENTA' : 'SELL');
+    }
+    if (isNoTrade) {
+      return isEs ? 'SIN OPERACIÓN' : 'NO TRADE';
+    }
+    return isEs ? 'NEUTRAL' : 'NEUTRAL';
+  };
+
+  // Print PDF with dynamic trade idea document title
   const handlePrint = () => {
-    window.print();
+    const direction = getTradeDirectionLabel();
+    const tradeTitle = `Trade Idea - ${baseCurrency}/${quoteCurrency} - ${direction}`;
+    const previousTitle = document.title;
+
+    document.title = tradeTitle;
+
+    const restoreTitle = () => {
+      document.title = previousTitle;
+      window.removeEventListener('afterprint', restoreTitle);
+    };
+
+    window.addEventListener('afterprint', restoreTitle);
+
+    try {
+      window.print();
+    } finally {
+      setTimeout(restoreTitle, 2500);
+    }
   };
 
   const formatBiasLabel = (bias: string) => {
@@ -1036,7 +1063,7 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
       {/* ========================================================= */}
       {/* 📄 INSTITUTIONAL STRATEGY BRIEFING DOSSIER (PDF / PRINT)  */}
       {/* ========================================================= */}
-      <div id="pdf-report-container" className="hidden print:block p-0 text-slate-950 bg-white max-w-4xl mx-auto font-sans leading-normal">
+      <div id="pdf-report-container" className="hidden print:block p-0 text-slate-950 bg-white max-w-4xl mx-auto font-sans leading-normal" style={{ backgroundColor: '#ffffff', color: '#0f172a' }}>
         
         {/* TOP CLASSIFICATION ACCENT BAR */}
         <div className="h-1.5 bg-slate-900 w-full mb-4" />
@@ -1046,17 +1073,17 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="text-[9px] font-black tracking-widest bg-slate-900 text-white px-2 py-0.5 uppercase font-mono">
-                CONFIDENTIAL // TRADING DESK AUDIT
+                {isEs ? 'IDEA DE TRADING // AUDITORÍA INSTITUCIONAL' : 'TRADE IDEA // INSTITUTIONAL AUDIT'}
               </span>
               <span className="text-[9px] font-bold text-slate-500 font-mono tracking-wider">
                 DOC ID: KGR-QD-{baseCurrency}{quoteCurrency}-{new Date().toISOString().slice(0, 10).replace(/-/g, '')}
               </span>
             </div>
-            <h1 className="text-2xl font-black tracking-tight text-slate-950 uppercase font-sans">
-              KAIROS GLOBAL RESEARCH
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-950 uppercase font-sans">
+              TRADE IDEA — {baseCurrency}/{quoteCurrency} // {getTradeDirectionLabel()}
             </h1>
             <p className="text-[10px] text-slate-600 font-medium font-mono uppercase tracking-wider mt-0.5">
-              Currency Sentiment Definer // 5-Pillars Quantitative Macro Risk Dossier
+              Kairos Global Research // {isEs ? 'Definidor de Sentimiento de Divisas · Modelo de 5 Pilares' : 'Currency Sentiment Definer · 5-Pillars Quantitative Macro Model'}
             </p>
           </div>
           <div className="text-right">
