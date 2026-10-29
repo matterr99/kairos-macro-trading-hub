@@ -424,10 +424,15 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
       return list;
     }
 
-    Object.values(globalState.categoryScores).forEach(entry => {
+    Object.values(globalState.categoryScores || {}).forEach(entry => {
       if (entry && entry.ccy === ccy && entry.score !== 0) {
+        const rawLabel = entry.eventsSummary || entry.title || '';
+        const cleanName = rawLabel
+          .replace(new RegExp(`^${ccy}\\s*-\\s*`, 'i'), '')
+          .replace(new RegExp(`\\s*\\(${ccy}\\)$`, 'i'), '')
+          .trim();
         list.push({
-          label: entry.title || entry.eventsSummary || (isEs ? 'Evento evaluado' : 'Evaluated event'),
+          label: cleanName || (isEs ? 'Evento evaluado' : 'Evaluated event'),
           score: entry.score
         });
       }
@@ -438,16 +443,7 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
   const getFullCurrencyBreakdownGrouped = (ccy: string) => {
     const prevList = globalState.matrixPrevBreakdown?.[ccy] || [];
     const prevTotal = globalState.matrixPrev?.[ccy] !== undefined ? globalState.matrixPrev[ccy] : 0;
-
-    const currList: PrevBreakdownItem[] = [];
-    Object.values(globalState.categoryScores).forEach(entry => {
-      if (entry.ccy === ccy && entry.score !== 0) {
-        currList.push({
-          label: entry.title || entry.eventsSummary || isEs ? 'Evento evaluado' : 'Evaluated event',
-          score: entry.score
-        });
-      }
-    });
+    const currList = getCurrencyEvaluatedEventsList(ccy);
 
     return { prevList, prevTotal, currList };
   };

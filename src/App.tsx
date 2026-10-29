@@ -85,17 +85,18 @@ export default function App() {
   return (
     <div className={`${theme === 'light' ? 'light-theme bg-[#f8fafc] text-slate-800' : 'bg-[#020203] text-zinc-300'} min-h-screen flex flex-col font-sans selection:bg-cyan-900 selection:text-cyan-100 transition-colors duration-200`}>
       {/* 1. TOP HEADER WITH WORLD CLOCKS & NAVIGATION */}
-      <Header
-        currentTab={currentTab}
-        onSelectTab={handleTabChange}
-        language={language}
-        onToggleLanguage={toggleLanguage}
-        theme={theme}
-        onToggleTheme={toggleTheme}
-      />
-
-      {/* 2. CURRENCIES VALUATION TICKER TAPE BAR */}
-      <TickerTape language={language} theme={theme} />
+      <div className="print:hidden">
+        <Header
+          currentTab={currentTab}
+          onSelectTab={handleTabChange}
+          language={language}
+          onToggleLanguage={toggleLanguage}
+          theme={theme}
+          onToggleTheme={toggleTheme}
+        />
+        {/* 2. CURRENCIES VALUATION TICKER TAPE BAR */}
+        <TickerTape language={language} theme={theme} />
+      </div>
 
       {/* 3. ACTIVE VIEW */}
       <main className="flex-grow w-full">
@@ -126,7 +127,9 @@ export default function App() {
       </main>
 
       {/* 4. FOOTER */}
-      <Footer onSelectTab={handleTabChange} language={language} />
+      <div className="print:hidden">
+        <Footer onSelectTab={handleTabChange} language={language} />
+      </div>
 
       {/* 5. ARTICLE READER MODAL */}
       {selectedArticle && (

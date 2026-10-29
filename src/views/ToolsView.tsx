@@ -2023,7 +2023,7 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
     <div className="w-full bg-[#020203] text-zinc-300 font-sans antialiased min-h-screen">
       
       {/* HEADER HERO SECTION */}
-      <section className="w-full border-b border-zinc-900 bg-[#07080d] py-10 sm:py-16">
+      <section className="w-full border-b border-zinc-900 bg-[#07080d] py-10 sm:py-16 print:hidden">
         <div className="max-w-7xl 2xl:max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 space-y-4">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 bg-cyan-400"></span>
@@ -2041,7 +2041,7 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
       </section>
 
       {/* SUB-NAVIGATION BAR - STICKY FULL WIDTH (Touch-scrollable on mobile & iPad) */}
-      <div className="w-full bg-[#040406] border-b border-zinc-900 py-3 sticky top-16 sm:top-18 z-30 shadow-md">
+      <div className="w-full bg-[#040406] border-b border-zinc-900 py-3 sticky top-16 sm:top-18 z-30 shadow-md print:hidden">
         <div className="max-w-7xl 2xl:max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 flex items-center gap-2 overflow-x-auto no-scrollbar touch-scroll font-mono text-xs">
           {[
             { id: 'all', label: t.tools.subTabs.all },

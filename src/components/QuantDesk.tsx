@@ -1033,154 +1033,293 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
 
       </div>
 
-      {/* ========================================== */}
-      {/* 📄 PRINT-ONLY STRATEGY BRIEFING SHEET */}
-      {/* ========================================== */}
-      <div id="pdf-report-container" className="hidden print:block p-6 text-slate-950 bg-white max-w-4xl mx-auto font-sans">
+      {/* ========================================================= */}
+      {/* 📄 INSTITUTIONAL STRATEGY BRIEFING DOSSIER (PDF / PRINT)  */}
+      {/* ========================================================= */}
+      <div id="pdf-report-container" className="hidden print:block p-0 text-slate-950 bg-white max-w-4xl mx-auto font-sans leading-normal">
         
-        {/* Corporate Letterhead Header */}
-        <div className="border-b-4 border-slate-950 pb-3 mb-5 flex justify-between items-end">
+        {/* TOP CLASSIFICATION ACCENT BAR */}
+        <div className="h-1.5 bg-slate-900 w-full mb-4" />
+
+        {/* INSTITUTIONAL MASTHEAD */}
+        <div className="border-b-2 border-slate-900 pb-4 mb-5 flex justify-between items-start">
           <div>
-            <h1 className="text-2xl font-black tracking-tight text-slate-950 uppercase font-sans">KAIROS GLOBAL RESEARCH</h1>
-            <p className="text-[9px] text-slate-500 uppercase tracking-widest font-mono mt-0.5">Currency Sentiment Engine // Technical Risk Assessment</p>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[9px] font-black tracking-widest bg-slate-900 text-white px-2 py-0.5 uppercase font-mono">
+                CONFIDENTIAL // TRADING DESK AUDIT
+              </span>
+              <span className="text-[9px] font-bold text-slate-500 font-mono tracking-wider">
+                DOC ID: KGR-QD-{baseCurrency}{quoteCurrency}-{new Date().toISOString().slice(0, 10).replace(/-/g, '')}
+              </span>
+            </div>
+            <h1 className="text-2xl font-black tracking-tight text-slate-950 uppercase font-sans">
+              KAIROS GLOBAL RESEARCH
+            </h1>
+            <p className="text-[10px] text-slate-600 font-medium font-mono uppercase tracking-wider mt-0.5">
+              Currency Sentiment Definer // 5-Pillars Quantitative Macro Risk Dossier
+            </p>
           </div>
-          <div className="text-right font-mono">
-            <div className="text-lg font-black text-slate-900">{baseCurrency}/{quoteCurrency}</div>
-            <div className="text-[9px] text-slate-500 uppercase mt-0.5">
-              {new Date().toLocaleDateString(isEs ? 'es-ES' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+          <div className="text-right">
+            <div className="text-3xl font-black text-slate-900 font-mono tracking-tight">
+              {baseCurrency}/{quoteCurrency}
+            </div>
+            <div className="text-[10px] text-slate-500 font-mono mt-0.5">
+              {new Date().toLocaleDateString(isEs ? 'es-ES' : 'en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+              })}
+            </div>
+            <div className="text-[9px] text-slate-400 font-mono">EXECUTION TIME: {new Date().toTimeString().slice(0, 8)} UTC</div>
+          </div>
+        </div>
+
+        {/* 1. EXECUTIVE STRATEGY VERDICT HERO CARD */}
+        <div className="mb-5 border border-slate-300 bg-slate-50/80 p-4 rounded-sm">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3 border-b border-slate-200">
+            <div>
+              <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500 font-mono block">
+                {isEs ? '// VEREDICTO SISTÉMICO TÁCTICO' : '// SYSTEM TACTICAL VERDICT'}
+              </span>
+              <div className="flex items-center gap-2.5 mt-1">
+                {isApproved ? (
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 text-sm font-black uppercase tracking-wider ${
+                    step1Direction === 'buy' ? 'bg-emerald-700 text-white' : 'bg-rose-700 text-white'
+                  }`}>
+                    <span>{step1Direction === 'buy' ? '▲' : '▼'}</span>
+                    {isEs
+                      ? `APROBADO: OPERACIÓN ${step1Direction === 'buy' ? 'COMPRA (LONG)' : 'VENTA (SHORT)'}`
+                      : `APPROVED: ${step1Direction.toUpperCase()} POSITION`}
+                  </span>
+                ) : isNoTrade ? (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 text-sm font-black uppercase tracking-wider bg-slate-800 text-white">
+                    <span>■</span> {isEs ? 'SIN OPERACIÓN (NO TRADE)' : 'NO TRADE (CRITERIA NOT MET)'}
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 text-sm font-black uppercase tracking-wider bg-slate-600 text-white">
+                    <span>●</span> {isEs ? 'SIN SESGO DIRECCIONAL' : 'NEUTRAL / NO BIAS'}
+                  </span>
+                )}
+                <span className="text-xs font-mono text-slate-600">
+                  {isApproved
+                    ? (isEs ? 'Confluencia direccional confirmada' : 'Directional confluence confirmed')
+                    : (isEs ? 'Esperando convergencia de factores' : 'Awaiting factor convergence')}
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-4 text-right">
+              <div className="border-l border-slate-300 pl-4">
+                <span className="text-[9px] font-bold uppercase font-mono text-slate-500 block">
+                  {isEs ? 'Peso Neto' : 'Net Weight'}
+                </span>
+                <span className={`text-xl font-black font-mono ${
+                  netWeight > 0 ? 'text-emerald-700' : netWeight < 0 ? 'text-rose-700' : 'text-slate-800'
+                }`}>
+                  {netWeight > 0 ? `+${netWeight}` : netWeight} PTS
+                </span>
+              </div>
+              <div className="border-l border-slate-300 pl-4">
+                <span className="text-[9px] font-bold uppercase font-mono text-slate-500 block">
+                  {isEs ? 'Sesgo Calendario' : 'Calendar Bias'}
+                </span>
+                <span className="text-sm font-black font-mono text-slate-900 uppercase">
+                  {step1Direction}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Metric Cards Ribbon */}
+          <div className="grid grid-cols-4 gap-2 pt-3 text-[10px] font-mono">
+            <div className="bg-white border border-slate-200 p-2">
+              <span className="text-slate-400 block text-[8px] uppercase">{isEs ? 'Par Base / Cotizada' : 'Base / Quote Pair'}</span>
+              <span className="font-bold text-slate-900 text-xs">{baseCurrency} / {quoteCurrency}</span>
+            </div>
+            <div className="bg-white border border-slate-200 p-2">
+              <span className="text-slate-400 block text-[8px] uppercase">{isEs ? 'Pilar 1 (Calendario)' : 'Pillar 1 (Calendar)'}</span>
+              <span className="font-bold text-slate-900">{formatBiasLabel(step1Direction)} ({netWeight > 0 ? `+${netWeight}` : netWeight})</span>
+            </div>
+            <div className="bg-white border border-slate-200 p-2">
+              <span className="text-slate-400 block text-[8px] uppercase">{isEs ? 'Sentimiento SSI (P2)' : 'Retail SSI (P2)'}</span>
+              <span className="font-bold text-slate-900 uppercase">{pillars.p2}</span>
+            </div>
+            <div className="bg-white border border-slate-200 p-2">
+              <span className="text-slate-400 block text-[8px] uppercase">{isEs ? 'Ponderación (P3)' : 'Weighting (P3)'}</span>
+              <span className="font-bold text-slate-900 uppercase">{pillars.p3}</span>
             </div>
           </div>
         </div>
 
-        {/* Table 1: Strategic Executive Sentiment Matrix */}
-        <div className="text-xs font-black uppercase tracking-wider text-slate-950 mb-2 border-b-2 border-slate-950 pb-1">
-          1. {isEs ? 'Resumen Táctico Ejecutivo' : 'Executive Tactical Summary'}
-        </div>
-        <table className="w-full border-collapse border border-slate-300 text-xs mb-6">
-          <thead>
-            <tr className="bg-slate-100 text-slate-800 text-[10px] uppercase font-bold text-left">
-              <th className="p-2 border border-slate-300">{isEs ? 'Par de Divisas' : 'Target Asset Pair'}</th>
-              <th className="p-2 border border-slate-300">{isEs ? 'Fecha de Ejecución' : 'Execution Date'}</th>
-              <th className="p-2 border border-slate-300">{isEs ? 'Veredicto Táctico' : 'System Tactical Verdict'}</th>
-              <th className="p-2 border border-slate-300 text-right">{isEs ? 'Peso Neto' : 'Net Weight'}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td className="p-2 border border-slate-300 font-bold">{baseCurrency}/{quoteCurrency}</td>
-              <td className="p-2 border border-slate-300">{new Date().toISOString().slice(0, 10)}</td>
-              <td className="p-2 border border-slate-300 font-bold uppercase">
-                {isApproved 
-                  ? (isEs ? `APROBADO (${step1Direction === 'buy' ? 'COMPRA' : 'VENTA'})` : `APPROVED (${step1Direction.toUpperCase()})`)
-                  : isNoTrade 
-                  ? (isEs ? 'SIN OPERACIÓN' : 'NO TRADE')
-                  : (isEs ? 'SIN SESGO' : 'NO BIAS')}
-              </td>
-              <td className="p-2 border border-slate-300 font-bold font-mono text-right">{netWeight > 0 ? `+${netWeight}` : netWeight}</td>
-            </tr>
-          </tbody>
-        </table>
+        {/* 2. SECTION: FUNDAMENTAL CALENDAR CORE CATALYST MATRIX */}
+        <div className="mb-5">
+          <div className="flex justify-between items-center border-b-2 border-slate-900 pb-1 mb-2">
+            <h2 className="text-xs font-black uppercase tracking-wider text-slate-950 font-sans">
+              1. {isEs ? 'Matriz de Catalizadores Fundamentales de Calendario' : 'Fundamental Calendar Catalyst Matrix'}
+            </h2>
+            <span className="text-[9px] font-mono text-slate-500 uppercase">
+              {activeEventsCount} {isEs ? 'Eventos Analizados' : 'Events Analyzed'}
+            </span>
+          </div>
 
-        {/* Table 2: Fundamental Calendar Core Catalyst Matrix */}
-        <div className="text-xs font-black uppercase tracking-wider text-slate-950 mb-2 border-b-2 border-slate-950 pb-1">
-          2. {isEs ? 'Matriz de Catalizadores Fundamentales' : 'Fundamental Calendar Catalyst Matrix'}
+          <table className="w-full border-collapse border border-slate-300 text-xs">
+            <thead>
+              <tr className="bg-slate-100 text-slate-800 text-[10px] uppercase font-bold text-left font-mono">
+                <th className="p-2 border border-slate-300 w-[16%]">{isEs ? 'Divisa' : 'Asset Focus'}</th>
+                <th className="p-2 border border-slate-300 w-[34%]">{isEs ? 'Evento Económico' : 'Economic Event'}</th>
+                <th className="p-2 border border-slate-300 w-[20%]">{isEs ? 'Sesgo Direccional' : 'Directional Bias'}</th>
+                <th className="p-2 border border-slate-300 w-[30%]">{isEs ? 'Notas del Analista / Rango' : 'Analyst Execution Notes'}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {baseEvents.filter(e => e.type !== 'none').map((e, idx) => (
+                <tr key={`b_pr_${idx}`} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}>
+                  <td className="p-2 border border-slate-300 font-bold font-mono">
+                    <span className="bg-slate-200 text-slate-900 px-1.5 py-0.5 text-[10px] mr-1">{baseCurrency}</span> (Base)
+                  </td>
+                  <td className="p-2 border border-slate-300 font-semibold text-slate-900">{e.type}</td>
+                  <td className="p-2 border border-slate-300 font-mono text-[11px] font-bold">
+                    <span className={e.bias.includes('bullish') ? 'text-emerald-700' : e.bias.includes('bearish') ? 'text-rose-700' : 'text-slate-600'}>
+                      {formatBiasLabel(e.bias)}
+                    </span>
+                  </td>
+                  <td className="p-2 border border-slate-300 text-slate-700 font-mono text-[10px]">{e.note || '—'}</td>
+                </tr>
+              ))}
+              {quoteEvents.filter(e => e.type !== 'none').map((e, idx) => (
+                <tr key={`q_pr_${idx}`} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}>
+                  <td className="p-2 border border-slate-300 font-bold font-mono">
+                    <span className="bg-slate-200 text-slate-900 px-1.5 py-0.5 text-[10px] mr-1">{quoteCurrency}</span> (Quote)
+                  </td>
+                  <td className="p-2 border border-slate-300 font-semibold text-slate-900">{e.type}</td>
+                  <td className="p-2 border border-slate-300 font-mono text-[11px] font-bold">
+                    <span className={e.bias.includes('bullish') ? 'text-emerald-700' : e.bias.includes('bearish') ? 'text-rose-700' : 'text-slate-600'}>
+                      {formatBiasLabel(e.bias)}
+                    </span>
+                  </td>
+                  <td className="p-2 border border-slate-300 text-slate-700 font-mono text-[10px]">{e.note || '—'}</td>
+                </tr>
+              ))}
+              {activeEventsCount === 0 && (
+                <tr>
+                  <td colSpan={4} className="p-4 text-center text-slate-400 italic">
+                    {isEs ? 'Sin eventos de catalizadores registrados para este par.' : 'No catalyst events registered for this asset pair.'}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
-        <table className="w-full border-collapse border border-slate-300 text-xs mb-6">
-          <thead>
-            <tr className="bg-slate-100 text-slate-800 text-[10px] uppercase font-bold text-left">
-              <th className="p-2 border border-slate-300">{isEs ? 'Divisa' : 'Asset Focus'}</th>
-              <th className="p-2 border border-slate-300">{isEs ? 'Evento' : 'Economic Event'}</th>
-              <th className="p-2 border border-slate-300">{isEs ? 'Sesgo' : 'Directional Bias'}</th>
-              <th className="p-2 border border-slate-300">{isEs ? 'Notas del Analista' : 'Analyst Notes'}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {baseEvents.filter(e => e.type !== 'none').map((e, idx) => (
-              <tr key={`b_pr_${idx}`}>
-                <td className="p-2 border border-slate-300 font-bold font-mono">{baseCurrency} (Base)</td>
-                <td className="p-2 border border-slate-300 font-semibold">{e.type}</td>
-                <td className="p-2 border border-slate-300">{formatBiasLabel(e.bias)}</td>
-                <td className="p-2 border border-slate-300 text-slate-600 font-mono text-[10px]">{e.note || '—'}</td>
+
+        {/* 3. SECTION: 5-PILLARS QUANTITATIVE SCORECARD VECTORS */}
+        <div className="mb-5">
+          <div className="flex justify-between items-center border-b-2 border-slate-900 pb-1 mb-2">
+            <h2 className="text-xs font-black uppercase tracking-wider text-slate-950 font-sans">
+              2. {isEs ? 'Alineación de Factores del Modelo (5 Pilares Estratégicos)' : 'Strategic Quantitative Factor Alignment (5 Pillars)'}
+            </h2>
+            <span className="text-[9px] font-mono text-slate-500 uppercase">
+              {isEs ? 'Matriz de Confluencia Multivariada' : 'Multivariate Confluence Matrix'}
+            </span>
+          </div>
+
+          <table className="w-full border-collapse border border-slate-300 text-xs">
+            <thead>
+              <tr className="bg-slate-100 text-slate-800 text-[10px] uppercase font-bold text-left font-mono">
+                <th className="p-2 border border-slate-300 w-[65%]">{isEs ? 'Pilar Estratégico Cuantitativo' : 'Strategic Pillar Factor'}</th>
+                <th className="p-2 border border-slate-300 text-right w-[35%]">{isEs ? 'Estado / Alineación' : 'Pillar Alignment'}</th>
               </tr>
-            ))}
-            {quoteEvents.filter(e => e.type !== 'none').map((e, idx) => (
-              <tr key={`q_pr_${idx}`}>
-                <td className="p-2 border border-slate-300 font-bold font-mono">{quoteCurrency} (Quote)</td>
-                <td className="p-2 border border-slate-300 font-semibold">{e.type}</td>
-                <td className="p-2 border border-slate-300">{formatBiasLabel(e.bias)}</td>
-                <td className="p-2 border border-slate-300 text-slate-600 font-mono text-[10px]">{e.note || '—'}</td>
-              </tr>
-            ))}
-            {activeEventsCount === 0 && (
+            </thead>
+            <tbody>
               <tr>
-                <td colSpan={4} className="p-3 text-center text-slate-400 italic">
-                  {isEs ? 'Sin eventos de catalizadores registrados.' : 'No catalyst events registered.'}
+                <td className="p-2 border border-slate-300">
+                  <span className="font-bold text-slate-900 font-mono text-[11px]">{isEs ? 'Pilar 1: Calendario Fundamental' : 'Pillar 1: Fundamental Calendar'}</span>
+                  <span className="text-[10px] text-slate-500 block">{isEs ? 'Catalizadores económicos semanales y diferenciales de datos' : 'Weekly economic catalysts and net scoring differential'}</span>
+                </td>
+                <td className="p-2 border border-slate-300 text-right font-mono font-bold uppercase text-slate-900">
+                  {formatBiasLabel(step1Direction)} ({netWeight > 0 ? `+${netWeight}` : netWeight})
                 </td>
               </tr>
-            )}
-          </tbody>
-        </table>
-
-        {/* Table 3: Scorecard Pillars */}
-        <div className="text-xs font-black uppercase tracking-wider text-slate-950 mb-2 border-b-2 border-slate-950 pb-1">
-          3. {isEs ? 'Alineación de Factores de Apoyo (Pilaress)' : 'Supporting Factor Alignments (Pillars)'}
+              <tr className="bg-slate-50/40">
+                <td className="p-2 border border-slate-300">
+                  <span className="font-bold text-slate-900 font-mono text-[11px]">{isEs ? 'Pilar 2: Sentimiento Minorista (Filtro Contrarian SSI)' : 'Pillar 2: Retail SSI Sentiment (Contrarian)'}</span>
+                  <span className="text-[10px] text-slate-500 block">{isEs ? 'Posicionamiento especulativo y sesgo en contra de la multitud' : 'Speculative crowd positioning against extreme retail bias'}</span>
+                </td>
+                <td className="p-2 border border-slate-300 text-right font-mono font-bold uppercase text-slate-900">
+                  {pillars.p2}
+                </td>
+              </tr>
+              <tr>
+                <td className="p-2 border border-slate-300">
+                  <span className="font-bold text-slate-900 font-mono text-[11px]">{isEs ? 'Pilar 3: Matriz de Ponderación de Divisas (Fuerza Macro)' : 'Pillar 3: Currency Weighting Scorecard (Macro Metrics)'}</span>
+                  <span className="text-[10px] text-slate-500 block">{isEs ? 'Salud económica subyacente, empleo, inflación y manufactura' : 'Underlying macro strength, labor market, inflation and PMIs'}</span>
+                </td>
+                <td className="p-2 border border-slate-300 text-right font-mono font-bold uppercase text-slate-900">
+                  {pillars.p3}
+                </td>
+              </tr>
+              <tr className="bg-slate-50/40">
+                <td className="p-2 border border-slate-300">
+                  <span className="font-bold text-slate-900 font-mono text-[11px]">{isEs ? 'Pilar 4: Sentimiento de Riesgo y Materias Primas' : 'Pillar 4: Risk Sentiment & Commodities'}</span>
+                  <span className="text-[10px] text-slate-500 block">
+                    {isEs ? 'Entorno Risk-On / Risk-Off' : 'Risk-On / Risk-Off Regimes'} · {isEs ? 'Petróleo WTI' : 'WTI Crude'}: {p4Oil || '—'} · {isEs ? 'Oro' : 'Gold'}: {p4Gold || '—'}
+                  </span>
+                </td>
+                <td className="p-2 border border-slate-300 text-right font-mono font-bold uppercase text-slate-900">
+                  {pillars.p4}
+                </td>
+              </tr>
+              <tr>
+                <td className="p-2 border border-slate-300">
+                  <span className="font-bold text-slate-900 font-mono text-[11px]">{isEs ? 'Pilar 5: Bancos Centrales y Trayectoria de Tipos' : 'Pillar 5: Central Banks & Rate Trajectories'}</span>
+                  <span className="text-[10px] text-slate-500 block">
+                    {isEs ? 'Divergencia Hawkish / Dovish' : 'Hawkish / Dovish Divergence'} · {p5Notes ? `${isEs ? 'Nota' : 'Note'}: ${p5Notes}` : (isEs ? 'Sin divergencia crítica' : 'No critical divergence')}
+                  </span>
+                </td>
+                <td className="p-2 border border-slate-300 text-right font-mono font-bold uppercase text-slate-900">
+                  {pillars.p5}
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
-        <table className="w-full border-collapse border border-slate-300 text-xs mb-6">
-          <thead>
-            <tr className="bg-slate-100 text-slate-800 text-[10px] uppercase font-bold text-left">
-              <th className="p-2 border border-slate-300">{isEs ? 'Pilar Estratégico' : 'Strategic Pillar'}</th>
-              <th className="p-2 border border-slate-300 text-right">{isEs ? 'Resultado' : 'Alignment'}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td className="p-2 border border-slate-300">Point 2: Retail Sentiment (SSI Contrarian Filter)</td>
-              <td className="p-2 border border-slate-300 text-right font-bold uppercase">{pillars.p2}</td>
-            </tr>
-            <tr>
-              <td className="p-2 border border-slate-300">Point 3: Currency Weighting Scorecard (Macro Metrics)</td>
-              <td className="p-2 border border-slate-300 text-right font-bold uppercase">{pillars.p3}</td>
-            </tr>
-            <tr>
-              <td className="p-2 border border-slate-300">Point 4: Risk Sentiment & Commodities [WTI: {p4Oil || '—'}] [Gold: {p4Gold || '—'}]</td>
-              <td className="p-2 border border-slate-300 text-right font-bold uppercase">{pillars.p4}</td>
-            </tr>
-            <tr>
-              <td className="p-2 border border-slate-300">Point 5: Interest Rates & Central Bank Trajectory [Note: {p5Notes || '—'}]</td>
-              <td className="p-2 border border-slate-300 text-right font-bold uppercase">{pillars.p5}</td>
-            </tr>
-          </tbody>
-        </table>
 
-        {/* Table 4: Intelligence Dossier */}
-        <div className="text-xs font-black uppercase tracking-wider text-slate-950 mb-2 border-b-2 border-slate-950 pb-1">
-          4. {isEs ? 'Dossier de Inteligencia y Riesgo Macro' : 'Core Macro Regime Risk Intelligence'}
+        {/* 4. SECTION: CORE MACRO REGIME RISK INTELLIGENCE DOSSIER */}
+        <div className="mb-6">
+          <div className="flex justify-between items-center border-b-2 border-slate-900 pb-1 mb-2">
+            <h2 className="text-xs font-black uppercase tracking-wider text-slate-950 font-sans">
+              3. {isEs ? 'Dossier de Inteligencia y Régimen Macro' : 'Core Macro Regime Risk Intelligence Dossier'}
+            </h2>
+            <span className="text-[9px] font-mono text-slate-500 uppercase">
+              {isEs ? 'Evaluación Cualitativa de Riesgos de Cola' : 'Qualitative Tail-Risk Evaluation'}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 text-xs">
+            <div className="border border-slate-300 p-3 bg-slate-50/50">
+              <div className="font-bold text-slate-900 uppercase font-mono text-[10px] pb-1 border-b border-slate-200 mb-2 flex items-center gap-1.5">
+                <span>🏛️</span> {isEs ? 'Trayectorias de Política Monetaria' : 'Monetary Policy Trajectories'}
+              </div>
+              <p className="text-slate-700 text-[11px] font-serif leading-relaxed whitespace-pre-wrap">
+                {noteCB || (isEs ? 'Perfiles monetarios consolidados dentro de las bandas de guía institucionales.' : 'Monetary tracking profiles consolidated within official guidance bands.')}
+              </p>
+            </div>
+
+            <div className="border border-slate-300 p-3 bg-slate-50/50">
+              <div className="font-bold text-slate-900 uppercase font-mono text-[10px] pb-1 border-b border-slate-200 mb-2 flex items-center gap-1.5">
+                <span>🌐</span> {isEs ? 'Riesgos Geopolíticos y Eventos de Cola' : 'Geopolitical Hazards & Tail Risks'}
+              </div>
+              <p className="text-slate-700 text-[11px] font-serif leading-relaxed whitespace-pre-wrap">
+                {noteGeo || (isEs ? 'Sin parámetros de riesgo geopolítico material registrados para este ciclo.' : 'No material geopolitical tail risk logged for the current trading cycle.')}
+              </p>
+            </div>
+          </div>
         </div>
-        <table className="w-full border-collapse border border-slate-300 text-xs mb-6">
-          <tbody>
-            <tr>
-              <td className="p-2 border border-slate-300 font-bold bg-slate-50 w-1/3">
-                {isEs ? 'Política Monetaria' : 'Monetary Policy Trajectories'}
-              </td>
-              <td className="p-2 border border-slate-300 text-slate-700 whitespace-pre-wrap font-mono text-[11px]">
-                {noteCB || (isEs ? 'Perfiles monetarios consolidados dentro de las bandas de guía.' : 'Monetary tracking profiles consolidated within guidance.')}
-              </td>
-            </tr>
-            <tr>
-              <td className="p-2 border border-slate-300 font-bold bg-slate-50 w-1/3">
-                {isEs ? 'Riesgo Geopolítico' : 'Geopolitical Hazards & Risks'}
-              </td>
-              <td className="p-2 border border-slate-300 text-slate-700 whitespace-pre-wrap font-mono text-[11px]">
-                {noteGeo || (isEs ? 'Sin parámetros de riesgo de cola material registrados.' : 'No material geopolitical tail risk logged.')}
-              </td>
-            </tr>
-          </tbody>
-        </table>
 
-        {/* Corporate Footnote */}
+        {/* INSTITUTIONAL AUDIT FOOTER */}
         <div className="border-t border-slate-300 pt-3 flex justify-between items-center text-[9px] text-slate-400 font-mono">
-          <span>KAIROS CURRENCY SENTIMENT ENGINE™</span>
-          <span>RESTRICTED DISTRIBUTION // INTERNAL TRADING DESK AUDIT</span>
+          <span>KAIROS QUANTITATIVE TRADING INTELLIGENCE SYSTEM™</span>
+          <span>RESTRICTED DISTRIBUTION // INSTITUTIONAL AUDIT COPY</span>
+          <span>PAGE 1 OF 1</span>
         </div>
 
       </div>

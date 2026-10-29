@@ -993,9 +993,10 @@
         Object.keys(globalState.categoryScores).forEach(catId => {
           const item = globalState.categoryScores[catId];
           if (item && item.ccy === ccy && item.score !== 0 && !matchedCatIds.has(catId)) {
-            let label = item.title || item.eventsSummary || 'Evento Macro';
+            let label = item.eventsSummary || item.title || 'Evento Macro';
             label = label.replace(new RegExp(`^${ccy}\\s*-\\s*`, 'i'), '');
-            list.push({ label: label, score: item.score });
+            label = label.replace(new RegExp(`\\s*\\(${ccy}\\)$`, 'i'), '').trim();
+            list.push({ label: label || 'Evento evaluado', score: item.score });
           }
         });
       }

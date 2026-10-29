@@ -530,95 +530,122 @@
     <!-- ========================================== -->
     <!-- 📄 PLANTILLA DE IMPRESIÓN DEL DOSSIER (SÓLO IMPRESIÓN) -->
     <!-- ========================================== -->
-    <div id="pdf-report-container" class="p-4 text-slate-950 max-w-4xl mx-auto">
-        <div class="border-b-4 border-slate-950 pb-3 mb-5 flex justify-between items-end">
+    <!-- ========================================================= -->
+    <!-- 📄 DOSSIER EJECUTIVO DE ESTRATEGIA MACRO (PDF / IMPRESIÓN) -->
+    <!-- ========================================================= -->
+    <div id="pdf-report-container" class="p-0 text-slate-950 max-w-4xl mx-auto font-sans leading-normal">
+        <div style="height: 5px; background-color: #0f172a; width: 100%; margin-bottom: 1rem;"></div>
+
+        <div style="border-bottom: 2px solid #0f172a; padding-bottom: 0.8rem; margin-bottom: 1.2rem; display: flex; justify-content: space-between; align-items: flex-start;">
             <div>
-                <h1 class="text-2xl font-black tracking-tight text-slate-950 uppercase">KAIROS GLOBAL RESEARCH</h1>
-                <p class="text-[9px] text-slate-500 uppercase tracking-widest font-mono mt-0.5">Motor de Sentimiento de Divisas // Evaluación de Riesgo Técnico</p>
+                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                    <span style="font-size: 9px; font-weight: 900; letter-spacing: 0.1em; background-color: #0f172a; color: white; padding: 2px 6px; text-transform: uppercase; font-family: monospace;">
+                        CONFIDENCIAL // AUDITORÍA DE MESA DE TRADING
+                    </span>
+                    <span style="font-size: 9px; font-weight: bold; color: #64748b; font-family: monospace;">
+                        DOSSIER DE INTELIGENCIA MACRO
+                    </span>
+                </div>
+                <h1 style="font-size: 22px; font-weight: 900; letter-spacing: -0.02em; color: #0f172a; text-transform: uppercase; margin: 0;">
+                    KAIROS GLOBAL RESEARCH
+                </h1>
+                <p style="font-size: 10px; color: #475569; font-weight: 600; font-family: monospace; text-transform: uppercase; letter-spacing: 0.05em; margin: 2px 0 0 0;">
+                    Definidor de Sentimiento de Divisas // Modelo Cuantitativo de 5 Pilares
+                </p>
             </div>
-            <div class="text-right font-mono">
-                <div class="text-lg font-black text-slate-900" id="print-target-pair">EUR/AUD</div>
-                <div class="text-[9px] text-slate-500 uppercase mt-0.5" id="print-date">Actualización de Estrategia</div>
+            <div style="text-align: right;">
+                <div style="font-size: 26px; font-weight: 900; color: #0f172a; font-family: monospace; letter-spacing: -0.02em;" id="print-target-pair">EUR/AUD</div>
+                <div style="font-size: 10px; color: #64748b; font-family: monospace; margin-top: 2px;" id="print-date">Actualización de Estrategia</div>
+                <div style="font-size: 9px; color: #94a3b8; font-family: monospace;">PROTOCOLO DE EJECUCIÓN: ACTIVO</div>
             </div>
         </div>
 
-        <div class="pdf-section-title">1. Resumen Ejecutivo Táctico</div>
-        <table class="pdf-table">
-            <thead>
-                <tr>
-                    <th style="width: 25%;">Par Objetivo</th>
-                    <th style="width: 25%;">Fecha de Ejecución</th>
-                    <th style="width: 30%;">Veredicto Táctico Sistemático</th>
-                    <th style="width: 20%; text-align: right;">Ponderación Neta</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td id="table-print-pair" class="font-bold">EUR/AUD</td>
-                    <td id="table-print-date">Cargando...</td>
-                    <td id="table-print-verdict" class="font-bold tracking-wide uppercase">Sin sesgo activo registrado</td>
-                    <td id="table-print-weight" class="font-bold font-mono text-right">0</td>
-                </tr>
-                <tr>
-                    <td colspan="4" class="bg-slate-50/50">
-                        <span class="font-bold text-[10px] uppercase font-mono text-slate-400 block mb-0.5">Contexto del Análisis Sistemático</span>
-                        <p id="table-print-reason" class="text-slate-600 font-serif italic text-xs">Esperando eventos de evaluación...</p>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+        <!-- 1. Veredicto Táctico Estratégico (Hero Card) -->
+        <div style="background-color: #f8fafc; border: 1px solid #cbd5e1; padding: 12px 16px; margin-bottom: 1.2rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 8px;">
+                <div>
+                    <span style="font-size: 9px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.08em; color: #64748b; font-family: monospace; display: block;">
+                        // VEREDICTO SISTEMÁTICO TÁCTICO
+                    </span>
+                    <div style="margin-top: 4px;">
+                        <span id="table-print-verdict" style="display: inline-block; padding: 4px 10px; font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em; background-color: #0f172a; color: white;">
+                            Esperando Evaluación
+                        </span>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 16px; text-align: right;">
+                    <div style="border-left: 1px solid #cbd5e1; padding-left: 14px;">
+                        <span style="font-size: 9px; font-weight: bold; text-transform: uppercase; font-family: monospace; color: #64748b; display: block;">Peso Neto</span>
+                        <span id="table-print-weight" style="font-size: 18px; font-weight: 900; font-family: monospace; color: #0f172a;">0 PTS</span>
+                    </div>
+                    <div style="border-left: 1px solid #cbd5e1; padding-left: 14px;">
+                        <span style="font-size: 9px; font-weight: bold; text-transform: uppercase; font-family: monospace; color: #64748b; display: block;">Par Evaluado</span>
+                        <span id="table-print-pair" style="font-size: 14px; font-weight: 900; font-family: monospace; color: #0f172a;">EUR/AUD</span>
+                    </div>
+                </div>
+            </div>
+            <div>
+                <span style="font-size: 9px; font-weight: bold; text-transform: uppercase; font-family: monospace; color: #94a3b8; display: block; margin-bottom: 2px;">Contexto de Análisis Sistemático y Confluencia</span>
+                <p id="table-print-reason" style="font-size: 11px; color: #475569; font-style: italic; font-family: serif; margin: 0; line-height: 1.4;">Esperando eventos de evaluación...</p>
+                <div style="display: none;" id="table-print-date"></div>
+            </div>
+        </div>
 
-        <div class="pdf-section-title">2. Matriz Fundamental de Catalizadores de Calendario</div>
+        <!-- 2. Matriz de Catalizadores Fundamentales -->
+        <div class="pdf-section-title">1. Matriz Fundamental de Catalizadores de Calendario</div>
         <table class="pdf-table">
             <thead>
                 <tr>
-                    <th style="width: 20%;">Activo</th>
-                    <th style="width: 30%;">Parámetro del Evento Económico</th>
-                    <th style="width: 20%;">Alineación del Sesgo Direccional</th>
-                    <th style="width: 30%;">Nota de Ejecución / Rango de Mercado</th>
+                    <th style="width: 18%;">Activo / Divisa</th>
+                    <th style="width: 32%;">Evento Económico</th>
+                    <th style="width: 22%;">Sesgo Direccional</th>
+                    <th style="width: 28%;">Notas del Analista / Rango</th>
                 </tr>
             </thead>
             <tbody id="table-print-catalysts-body"></tbody>
         </table>
 
-        <div class="pdf-section-title">3. Vectores de Alineación Métrica (4 Pilares)</div>
+        <!-- 3. Vectores de Alineación Métrica (5 Pilares) -->
+        <div class="pdf-section-title">2. Vectores de Confluencia Métrica (5 Pilares Cuantitativos)</div>
         <table class="pdf-table">
             <thead>
                 <tr>
-                    <th style="width: 60%;">Pilar Estratégico del Sistema</th>
-                    <th style="width: 40%; text-align: right;">Resultado de Alineación</th>
+                    <th style="width: 65%;">Pilar Estratégico del Modelo</th>
+                    <th style="width: 35%; text-align: right;">Resultado de Alineación</th>
                 </tr>
             </thead>
             <tbody id="table-print-pillars-body"></tbody>
         </table>
 
-        <div class="pdf-section-title">4. Dossier de Inteligencia de Riesgo y Régimen Macro</div>
+        <!-- 4. Dossier de Inteligencia de Riesgo y Régimen Macro -->
+        <div class="pdf-section-title">3. Dossier de Inteligencia de Riesgo y Régimen Macro</div>
         <table class="pdf-table">
             <thead>
                 <tr>
-                    <th style="width: 30%;">Dominio del Vector</th>
-                    <th style="width: 70%;">Evaluación del Analista y Observaciones de Divergencia Intermercado</th>
+                    <th style="width: 32%;">Dominio del Vector</th>
+                    <th style="width: 68%;">Evaluación del Analista y Observaciones de Divergencia Intermercado</th>
                 </tr>
             </thead>
             <tbody>
                 <tr>
-                    <td class="font-bold uppercase tracking-wider font-mono bg-slate-50/50">Sentimiento de Riesgo y Motores Intermercado</td>
-                    <td id="table-print-note-risk" class="font-serif leading-relaxed text-slate-700 whitespace-pre-wrap"></td>
+                    <td style="font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em; font-family: monospace; background-color: #f8fafc;">Sentimiento de Riesgo y Motores Intermercado</td>
+                    <td id="table-print-note-risk" style="font-family: serif; line-height: 1.4; color: #334155; white-space: pre-wrap;"></td>
                 </tr>
                 <tr>
-                    <td class="font-bold uppercase tracking-wider font-mono bg-slate-50/50">Trayectoria de Política Monetaria</td>
-                    <td id="table-print-note-cb" class="font-serif leading-relaxed text-slate-700 whitespace-pre-wrap"></td>
+                    <td style="font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em; font-family: monospace; background-color: #f8fafc;">Trayectoria de Política Monetaria</td>
+                    <td id="table-print-note-cb" style="font-family: serif; line-height: 1.4; color: #334155; white-space: pre-wrap;"></td>
                 </tr>
                 <tr>
-                    <td class="font-bold uppercase tracking-wider font-mono bg-slate-50/50">Riesgos y Amenazas Geopolíticas</td>
-                    <td id="table-print-note-geo" class="font-serif leading-relaxed text-slate-700 whitespace-pre-wrap"></td>
+                    <td style="font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em; font-family: monospace; background-color: #f8fafc;">Riesgos y Amenazas Geopolíticas</td>
+                    <td id="table-print-note-geo" style="font-family: serif; line-height: 1.4; color: #334155; white-space: pre-wrap;"></td>
                 </tr>
             </tbody>
         </table>
 
-        <div class="border-t border-slate-300 mt-8 pt-3 flex justify-between items-center text-[9px] text-slate-400 font-mono">
-            <span>KAIROS CURRENCY SENTIMENT ENGINE™</span>
+        <div style="border-top: 1px solid #cbd5e1; margin-top: 1.5rem; padding-top: 0.5rem; display: flex; justify-content: space-between; align-items: center; font-size: 9px; color: #94a3b8; font-family: monospace;">
+            <span>KAIROS QUANTITATIVE TRADING INTELLIGENCE SYSTEM™</span>
             <span>DISTRIBUCIÓN RESTRINGIDA // AUDITORÍA INTERNA DE MESA DE TRADING</span>
+            <span>PÁGINA 1 DE 1</span>
         </div>
     </div>
 
