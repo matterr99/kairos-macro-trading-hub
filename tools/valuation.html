@@ -870,9 +870,27 @@
 
             appData[curr].forEach((ind, idx) => {
                 const scoreColor = ind.score > 0 ? 'text-cyan-400 font-bold' : ind.score < 0 ? 'text-rose-400 font-bold' : 'text-zinc-500';
-                const isPercentType = ["CPI", "UNEMP_RATE", "PCT_GROWTH", "EUR_UNEMP_FIXED", "CARD_TRANS", "GBP_RETAIL"].includes(ind.type);
-                const formatDisplayVal = (val) => (val === null || val === undefined) ? '' : isPercentType ? (val * 100).toFixed(2) + '%' : val;
-                const formatNetChange = (val) => (val === null || val === undefined) ? '-' : isPercentType ? ((val > 0 ? '+' : '') + (val * 100).toFixed(2) + '%') : (val > 0 ? '+' + val : val);
+                const isPercentType = ["CPI", "UNEMP_RATE", "PCT_GROWTH", "EUR_UNEMP_FIXED", "CARD_TRANS", "GBP_RETAIL"].includes((ind.type || '').toUpperCase());
+                const isThousandsType = ["NFP", "JOBS_K", "CAD_JOBS", "GBP_CLAIMANT", "GER_UNEMP_CHANGE", "CHF_UNEMP_CHANGE"].includes((ind.type || '').toUpperCase());
+                const formatDisplayVal = (val) => {
+                    if (val === null || val === undefined || isNaN(val)) return '';
+                    if (isPercentType) return (val * 100).toFixed(2) + '%';
+                    if (isThousandsType) {
+                        const rounded = Math.abs(val % 1) > 0.001 ? Number(val).toFixed(1) : String(Math.round(val));
+                        return rounded + 'k';
+                    }
+                    return String(val);
+                };
+                const formatNetChange = (val) => {
+                    if (val === null || val === undefined || isNaN(val)) return '-';
+                    const prefix = val > 0 ? '+' : '';
+                    if (isPercentType) return prefix + (val * 100).toFixed(2) + '%';
+                    if (isThousandsType) {
+                        const rounded = Math.abs(val % 1) > 0.001 ? Number(val).toFixed(1) : String(Math.round(val));
+                        return prefix + rounded + 'k';
+                    }
+                    return prefix + val;
+                };
 
                 tbody.innerHTML += `
                     <tr class="hover:bg-zinc-900/30 transition-colors">
@@ -883,7 +901,7 @@
                         <td class="p-3"><input type="text" value="${formatDisplayVal(ind.previous)}" onchange="updateValue('${curr}', ${idx}, 'previous', this.value)" class="w-full bg-[#020203] border border-zinc-800 rounded px-2 py-1 text-xs text-zinc-300 outline-none focus:border-cyan-500 font-mono"></td>
                         <td class="p-3"><input type="text" value="${formatDisplayVal(ind.forecast)}" onchange="updateValue('${curr}', ${idx}, 'forecast', this.value)" class="w-full bg-[#020203] border border-zinc-800 rounded px-2 py-1 text-xs text-zinc-300 outline-none focus:border-cyan-500 font-mono"></td>
                         <td class="p-3"><input type="text" value="${formatDisplayVal(ind.actual)}" onchange="updateValue('${curr}', ${idx}, 'actual', this.value)" class="w-full bg-[#020203] border border-zinc-800 rounded px-2 py-1 text-xs text-zinc-300 outline-none focus:border-cyan-500 font-mono"></td>
-                        <td class="p-3 text-right font-mono text-zinc-400">${formatNetChange(ind.netChange)}</td>
+                        <td class="p-3 text-right font-mono text-zinc-300 font-bold">${formatNetChange(ind.netChange)}</td>
                         <td class="p-3 text-center font-mono ${scoreColor}">${ind.score > 0 ? '+' + ind.score : ind.score}</td>
                         <td class="p-3 text-right pr-4 text-zinc-500 font-mono">${ind.weight}</td>
                     </tr>`;
