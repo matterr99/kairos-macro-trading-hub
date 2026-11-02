@@ -2176,7 +2176,7 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
                 href={(tab as any).href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-3.5 py-2 uppercase tracking-wider text-[11px] transition-all cursor-pointer whitespace-nowrap flex items-center shrink-0 min-h-[36px] bg-[#0c0c12] text-zinc-400 border border-zinc-800 hover:text-white"
+                className="px-4 py-2 uppercase tracking-wider text-[11px] sm:text-xs transition-all cursor-pointer whitespace-nowrap flex items-center shrink-0 min-h-[40px] bg-[#0c0c12] text-zinc-400 border border-zinc-800 hover:text-white"
               >
                 {tab.label}
               </a>
@@ -2184,7 +2184,7 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
               <button
                 key={tab.id}
                 onClick={() => handleTabSwitch(tab.id as ToolSubTab)}
-                className={`px-3.5 py-2 uppercase tracking-wider text-[11px] transition-all cursor-pointer whitespace-nowrap flex items-center shrink-0 min-h-[36px] ${
+                className={`px-4 py-2 uppercase tracking-wider text-[11px] sm:text-xs transition-all cursor-pointer whitespace-nowrap flex items-center shrink-0 min-h-[40px] ${
                   activeTab === tab.id
                     ? 'bg-cyan-500 text-black font-bold shadow-[0_0_12px_rgba(6,182,212,0.4)]'
                     : 'bg-[#0c0c12] text-zinc-400 border border-zinc-800 hover:text-white'
@@ -2514,12 +2514,12 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
                   </h2>
                 </div>
 
-                <div className="flex items-center gap-2 flex-wrap text-xs">
+                <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto text-xs">
                   {/* Ingestion Mode Switcher: Incremental vs Full Baseline */}
-                  <div className="flex items-center gap-1 bg-[#0c0c12] border border-zinc-800 p-0.5 text-[10px] min-h-[36px]">
+                  <div className="flex items-center gap-1 bg-[#0c0c12] border border-zinc-800 p-1 text-[10px] sm:text-xs min-h-[40px] w-full sm:w-auto justify-center">
                     <button
                       onClick={() => setValuationUpdateMode('incremental')}
-                      className={`px-2.5 py-1 uppercase tracking-wider font-bold transition flex items-center gap-1 cursor-pointer ${
+                      className={`flex-1 sm:flex-initial px-3 py-1.5 uppercase tracking-wider font-bold transition flex items-center justify-center gap-1 cursor-pointer min-h-[34px] ${
                         valuationUpdateMode === 'incremental'
                           ? 'bg-cyan-500 text-black shadow-sm'
                           : 'text-zinc-400 hover:text-white'
@@ -2531,7 +2531,7 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
                     </button>
                     <button
                       onClick={() => setValuationUpdateMode('baseline')}
-                      className={`px-2.5 py-1 uppercase tracking-wider font-bold transition flex items-center gap-1 cursor-pointer ${
+                      className={`flex-1 sm:flex-initial px-3 py-1.5 uppercase tracking-wider font-bold transition flex items-center justify-center gap-1 cursor-pointer min-h-[34px] ${
                         valuationUpdateMode === 'baseline'
                           ? 'bg-cyan-500 text-black shadow-sm'
                           : 'text-zinc-400 hover:text-white'
@@ -2545,24 +2545,24 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
 
                   <button
                     onClick={handleExportCSV}
-                    className="px-3.5 py-1.5 text-[10px] uppercase tracking-wider bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-400 border border-emerald-800/60 transition cursor-pointer font-bold min-h-[36px] flex items-center gap-1.5"
+                    className="flex-1 sm:flex-initial px-3.5 py-2 text-[10px] sm:text-xs uppercase tracking-wider bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-400 border border-emerald-800/60 transition cursor-pointer font-bold min-h-[40px] sm:min-h-[36px] flex items-center justify-center gap-1.5"
                   >
-                    <FileSpreadsheet className="w-3.5 h-3.5" />
-                    Export Excel/CSV
+                    <FileSpreadsheet className="w-3.5 h-3.5 shrink-0" />
+                    <span>Export Excel/CSV</span>
                   </button>
                   <button
                     onClick={handleExportData}
-                    className="px-3.5 py-1.5 text-[10px] uppercase tracking-wider bg-cyan-950/40 hover:bg-cyan-900/60 text-cyan-400 border border-cyan-800/60 transition cursor-pointer font-bold min-h-[36px] flex items-center gap-1.5"
+                    className="flex-1 sm:flex-initial px-3.5 py-2 text-[10px] sm:text-xs uppercase tracking-wider bg-cyan-950/40 hover:bg-cyan-900/60 text-cyan-400 border border-cyan-800/60 transition cursor-pointer font-bold min-h-[40px] sm:min-h-[36px] flex items-center justify-center gap-1.5"
                   >
-                    <Download className="w-3.5 h-3.5" />
-                    Export JSON
+                    <Download className="w-3.5 h-3.5 shrink-0" />
+                    <span>Export JSON</span>
                   </button>
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="px-3.5 py-1.5 text-[10px] uppercase tracking-wider bg-[#0c0c12] hover:bg-zinc-800 text-zinc-300 border border-zinc-800 transition cursor-pointer min-h-[36px] flex items-center gap-1.5"
+                    className="flex-1 sm:flex-initial px-3.5 py-2 text-[10px] sm:text-xs uppercase tracking-wider bg-[#0c0c12] hover:bg-zinc-800 text-zinc-300 border border-zinc-800 transition cursor-pointer min-h-[40px] sm:min-h-[36px] flex items-center justify-center gap-1.5"
                   >
-                    <Upload className="w-3.5 h-3.5" />
-                    Import Backup / Excel
+                    <Upload className="w-3.5 h-3.5 shrink-0" />
+                    <span>Import Backup</span>
                   </button>
                   <input
                     type="file"
@@ -2573,10 +2573,10 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
                   />
                   <button
                     onClick={() => currencyInvestingFileRef.current?.click()}
-                    className="px-3.5 py-1.5 text-[10px] uppercase tracking-wider bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-400 border border-emerald-800/60 transition cursor-pointer font-bold min-h-[36px] flex items-center gap-1.5"
+                    className="flex-1 sm:flex-initial px-3.5 py-2 text-[10px] sm:text-xs uppercase tracking-wider bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-400 border border-emerald-800/60 transition cursor-pointer font-bold min-h-[40px] sm:min-h-[36px] flex items-center justify-center gap-1.5"
                   >
-                    <FileSpreadsheet className="w-3.5 h-3.5" />
-                    Import Investing.com Export
+                    <FileSpreadsheet className="w-3.5 h-3.5 shrink-0" />
+                    <span>Import Investing.com</span>
                   </button>
                   <input
                     type="file"
@@ -2587,11 +2587,11 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
                   />
                   <button
                     onClick={handleResetData}
-                    className="px-3.5 py-1.5 text-[10px] uppercase tracking-wider bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 border border-rose-800/60 transition cursor-pointer font-bold min-h-[36px] flex items-center gap-1.5"
+                    className="flex-1 sm:flex-initial px-3.5 py-2 text-[10px] sm:text-xs uppercase tracking-wider bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 border border-rose-800/60 transition cursor-pointer font-bold min-h-[40px] sm:min-h-[36px] flex items-center justify-center gap-1.5"
                     title={language === 'es' ? "Reiniciar todos los indicadores a 0" : "Reset all indicator values to 0"}
                   >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                    {language === 'es' ? 'Restablecer a 0' : 'Reset to Zero (0)'}
+                    <RotateCcw className="w-3.5 h-3.5 shrink-0" />
+                    <span>{language === 'es' ? 'Restablecer a 0' : 'Reset to Zero'}</span>
                   </button>
                 </div>
               </div>
@@ -2811,9 +2811,9 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
                     <button
                       key={c}
                       onClick={() => setCurrencyActiveTab(c)}
-                      className={`px-3 py-1.5 uppercase tracking-wider text-[10px] sm:text-xs transition cursor-pointer min-h-[36px] flex items-center justify-center ${
+                      className={`px-3.5 py-2 uppercase tracking-wider text-[11px] sm:text-xs transition cursor-pointer min-h-[40px] min-w-[44px] flex items-center justify-center font-bold ${
                         (currencyActiveTab === c || (currencyActiveTab === 'dashboard' && c === 'USD'))
-                          ? 'bg-cyan-500 text-black font-bold'
+                          ? 'bg-cyan-500 text-black shadow-sm'
                           : 'bg-[#0c0c12] text-zinc-400 border border-zinc-800 hover:text-white'
                       }`}
                     >
@@ -2865,7 +2865,7 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
                               type="date"
                               value={ind.date || ''}
                               onChange={(e) => updateIndicatorValue(curr, idx, 'date', e.target.value)}
-                              className="w-full bg-[#0c0c12] border border-zinc-800 text-zinc-300 text-xs px-2 py-1 outline-none focus:border-cyan-500 font-mono min-h-[34px]"
+                              className="w-full bg-[#0c0c12] border border-zinc-800 text-zinc-300 text-xs px-2 py-1.5 outline-none focus:border-cyan-500 font-mono min-h-[38px] sm:min-h-[34px]"
                             />
                           </td>
                           <td className="p-3.5">
@@ -2873,7 +2873,7 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
                               type="text"
                               value={formatIndicatorDisplay(ind.previous, ind.type)}
                               onChange={(e) => updateIndicatorValue(curr, idx, 'previous', e.target.value)}
-                              className="w-full bg-[#0c0c12] border border-zinc-800 text-zinc-300 text-xs px-2 py-1 outline-none focus:border-cyan-500 font-mono min-h-[34px]"
+                              className="w-full bg-[#0c0c12] border border-zinc-800 text-zinc-300 text-xs px-2 py-1.5 outline-none focus:border-cyan-500 font-mono min-h-[38px] sm:min-h-[34px]"
                             />
                           </td>
                           <td className="p-3.5">
@@ -2881,7 +2881,7 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
                               type="text"
                               value={formatIndicatorDisplay(ind.forecast, ind.type)}
                               onChange={(e) => updateIndicatorValue(curr, idx, 'forecast', e.target.value)}
-                              className="w-full bg-[#0c0c12] border border-zinc-800 text-zinc-300 text-xs px-2 py-1 outline-none focus:border-cyan-500 font-mono min-h-[34px]"
+                              className="w-full bg-[#0c0c12] border border-zinc-800 text-zinc-300 text-xs px-2 py-1.5 outline-none focus:border-cyan-500 font-mono min-h-[38px] sm:min-h-[34px]"
                             />
                           </td>
                           <td className="p-3.5">
@@ -2889,7 +2889,7 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
                               type="text"
                               value={formatIndicatorDisplay(ind.actual, ind.type)}
                               onChange={(e) => updateIndicatorValue(curr, idx, 'actual', e.target.value)}
-                              className="w-full bg-[#0c0c12] border border-zinc-800 text-zinc-300 text-xs px-2 py-1 outline-none focus:border-cyan-500 font-mono min-h-[34px]"
+                              className="w-full bg-[#0c0c12] border border-zinc-800 text-zinc-300 text-xs px-2 py-1.5 outline-none focus:border-cyan-500 font-mono min-h-[38px] sm:min-h-[34px]"
                             />
                           </td>
                           <td className="p-3.5 text-right tabular-nums text-zinc-300 font-bold">
@@ -3168,11 +3168,11 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
                               )
                             );
                           }}
-                          className={`px-3 py-1.5 text-[10px] font-bold uppercase transition-all cursor-pointer border min-h-[32px] inline-flex items-center justify-center ${
+                          className={`px-3.5 py-1.5 text-[10px] sm:text-xs font-bold uppercase transition-all cursor-pointer border min-h-[38px] inline-flex items-center justify-center ${
                             e.status === 'green'
-                              ? 'bg-emerald-500/30 text-emerald-300 border-emerald-500/50'
+                              ? 'bg-emerald-500/30 text-emerald-300 border-emerald-500/50 shadow-sm'
                               : e.status === 'red'
-                              ? 'bg-rose-500/30 text-rose-300 border-rose-500/50'
+                              ? 'bg-rose-500/30 text-rose-300 border-rose-500/50 shadow-sm'
                               : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-white'
                           }`}
                         >

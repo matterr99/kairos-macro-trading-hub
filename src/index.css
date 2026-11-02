@@ -47,7 +47,7 @@ body {
   background: #27272a;
 }
 
-/* 2. Safe Horizontal Scrolling for Tables (Mobile Only) */
+/* 2. Safe Horizontal Scrolling for Tables & Toolbars across all screen sizes */
 .table-touch-wrapper,
 .overflow-x-auto,
 .touch-scroll {
@@ -55,21 +55,12 @@ body {
   overflow-y: visible !important;
   -webkit-overflow-scrolling: touch !important;
   width: 100%;
-  touch-action: auto !important; 
+  scrollbar-width: thin;
 }
 
-/* Destroy the iOS scroll trap completely on iPad and desktop screens */
-@media (min-width: 768px) {
-  .table-touch-wrapper,
-  .overflow-x-auto,
-  .touch-scroll {
-    overflow-x: visible !important;
-    overflow-y: visible !important;
-    overflow: visible !important;
-    -webkit-overflow-scrolling: auto !important; /* Kills the zombie iOS hardware layer */
-    touch-action: pan-y !important; /* Forces vertical touch bubbling */
-    overscroll-behavior: auto !important;
-  }
+/* Ensure isolated table scrolling does not trap vertical scrolling */
+.table-touch-wrapper table {
+  width: 100%;
 }
 
 .no-scrollbar::-webkit-scrollbar {

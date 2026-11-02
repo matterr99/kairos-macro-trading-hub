@@ -354,26 +354,26 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
             </div>
 
             {/* Action Buttons */}
-            <div className="flex items-center gap-2 flex-wrap font-mono text-xs">
+            <div className="flex items-center gap-2 flex-wrap font-mono text-xs w-full md:w-auto">
               <button 
                 onClick={handlePrint}
-                className="px-3.5 py-1.5 text-[11px] uppercase tracking-wider bg-cyan-950/40 hover:bg-cyan-900/60 text-cyan-400 rounded-sm border border-cyan-800/80 transition cursor-pointer flex items-center gap-1.5 font-bold shadow-sm"
+                className="flex-1 sm:flex-initial px-3.5 py-2 text-[11px] sm:text-xs uppercase tracking-wider bg-cyan-950/40 hover:bg-cyan-900/60 text-cyan-400 rounded-sm border border-cyan-800/80 transition cursor-pointer flex items-center justify-center gap-1.5 font-bold shadow-sm min-h-[40px] sm:min-h-[36px]"
               >
                 <span>📄</span> {isEs ? 'Generar PDF' : 'Generate PDF'}
               </button>
               <button 
                 onClick={handleExportBackup}
-                className="px-3 py-1.5 text-[11px] uppercase tracking-wider bg-[#0c0c12] hover:bg-zinc-900 text-zinc-300 rounded-sm border border-zinc-800 transition cursor-pointer flex items-center gap-1.5"
+                className="flex-1 sm:flex-initial px-3.5 py-2 text-[11px] sm:text-xs uppercase tracking-wider bg-[#0c0c12] hover:bg-zinc-900 text-zinc-300 rounded-sm border border-zinc-800 transition cursor-pointer flex items-center justify-center gap-1.5 min-h-[40px] sm:min-h-[36px]"
               >
                 <span>📥</span> {isEs ? 'Exportar Backup' : 'Export Backup'}
               </button>
-              <label className="px-3 py-1.5 text-[11px] uppercase tracking-wider bg-[#0c0c12] hover:bg-zinc-900 text-zinc-300 rounded-sm border border-zinc-800 transition cursor-pointer flex items-center gap-1.5">
+              <label className="flex-1 sm:flex-initial px-3.5 py-2 text-[11px] sm:text-xs uppercase tracking-wider bg-[#0c0c12] hover:bg-zinc-900 text-zinc-300 rounded-sm border border-zinc-800 transition cursor-pointer flex items-center justify-center gap-1.5 min-h-[40px] sm:min-h-[36px]">
                 <span>📤</span> {isEs ? 'Cargar Backup' : 'Import Backup'}
                 <input type="file" accept=".json,application/json" className="hidden" onChange={handleImportBackup} />
               </label>
               <button 
                 onClick={handleReset}
-                className="px-3 py-1.5 text-[11px] uppercase tracking-wider bg-[#0c0c12] hover:bg-zinc-900 text-rose-400 rounded-sm border border-zinc-800 transition cursor-pointer flex items-center gap-1.5"
+                className="flex-1 sm:flex-initial px-3.5 py-2 text-[11px] sm:text-xs uppercase tracking-wider bg-[#0c0c12] hover:bg-zinc-900 text-rose-400 rounded-sm border border-zinc-800 transition cursor-pointer flex items-center justify-center gap-1.5 min-h-[40px] sm:min-h-[36px]"
               >
                 <span>🔄</span> {isEs ? 'Reiniciar' : 'Reset'}
               </button>
@@ -419,7 +419,7 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                   <button
                     onClick={handleSwapCurrencies}
                     title={isEs ? 'Invertir Par' : 'Invert Currency Pair'}
-                    className="px-2 py-1 bg-zinc-900 hover:bg-cyan-950/60 text-zinc-400 hover:text-cyan-400 border border-zinc-800 rounded-sm text-xs transition cursor-pointer self-center mt-2"
+                    className="w-10 h-10 min-w-[40px] min-h-[40px] bg-zinc-900 hover:bg-cyan-950/60 text-zinc-400 hover:text-cyan-400 border border-zinc-800 rounded-sm text-sm transition cursor-pointer flex items-center justify-center self-center mt-2 shadow-sm"
                   >
                     ⇄
                   </button>
@@ -569,11 +569,11 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                     <div className="space-y-3">
                       {baseEvents.map((evt) => (
                         <div key={evt.id} className="bg-[#040406] border border-zinc-800 rounded-sm p-3 space-y-2 relative">
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                             <select 
                               value={evt.type} 
                               onChange={(e) => updateBaseEvent(evt.id, { type: e.target.value })}
-                              className="flex-grow bg-[#020203] border border-zinc-800 text-[10px] p-1.5 rounded-sm text-zinc-300 focus:outline-none focus:border-cyan-500/50 cursor-pointer min-w-0 font-mono"
+                              className="w-full sm:flex-grow bg-[#020203] border border-zinc-800 text-[10px] sm:text-xs p-2 sm:p-1.5 rounded-sm text-zinc-300 focus:outline-none focus:border-cyan-500/50 cursor-pointer min-w-0 font-mono min-h-[38px] sm:min-h-[34px]"
                             >
                               <option value="none">-- {isEs ? 'SELECCIONAR EVENTO' : 'SELECT EVENT'} --</option>
                               <optgroup label={isEs ? "Bancos Centrales" : "Central Banks"} className="bg-[#020203]">
@@ -602,26 +602,28 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                               </optgroup>
                             </select>
 
-                            <select 
-                              value={evt.bias} 
-                              onChange={(e) => updateBaseEvent(evt.id, { bias: e.target.value as any })}
-                              className="w-36 shrink-0 bg-[#020203] border border-zinc-800 text-[10px] p-1.5 rounded-sm text-zinc-300 focus:outline-none focus:border-cyan-500/50 font-bold cursor-pointer font-mono"
-                            >
-                              <option value="none">-- {isEs ? 'SESGO' : 'BIAS'} --</option>
-                              <option value="very_bullish" className="text-emerald-400">🟢 {isEs ? 'MUY ALCISTA (+2)' : 'VERY BULLISH (+2)'}</option>
-                              <option value="bullish" className="text-yellow-400">🟡 {isEs ? 'ALCISTA (+1)' : 'BULLISH (+1)'}</option>
-                              <option value="bearish" className="text-orange-400">🟠 {isEs ? 'BAJISTA (-1)' : 'BEARISH (-1)'}</option>
-                              <option value="very_bearish" className="text-rose-400">🔴 {isEs ? 'MUY BAJISTA (-2)' : 'VERY BEARISH (-2)'}</option>
-                            </select>
+                            <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+                              <select 
+                                value={evt.bias} 
+                                onChange={(e) => updateBaseEvent(evt.id, { bias: e.target.value as any })}
+                                className="flex-1 sm:w-36 bg-[#020203] border border-zinc-800 text-[10px] sm:text-xs p-2 sm:p-1.5 rounded-sm text-zinc-300 focus:outline-none focus:border-cyan-500/50 font-bold cursor-pointer font-mono min-h-[38px] sm:min-h-[34px]"
+                              >
+                                <option value="none">-- {isEs ? 'SESGO' : 'BIAS'} --</option>
+                                <option value="very_bullish" className="text-emerald-400">🟢 {isEs ? 'MUY ALCISTA (+2)' : 'VERY BULLISH (+2)'}</option>
+                                <option value="bullish" className="text-yellow-400">🟡 {isEs ? 'ALCISTA (+1)' : 'BULLISH (+1)'}</option>
+                                <option value="bearish" className="text-orange-400">🟠 {isEs ? 'BAJISTA (-1)' : 'BEARISH (-1)'}</option>
+                                <option value="very_bearish" className="text-rose-400">🔴 {isEs ? 'MUY BAJISTA (-2)' : 'VERY BEARISH (-2)'}</option>
+                              </select>
 
-                            <button 
-                              type="button" 
-                              onClick={() => removeBaseEvent(evt.id)} 
-                              className="text-zinc-600 hover:text-rose-500 text-xs px-1 font-bold shrink-0 transition cursor-pointer"
-                              title="Delete"
-                            >
-                              ✕
-                            </button>
+                              <button 
+                                type="button" 
+                                onClick={() => removeBaseEvent(evt.id)} 
+                                className="text-zinc-500 hover:text-rose-400 text-sm w-9 h-9 sm:w-8 sm:h-8 flex items-center justify-center font-bold shrink-0 transition cursor-pointer border border-zinc-800 hover:border-rose-900/50"
+                                title="Delete"
+                              >
+                                ✕
+                              </button>
+                            </div>
                           </div>
 
                           <input 
@@ -629,7 +631,7 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                             value={evt.note} 
                             onChange={(e) => updateBaseEvent(evt.id, { note: e.target.value })}
                             placeholder={isEs ? "Objetivo de consenso, métricas real vs pronóstico..." : "Consensus targets, actual vs prior metrics..."}
-                            className={`w-full text-[10px] p-1.5 rounded-sm font-mono focus:outline-none ${
+                            className={`w-full text-[10px] sm:text-xs p-2 sm:p-1.5 rounded-sm font-mono focus:outline-none min-h-[36px] sm:min-h-[32px] ${
                               evt.type === 'Geopolitics' 
                                 ? 'bg-rose-950/20 border border-rose-900/60 text-rose-300 placeholder-rose-700/60 focus:border-rose-400' 
                                 : 'bg-[#020203] border border-zinc-800 text-zinc-300 focus:border-cyan-500/50'
@@ -658,11 +660,11 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                     <div className="space-y-3">
                       {quoteEvents.map((evt) => (
                         <div key={evt.id} className="bg-[#040406] border border-zinc-800 rounded-sm p-3 space-y-2 relative">
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                             <select 
                               value={evt.type} 
                               onChange={(e) => updateQuoteEvent(evt.id, { type: e.target.value })}
-                              className="flex-grow bg-[#020203] border border-zinc-800 text-[10px] p-1.5 rounded-sm text-zinc-300 focus:outline-none focus:border-cyan-500/50 cursor-pointer min-w-0 font-mono"
+                              className="w-full sm:flex-grow bg-[#020203] border border-zinc-800 text-[10px] sm:text-xs p-2 sm:p-1.5 rounded-sm text-zinc-300 focus:outline-none focus:border-cyan-500/50 cursor-pointer min-w-0 font-mono min-h-[38px] sm:min-h-[34px]"
                             >
                               <option value="none">-- {isEs ? 'SELECCIONAR EVENTO' : 'SELECT EVENT'} --</option>
                               <optgroup label={isEs ? "Bancos Centrales" : "Central Banks"} className="bg-[#020203]">
@@ -691,26 +693,28 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                               </optgroup>
                             </select>
 
-                            <select 
-                              value={evt.bias} 
-                              onChange={(e) => updateQuoteEvent(evt.id, { bias: e.target.value as any })}
-                              className="w-36 shrink-0 bg-[#020203] border border-zinc-800 text-[10px] p-1.5 rounded-sm text-zinc-300 focus:outline-none focus:border-cyan-500/50 font-bold cursor-pointer font-mono"
-                            >
-                              <option value="none">-- {isEs ? 'SESGO' : 'BIAS'} --</option>
-                              <option value="very_bullish" className="text-emerald-400">🟢 {isEs ? 'MUY ALCISTA (+2)' : 'VERY BULLISH (+2)'}</option>
-                              <option value="bullish" className="text-yellow-400">🟡 {isEs ? 'ALCISTA (+1)' : 'BULLISH (+1)'}</option>
-                              <option value="bearish" className="text-orange-400">🟠 {isEs ? 'BAJISTA (-1)' : 'BEARISH (-1)'}</option>
-                              <option value="very_bearish" className="text-rose-400">🔴 {isEs ? 'MUY BAJISTA (-2)' : 'VERY BEARISH (-2)'}</option>
-                            </select>
+                            <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+                              <select 
+                                value={evt.bias} 
+                                onChange={(e) => updateQuoteEvent(evt.id, { bias: e.target.value as any })}
+                                className="flex-1 sm:w-36 bg-[#020203] border border-zinc-800 text-[10px] sm:text-xs p-2 sm:p-1.5 rounded-sm text-zinc-300 focus:outline-none focus:border-cyan-500/50 font-bold cursor-pointer font-mono min-h-[38px] sm:min-h-[34px]"
+                              >
+                                <option value="none">-- {isEs ? 'SESGO' : 'BIAS'} --</option>
+                                <option value="very_bullish" className="text-emerald-400">🟢 {isEs ? 'MUY ALCISTA (+2)' : 'VERY BULLISH (+2)'}</option>
+                                <option value="bullish" className="text-yellow-400">🟡 {isEs ? 'ALCISTA (+1)' : 'BULLISH (+1)'}</option>
+                                <option value="bearish" className="text-orange-400">🟠 {isEs ? 'BAJISTA (-1)' : 'BEARISH (-1)'}</option>
+                                <option value="very_bearish" className="text-rose-400">🔴 {isEs ? 'MUY BAJISTA (-2)' : 'VERY BEARISH (-2)'}</option>
+                              </select>
 
-                            <button 
-                              type="button" 
-                              onClick={() => removeQuoteEvent(evt.id)} 
-                              className="text-zinc-600 hover:text-rose-500 text-xs px-1 font-bold shrink-0 transition cursor-pointer"
-                              title="Delete"
-                            >
-                              ✕
-                            </button>
+                              <button 
+                                type="button" 
+                                onClick={() => removeQuoteEvent(evt.id)} 
+                                className="text-zinc-500 hover:text-rose-400 text-sm w-9 h-9 sm:w-8 sm:h-8 flex items-center justify-center font-bold shrink-0 transition cursor-pointer border border-zinc-800 hover:border-rose-900/50"
+                                title="Delete"
+                              >
+                                ✕
+                              </button>
+                            </div>
                           </div>
 
                           <input 
@@ -718,7 +722,7 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                             value={evt.note} 
                             onChange={(e) => updateQuoteEvent(evt.id, { note: e.target.value })}
                             placeholder={isEs ? "Objetivo de consenso, métricas real vs pronóstico..." : "Consensus targets, actual vs prior metrics..."}
-                            className={`w-full text-[10px] p-1.5 rounded-sm font-mono focus:outline-none ${
+                            className={`w-full text-[10px] sm:text-xs p-2 sm:p-1.5 rounded-sm font-mono focus:outline-none min-h-[36px] sm:min-h-[32px] ${
                               evt.type === 'Geopolitics' 
                                 ? 'bg-rose-950/20 border border-rose-900/60 text-rose-300 placeholder-rose-700/60 focus:border-rose-400' 
                                 : 'bg-[#020203] border border-zinc-800 text-zinc-300 focus:border-cyan-500/50'
@@ -811,7 +815,7 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                     <div className="flex gap-1.5 w-full sm:w-auto shrink-0 justify-end">
                       <button 
                         onClick={() => togglePillar('p2', 'buy')} 
-                        className={`text-center min-w-[76px] border text-[10px] px-2 py-1.5 rounded-sm font-bold transition cursor-pointer ${
+                        className={`flex-1 sm:flex-initial text-center sm:min-w-[76px] border text-[11px] sm:text-[10px] px-3 py-2 sm:py-1.5 rounded-sm font-bold transition cursor-pointer min-h-[38px] sm:min-h-[34px] flex items-center justify-center ${
                           pillars.p2 === 'buy' 
                             ? 'bg-cyan-950/40 text-cyan-300 border-cyan-500 shadow-[0_0_12px_rgba(6,182,212,0.25)]' 
                             : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-cyan-400'
@@ -821,7 +825,7 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                       </button>
                       <button 
                         onClick={() => togglePillar('p2', 'sell')} 
-                        className={`text-center min-w-[76px] border text-[10px] px-2 py-1.5 rounded-sm font-bold transition cursor-pointer ${
+                        className={`flex-1 sm:flex-initial text-center sm:min-w-[76px] border text-[11px] sm:text-[10px] px-3 py-2 sm:py-1.5 rounded-sm font-bold transition cursor-pointer min-h-[38px] sm:min-h-[34px] flex items-center justify-center ${
                           pillars.p2 === 'sell' 
                             ? 'bg-rose-950/40 text-rose-300 border-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.25)]' 
                             : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-rose-400'
@@ -831,7 +835,7 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                       </button>
                       <button 
                         onClick={() => togglePillar('p2', 'neutral')} 
-                        className={`text-center min-w-[56px] border text-[10px] px-2 py-1.5 rounded-sm font-bold transition cursor-pointer ${
+                        className={`flex-1 sm:flex-initial text-center sm:min-w-[56px] border text-[11px] sm:text-[10px] px-2.5 py-2 sm:py-1.5 rounded-sm font-bold transition cursor-pointer min-h-[38px] sm:min-h-[34px] flex items-center justify-center ${
                           pillars.p2 === 'neutral' 
                             ? 'bg-[#0c0c12] text-zinc-300 border-zinc-700' 
                             : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300'
@@ -856,7 +860,7 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                     <div className="flex gap-1.5 w-full sm:w-auto shrink-0 justify-end">
                       <button 
                         onClick={() => togglePillar('p3', 'buy')} 
-                        className={`text-center min-w-[76px] border text-[10px] px-2 py-1.5 rounded-sm font-bold transition cursor-pointer ${
+                        className={`flex-1 sm:flex-initial text-center sm:min-w-[76px] border text-[11px] sm:text-[10px] px-3 py-2 sm:py-1.5 rounded-sm font-bold transition cursor-pointer min-h-[38px] sm:min-h-[34px] flex items-center justify-center ${
                           pillars.p3 === 'buy' 
                             ? 'bg-cyan-950/40 text-cyan-300 border-cyan-500 shadow-[0_0_12px_rgba(6,182,212,0.25)]' 
                             : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-cyan-400'
@@ -866,7 +870,7 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                       </button>
                       <button 
                         onClick={() => togglePillar('p3', 'sell')} 
-                        className={`text-center min-w-[76px] border text-[10px] px-2 py-1.5 rounded-sm font-bold transition cursor-pointer ${
+                        className={`flex-1 sm:flex-initial text-center sm:min-w-[76px] border text-[11px] sm:text-[10px] px-3 py-2 sm:py-1.5 rounded-sm font-bold transition cursor-pointer min-h-[38px] sm:min-h-[34px] flex items-center justify-center ${
                           pillars.p3 === 'sell' 
                             ? 'bg-rose-950/40 text-rose-300 border-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.25)]' 
                             : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-rose-400'
@@ -876,7 +880,7 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                       </button>
                       <button 
                         onClick={() => togglePillar('p3', 'neutral')} 
-                        className={`text-center min-w-[56px] border text-[10px] px-2 py-1.5 rounded-sm font-bold transition cursor-pointer ${
+                        className={`flex-1 sm:flex-initial text-center sm:min-w-[56px] border text-[11px] sm:text-[10px] px-2.5 py-2 sm:py-1.5 rounded-sm font-bold transition cursor-pointer min-h-[38px] sm:min-h-[34px] flex items-center justify-center ${
                           pillars.p3 === 'neutral' 
                             ? 'bg-[#0c0c12] text-zinc-300 border-zinc-700' 
                             : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300'
@@ -901,7 +905,7 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                     <div className="flex gap-1.5 w-full sm:w-auto shrink-0 justify-end">
                       <button 
                         onClick={() => togglePillar('p4', 'buy')} 
-                        className={`text-center min-w-[76px] border text-[10px] px-2 py-1.5 rounded-sm font-bold transition cursor-pointer ${
+                        className={`flex-1 sm:flex-initial text-center sm:min-w-[76px] border text-[11px] sm:text-[10px] px-3 py-2 sm:py-1.5 rounded-sm font-bold transition cursor-pointer min-h-[38px] sm:min-h-[34px] flex items-center justify-center ${
                           pillars.p4 === 'buy' 
                             ? 'bg-cyan-950/40 text-cyan-300 border-cyan-500 shadow-[0_0_12px_rgba(6,182,212,0.25)]' 
                             : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-cyan-400'
@@ -911,7 +915,7 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                       </button>
                       <button 
                         onClick={() => togglePillar('p4', 'sell')} 
-                        className={`text-center min-w-[76px] border text-[10px] px-2 py-1.5 rounded-sm font-bold transition cursor-pointer ${
+                        className={`flex-1 sm:flex-initial text-center sm:min-w-[76px] border text-[11px] sm:text-[10px] px-3 py-2 sm:py-1.5 rounded-sm font-bold transition cursor-pointer min-h-[38px] sm:min-h-[34px] flex items-center justify-center ${
                           pillars.p4 === 'sell' 
                             ? 'bg-rose-950/40 text-rose-300 border-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.25)]' 
                             : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-rose-400'
@@ -921,7 +925,7 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                       </button>
                       <button 
                         onClick={() => togglePillar('p4', 'neutral')} 
-                        className={`text-center min-w-[56px] border text-[10px] px-2 py-1.5 rounded-sm font-bold transition cursor-pointer ${
+                        className={`flex-1 sm:flex-initial text-center sm:min-w-[56px] border text-[11px] sm:text-[10px] px-2.5 py-2 sm:py-1.5 rounded-sm font-bold transition cursor-pointer min-h-[38px] sm:min-h-[34px] flex items-center justify-center ${
                           pillars.p4 === 'neutral' 
                             ? 'bg-[#0c0c12] text-zinc-300 border-zinc-700' 
                             : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300'
@@ -943,7 +947,7 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                         value={p4Oil} 
                         onChange={(e) => setP4Oil(e.target.value)} 
                         placeholder={isEs ? "ej. Rally $82/barril" : "e.g. Rallying $82/bbl"}
-                        className="w-full bg-[#040406] border border-zinc-800 rounded-sm p-1.5 text-xs focus:outline-none focus:border-cyan-500/60 text-white font-mono"
+                        className="w-full bg-[#040406] border border-zinc-800 rounded-sm p-2 sm:p-1.5 text-xs focus:outline-none focus:border-cyan-500/60 text-white font-mono min-h-[36px] sm:min-h-[32px]"
                       />
                     </div>
                     <div>
@@ -955,7 +959,7 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                         value={p4Gold} 
                         onChange={(e) => setP4Gold(e.target.value)} 
                         placeholder={isEs ? "ej. Flujo refugio $2,680" : "e.g. Safe-haven bid $2,680"}
-                        className="w-full bg-[#040406] border border-zinc-800 rounded-sm p-1.5 text-xs focus:outline-none focus:border-cyan-500/60 text-white font-mono"
+                        className="w-full bg-[#040406] border border-zinc-800 rounded-sm p-2 sm:p-1.5 text-xs focus:outline-none focus:border-cyan-500/60 text-white font-mono min-h-[36px] sm:min-h-[32px]"
                       />
                     </div>
                     <div className="sm:col-span-2">
@@ -967,7 +971,7 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                         value={p4Notes} 
                         onChange={(e) => setP4Notes(e.target.value)} 
                         placeholder={isEs ? "ej. Rally en bolsas = Risk-ON que favorece divisas de alto beta..." : "e.g. Equity rally = Risk-ON environment favoring high-beta..."}
-                        className="w-full bg-[#040406] border border-zinc-800 rounded-sm p-1.5 text-xs focus:outline-none focus:border-cyan-500/60 text-white font-mono"
+                        className="w-full bg-[#040406] border border-zinc-800 rounded-sm p-2 sm:p-1.5 text-xs focus:outline-none focus:border-cyan-500/60 text-white font-mono min-h-[36px] sm:min-h-[32px]"
                       />
                     </div>
                   </div>
@@ -986,7 +990,7 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                     <div className="flex gap-1.5 w-full sm:w-auto shrink-0 justify-end">
                       <button 
                         onClick={() => togglePillar('p5', 'buy')} 
-                        className={`text-center min-w-[76px] border text-[10px] px-2 py-1.5 rounded-sm font-bold transition cursor-pointer ${
+                        className={`flex-1 sm:flex-initial text-center sm:min-w-[76px] border text-[11px] sm:text-[10px] px-3 py-2 sm:py-1.5 rounded-sm font-bold transition cursor-pointer min-h-[38px] sm:min-h-[34px] flex items-center justify-center ${
                           pillars.p5 === 'buy' 
                             ? 'bg-cyan-950/40 text-cyan-300 border-cyan-500 shadow-[0_0_12px_rgba(6,182,212,0.25)]' 
                             : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-cyan-400'
@@ -996,7 +1000,7 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                       </button>
                       <button 
                         onClick={() => togglePillar('p5', 'sell')} 
-                        className={`text-center min-w-[76px] border text-[10px] px-2 py-1.5 rounded-sm font-bold transition cursor-pointer ${
+                        className={`flex-1 sm:flex-initial text-center sm:min-w-[76px] border text-[11px] sm:text-[10px] px-3 py-2 sm:py-1.5 rounded-sm font-bold transition cursor-pointer min-h-[38px] sm:min-h-[34px] flex items-center justify-center ${
                           pillars.p5 === 'sell' 
                             ? 'bg-rose-950/40 text-rose-300 border-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.25)]' 
                             : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-rose-400'
@@ -1006,7 +1010,7 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                       </button>
                       <button 
                         onClick={() => togglePillar('p5', 'neutral')} 
-                        className={`text-center min-w-[56px] border text-[10px] px-2 py-1.5 rounded-sm font-bold transition cursor-pointer ${
+                        className={`flex-1 sm:flex-initial text-center sm:min-w-[56px] border text-[11px] sm:text-[10px] px-2.5 py-2 sm:py-1.5 rounded-sm font-bold transition cursor-pointer min-h-[38px] sm:min-h-[34px] flex items-center justify-center ${
                           pillars.p5 === 'neutral' 
                             ? 'bg-[#0c0c12] text-zinc-300 border-zinc-700' 
                             : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300'

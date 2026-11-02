@@ -1396,11 +1396,11 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
             </p>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap font-mono text-xs">
+          <div className="flex items-center gap-2 flex-wrap font-mono text-xs w-full md:w-auto">
             <button
               type="button"
               onClick={lockCurrentAsPreviousWeek}
-              className="px-3 py-1.5 text-[10px] uppercase tracking-wider bg-amber-950/40 hover:bg-amber-900/60 text-amber-300 rounded-sm border border-amber-600/60 transition font-bold cursor-pointer min-h-[36px] flex items-center gap-1.5"
+              className="flex-1 sm:flex-initial px-3.5 py-2 text-[10px] sm:text-xs uppercase tracking-wider bg-amber-950/40 hover:bg-amber-900/60 text-amber-300 rounded-sm border border-amber-600/60 transition font-bold cursor-pointer min-h-[40px] sm:min-h-[36px] flex items-center justify-center gap-1.5 shadow-sm"
               title={isEs ? 'Congelar semana actual como base previa' : 'Lock current week as baseline factors'}
             >
               <span>📌</span> {isEs ? 'Fijar como Semana Previa' : 'Lock as Prior Week'}
@@ -1409,7 +1409,7 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
             <button
               type="button"
               onClick={exportStateJSON}
-              className="px-3 py-1.5 text-[10px] uppercase tracking-wider bg-cyan-950/40 hover:bg-cyan-900/60 text-cyan-400 rounded-sm border border-cyan-800/80 transition cursor-pointer min-h-[36px] flex items-center gap-1.5 font-bold"
+              className="flex-1 sm:flex-initial px-3.5 py-2 text-[10px] sm:text-xs uppercase tracking-wider bg-cyan-950/40 hover:bg-cyan-900/60 text-cyan-400 rounded-sm border border-cyan-800/80 transition cursor-pointer min-h-[40px] sm:min-h-[36px] flex items-center justify-center gap-1.5 font-bold shadow-sm"
             >
               <span>📥</span> {isEs ? 'Exportar Backup' : 'Export JSON'}
             </button>
@@ -1417,7 +1417,7 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
             <button
               type="button"
               onClick={() => jsonInputRef.current?.click()}
-              className="px-3 py-1.5 text-[10px] uppercase tracking-wider bg-[#0c0c12] hover:bg-zinc-900 text-zinc-300 rounded-sm border border-zinc-800 transition cursor-pointer min-h-[36px] flex items-center gap-1.5"
+              className="flex-1 sm:flex-initial px-3.5 py-2 text-[10px] sm:text-xs uppercase tracking-wider bg-[#0c0c12] hover:bg-zinc-900 text-zinc-300 rounded-sm border border-zinc-800 transition cursor-pointer min-h-[40px] sm:min-h-[36px] flex items-center justify-center gap-1.5"
             >
               <span>📤</span> {isEs ? 'Cargar Backup' : 'Load JSON'}
             </button>
@@ -1432,7 +1432,7 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
             <button
               type="button"
               onClick={resetAllScores}
-              className="px-3 py-1.5 text-[10px] uppercase tracking-wider bg-[#0c0c12] hover:bg-zinc-900 text-rose-400 rounded-sm border border-zinc-800 transition cursor-pointer min-h-[36px] flex items-center gap-1.5"
+              className="flex-1 sm:flex-initial px-3.5 py-2 text-[10px] sm:text-xs uppercase tracking-wider bg-[#0c0c12] hover:bg-zinc-900 text-rose-400 rounded-sm border border-zinc-800 transition cursor-pointer min-h-[40px] sm:min-h-[36px] flex items-center justify-center gap-1.5"
             >
               <span>🗑️</span> {isEs ? 'Reiniciar' : 'Reset'}
             </button>
@@ -1440,7 +1440,7 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
             <button
               type="button"
               onClick={() => setIsReportModalOpen(true)}
-              className="px-3.5 py-1.5 text-[10px] uppercase tracking-wider bg-cyan-500 hover:bg-cyan-400 text-black rounded-sm font-black transition cursor-pointer min-h-[36px] flex items-center gap-1.5 shadow-[0_0_12px_rgba(6,182,212,0.3)]"
+              className="flex-1 sm:flex-initial px-4 py-2 text-[10px] sm:text-xs uppercase tracking-wider bg-cyan-500 hover:bg-cyan-400 text-black rounded-sm font-black transition cursor-pointer min-h-[40px] sm:min-h-[36px] flex items-center justify-center gap-1.5 shadow-[0_0_12px_rgba(6,182,212,0.3)]"
             >
               <span>📄</span> {isEs ? 'Exportar PDF →' : 'Export PDF →'}
             </button>
@@ -1848,7 +1848,7 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
                   key={c}
                   type="button"
                   onClick={() => setActiveCurrencyFilter(c)}
-                  className={`px-2.5 py-1.5 font-bold cursor-pointer transition text-xs min-h-[32px] flex items-center justify-center ${
+                  className={`px-3 py-1.5 font-bold cursor-pointer transition text-[11px] sm:text-xs min-h-[38px] flex items-center justify-center ${
                     isSelected
                       ? 'bg-cyan-500 text-black shadow-[0_0_10px_rgba(6,182,212,0.4)]'
                       : 'bg-zinc-900 border border-zinc-800 text-zinc-300 hover:bg-zinc-800 hover:border-zinc-700'

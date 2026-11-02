@@ -51,7 +51,7 @@ export const CurrencyIndicatorChart: React.FC<CurrencyIndicatorChartProps> = ({
           return (
             <div key={ind.name} className="flex flex-col space-y-1 bg-[#121318] border border-zinc-800/70 p-3 hover:border-zinc-700 transition">
               <div className="flex justify-between items-center text-xs">
-                <span className="text-zinc-200 font-bold truncate max-w-[210px]" title={ind.name}>
+                <span className="text-zinc-200 font-bold truncate flex-1 min-w-0 pr-2" title={ind.name}>
                   {ind.name}
                 </span>
                 <div className="flex items-center gap-2 shrink-0">

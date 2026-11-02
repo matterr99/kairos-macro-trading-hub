@@ -125,7 +125,7 @@ export const ValuationRankingChart: React.FC<ValuationRankingChartProps> = ({
             <button
               key={curr}
               onClick={() => onSelectCurrency && onSelectCurrency(curr)}
-              className={`w-full py-1.5 text-center text-[10px] sm:text-xs font-mono font-bold border transition-colors cursor-pointer ${
+              className={`w-full py-1.5 min-h-[38px] flex items-center justify-center text-center text-[10px] sm:text-xs font-mono font-bold border transition-colors cursor-pointer ${
                 isSelected
                   ? 'bg-cyan-500 text-black border-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.4)]'
                   : 'bg-[#090b12] text-zinc-300 border-zinc-800 hover:border-cyan-500/50 hover:text-white'

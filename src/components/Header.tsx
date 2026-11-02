@@ -163,7 +163,7 @@ export function Header({
             {/* Mobile Theme Toggle */}
             <button
               onClick={onToggleTheme}
-              className="flex items-center justify-center min-w-[38px] min-h-[38px] font-mono text-xs border border-zinc-700/60 bg-[#0c0d11] text-zinc-300 hover:text-white transition cursor-pointer"
+              className="flex items-center justify-center min-w-[42px] min-h-[42px] font-mono text-xs border border-zinc-700/60 bg-[#0c0d11] text-zinc-300 hover:text-white transition cursor-pointer"
               title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
               aria-label="Toggle theme"
             >
@@ -173,7 +173,7 @@ export function Header({
             {/* Mobile Language Toggle */}
             <button
               onClick={onToggleLanguage}
-              className="flex items-center gap-1 px-2.5 min-h-[38px] font-mono text-xs font-bold uppercase tracking-wider border border-cyan-500/40 bg-[#0c0d11] text-cyan-300 hover:bg-cyan-950/40 transition cursor-pointer"
+              className="flex items-center gap-1 px-3 min-h-[42px] font-mono text-xs font-bold uppercase tracking-wider border border-cyan-500/40 bg-[#0c0d11] text-cyan-300 hover:bg-cyan-950/40 transition cursor-pointer"
               aria-label="Toggle language"
             >
               <span>🌐</span>
@@ -183,7 +183,7 @@ export function Header({
             {/* Mobile Nav Hamburger */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="text-zinc-400 hover:text-white p-2 min-w-[38px] min-h-[38px] flex items-center justify-center hover:bg-zinc-800/60 transition-colors cursor-pointer"
+              className="text-zinc-400 hover:text-white p-2 min-w-[42px] min-h-[42px] flex items-center justify-center hover:bg-zinc-800/60 transition-colors cursor-pointer border border-zinc-800/60"
               aria-label="Toggle navigation menu"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

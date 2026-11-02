@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { NavigationTab, ToolSubTab, ResearchArticle, Language } from '../types';
 import { RESEARCH_ARTICLES } from '../data/macroData';
 import { RESEARCH_ARTICLES_ES, TRANSLATIONS } from '../locales/translations';
@@ -10,22 +9,9 @@ interface ConsoleViewProps {
 }
 
 export function ConsoleView({ onSelectTab, onOpenArticle, language = 'en' }: ConsoleViewProps) {
-  const [submitted, setSubmitted] = useState(false);
-  const [formData, setFormData] = useState({
-    entity: '',
-    email: '',
-    sector: language === 'es' ? 'Estrategia Macro / Divisas' : 'Macro Strategy / FX',
-    details: ''
-  });
-
   const t = TRANSLATIONS[language];
   const articlesSource = language === 'es' ? RESEARCH_ARTICLES_ES : RESEARCH_ARTICLES;
   const featuredArticle = articlesSource.find((a) => a.featured) || articlesSource[0];
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitted(true);
-  };
 
   const scrollToNext = () => {
     const nextSec = document.getElementById('philosophy-section');
@@ -354,111 +340,6 @@ export function ConsoleView({ onSelectTab, onOpenArticle, language = 'en' }: Con
                 <span className="group-hover:translate-x-2 transition-transform">&rarr;</span>
               </div>
             </div>
-          </div>
-
-        </div>
-      </section>
-
-      {/* SECTION 04: INSTITUTIONAL CONSULTATION FORM */}
-      <section className="w-full py-16 sm:py-24 lg:py-28 bg-[#040406] border-b border-zinc-800/40 relative">
-        <div className="max-w-4xl 2xl:max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 space-y-8 sm:space-y-10">
-          
-          <div className="text-center space-y-2 pb-6 border-b border-zinc-800/40 font-mono">
-            <span className="text-cyan-400 text-xs font-bold uppercase tracking-wider block">
-              {t.console.consultationBadge}
-            </span>
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white uppercase tracking-tight">
-              {t.console.consultationTitle}
-            </h2>
-            <p className="text-xs sm:text-sm text-zinc-400 font-sans font-light">
-              {t.console.consultationSubtitle}
-            </p>
-          </div>
-
-          <div className="macro-card p-6 sm:p-10 lg:p-12">
-            {submitted ? (
-              <div className="text-center py-10 sm:py-14 space-y-4 font-mono">
-                <div className="w-14 h-14 mx-auto bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-2xl shadow-lg">
-                  ✓
-                </div>
-                <h3 className="text-base sm:text-lg font-bold text-white uppercase">
-                  {language === 'es' ? 'Solicitud Transmitida con Éxito' : 'Request Successfully Transmitted'}
-                </h3>
-                <p className="text-xs sm:text-sm text-zinc-400 font-sans max-w-md mx-auto">
-                  {language === 'es'
-                    ? 'Nuestro equipo de estrategia macroeconómica revisará tu consulta institucional y responderá a la brevedad.'
-                    : 'Our macroeconomic strategy desk will review your mandate requirements and respond via authenticated channels.'}
-                </p>
-              </div>
-            ) : (
-              <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6 font-mono text-xs">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
-                  <div className="space-y-2">
-                    <label className="text-zinc-400 uppercase tracking-wider block font-semibold">
-                      {t.console.fieldEntity} *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.entity}
-                      onChange={(e) => setFormData({ ...formData, entity: e.target.value })}
-                      placeholder="e.g. Apex Sovereign Macro LLC"
-                      className="w-full bg-[#10121a] border border-zinc-700/60 focus:border-cyan-500 text-white p-3.5 outline-none font-sans text-sm sm:text-xs transition-colors shadow-inner min-h-[44px]"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-zinc-400 uppercase tracking-wider block font-semibold">
-                      {t.console.fieldEmail} *
-                    </label>
-                    <input
-                      type="email"
-                      required
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      placeholder="desk@institution.com"
-                      className="w-full bg-[#10121a] border border-zinc-700/60 focus:border-cyan-500 text-white p-3.5 outline-none font-sans text-sm sm:text-xs transition-colors shadow-inner min-h-[44px]"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-zinc-400 uppercase tracking-wider block font-semibold">
-                    {t.console.fieldSector}
-                  </label>
-                  <select
-                    value={formData.sector}
-                    onChange={(e) => setFormData({ ...formData, sector: e.target.value })}
-                    className="w-full bg-[#10121a] border border-zinc-700/60 focus:border-cyan-500 text-white p-3.5 outline-none font-mono text-sm sm:text-xs cursor-pointer transition-colors shadow-inner min-h-[44px]"
-                  >
-                    <option>{language === 'es' ? 'Estrategia Macro / Divisas' : 'Macro Strategy / FX'}</option>
-                    <option>{language === 'es' ? 'Renta Fija y Tasas Soberanas' : 'Fixed Income & Sovereign Rates'}</option>
-                    <option>{language === 'es' ? 'Asignación de Fondos y Liquidez' : 'Hedge Fund & Liquidity Allocation'}</option>
-                    <option>{language === 'es' ? 'Prop Trading Cuantitativo' : 'Proprietary Quantitative Trading'}</option>
-                  </select>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-zinc-400 uppercase tracking-wider block font-semibold">
-                    {t.console.fieldDetails}
-                  </label>
-                  <textarea
-                    rows={4}
-                    value={formData.details}
-                    onChange={(e) => setFormData({ ...formData, details: e.target.value })}
-                    placeholder={language === 'es' ? 'Describe el mandato o modelo macro de tu interés...' : 'Specify mandate focus, cross-asset coverage, or bespoke model requests...'}
-                    className="w-full bg-[#10121a] border border-zinc-700/60 focus:border-cyan-500 text-white p-3.5 outline-none font-sans text-sm sm:text-xs transition-colors shadow-inner"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full bg-cyan-500 hover:bg-cyan-400 text-black py-4 font-bold uppercase tracking-wider transition shadow-[0_4px_20px_rgba(6,182,212,0.4)] hover:shadow-[0_6px_28px_rgba(6,182,212,0.6)] cursor-pointer min-h-[48px] flex items-center justify-center text-xs sm:text-sm"
-                >
-                  {t.console.btnSubmit}
-                </button>
-              </form>
-            )}
           </div>
 
         </div>
