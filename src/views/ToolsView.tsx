@@ -810,10 +810,11 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
     return null;
   };
 
-  const findIndicatorIndex = (targetCurr: string, rawEvent: string, indList: MacroIndicator[]): number => {
+  const findIndicatorIndex = (targetCurr: string, rawEvent: string, indList: MacroIndicator[], rawCountryOrCur: string = ''): number => {
     if (!indList || !indList.length) return -1;
     const clean = rawEvent.toLowerCase().trim();
-    const ev = rawEvent.toLowerCase();
+    const ev = clean;
+    const ctry = (rawCountryOrCur || '').toLowerCase().trim();
 
     // Exclude non-indicator calendar noise (speeches, debt auctions, minutes, summits, trade balance, CFTC positions)
     if (/\b(speaks|speech|discurso|habla|auction|subasta|minutes|actas|summit|statement|press conference|monetary policy statement|meeting|reunion|bill auction|bond auction|gilt auction|oat auction|btf auction|jgb auction|bobl auction|crude oil|gasoline|refinery|heating oil|rig count|mortgage|m4 money|m3 money|m2 money|net lending|borrowing|budget balance|car registration|passenger cars|vehicle sales|redbook|commodity prices|milk auction|globaldairytrade|terms of trade|foreign reserves|foreign bonds|foreign investments|cftc|speculative|trade balance|balanza comercial)\b/i.test(ev)) {
@@ -826,41 +827,100 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
 
       // USD Indicators (9 slots)
       if (targetCurr === "USD") {
-        if (iname === "ism mfg pmi" && clean.includes("ism manufacturing pmi")) return i;
-        if (iname === "ism services pmi" && (clean.includes("ism services") || clean.includes("ism non-manufacturing"))) return i;
-        if (iname === "cpi mom" && (clean === "cpi (mom)" || clean.startsWith("cpi (mom)") || clean.includes("consumer price index (mom)"))) return i;
-        if (iname === "unemployment rate" && (clean === "unemployment rate" || clean.startsWith("unemployment rate ("))) return i;
-        if (iname === "nfp" && (clean.includes("nonfarm payrolls") || clean.includes("non-farm payrolls") || clean.includes("nóminas no agrícolas") || clean.includes("nominas no agricolas"))) return i;
-        if (iname === "retail sales mom" && (clean === "retail sales (mom)" || clean.startsWith("retail sales (mom)") || clean.includes("ventas minoristas (mom)"))) return i;
-        if (iname === "cb consumer confidence" && clean.includes("cb consumer confidence")) return i;
-        if (iname === "nfib small business index" && (clean.includes("nfib small business") || clean.includes("nfib"))) return i;
-        if (iname === "atlanta fed gdpnow" && clean.includes("atlanta fed gdpnow")) return i;
+        if (iname === "ism mfg pmi") {
+          if ((clean.includes("ism manufacturing pmi") || (clean.includes("ism") && clean.includes("manufacturing") && clean.includes("pmi"))) &&
+              !clean.includes("employment") && !clean.includes("orders") && !clean.includes("prices") && !clean.includes("inventories")) return i;
+        }
+        if (iname === "ism services pmi") {
+          if ((clean.includes("ism services") || clean.includes("ism non-manufacturing")) &&
+              !clean.includes("employment") && !clean.includes("orders") && !clean.includes("prices")) return i;
+        }
+        if (iname === "cpi mom") {
+          if (!clean.includes("core") && !clean.includes("yoy") && (clean === "cpi (mom)" || clean.startsWith("cpi (mom)") || clean.includes("consumer price index (mom)"))) return i;
+        }
+        if (iname === "unemployment rate") {
+          if (!clean.includes("u6") && !clean.includes("claims") && (clean === "unemployment rate" || clean.startsWith("unemployment rate ("))) return i;
+        }
+        if (iname === "nfp") {
+          if (!clean.includes("adp") && !clean.includes("private") && !clean.includes("manufacturing") &&
+              (clean.includes("nonfarm payrolls") || clean.includes("non-farm payrolls") || clean.includes("non farm payrolls") || clean.includes("nóminas no agrícolas") || clean.includes("nominas no agricolas"))) return i;
+        }
+        if (iname === "retail sales mom") {
+          if (!clean.includes("core") && !clean.includes("ex") && !clean.includes("control") && !clean.includes("yoy") &&
+              (clean === "retail sales (mom)" || clean.startsWith("retail sales (mom)") || clean.includes("ventas minoristas (mom)"))) return i;
+        }
+        if (iname === "cb consumer confidence") {
+          if (clean.includes("cb consumer confidence") || clean.includes("conference board consumer confidence")) return i;
+        }
+        if (iname === "nfib small business index") {
+          if (clean.includes("nfib small business") || clean.includes("nfib")) return i;
+        }
+        if (iname === "atlanta fed gdpnow") {
+          if (clean.includes("atlanta fed gdpnow") || clean.includes("gdpnow")) return i;
+        }
       }
 
-      // EUR Indicators (9 slots: EU & DE)
+      // EUR Indicators (9 slots: Eurozone & Germany)
       if (targetCurr === "EUR") {
-        if (iname === "hcob mfg pmi" && (clean.includes("manufacturing pmi") || clean.includes("hcob eurozone manufacturing"))) return i;
-        if (iname === "hcob services pmi" && (clean.includes("services pmi") || clean.includes("hcob eurozone services"))) return i;
-        if (iname === "cpi mom" && (clean === "cpi (mom)" || clean.startsWith("cpi (mom)") || clean.includes("core cpi (mom)"))) return i;
-        if (iname === "unemployment rate" && (clean === "unemployment rate" || clean.startsWith("unemployment rate ("))) return i;
-        if (iname === "germany unemp change" && clean.includes("unemployment change")) return i;
-        if (iname === "retail sales mom" && (clean.includes("retail sales (mom)") || clean.includes("german retail sales (mom)"))) return i;
-        if (iname === "consumer confidence" && (clean === "consumer confidence" || clean.startsWith("consumer confidence ("))) return i;
-        if (iname === "ifo business climate" && clean.includes("ifo business climate")) return i;
-        if (iname === "industrial production mom" && clean.includes("industrial production (mom)")) return i;
+        const isEurozoneWide = clean.includes("eurozone") || clean.includes("euro zone") || clean.includes("zona euro") || clean.includes("ea") || clean.includes("emu") || ctry === 'eu' || ctry === 'eur' || ctry === 'eurozone' || ctry === 'zona euro';
+        const isGerman = clean.includes("german") || clean.includes("germany") || clean.includes("alemania") || ctry === 'de' || ctry === 'germany' || ctry === 'alemania';
+        const isOtherCountry = clean.includes("spanish") || clean.includes("spain") || clean.includes("españa") || clean.includes("french") || clean.includes("france") || clean.includes("francia") || clean.includes("italian") || clean.includes("italy") || clean.includes("italia") || ctry === 'es' || ctry === 'fr' || ctry === 'it';
+
+        if (iname === "hcob mfg pmi") {
+          // Strictly Eurozone HCOB Manufacturing PMI (NOT Spanish, French, Italian, or German)
+          if (!isOtherCountry && !clean.includes("german") &&
+              (clean.includes("eurozone manufacturing") || clean.includes("hcob eurozone") || (clean.includes("manufacturing pmi") && isEurozoneWide))) return i;
+        }
+        if (iname === "hcob services pmi") {
+          // Strictly Eurozone HCOB Services PMI (NOT Spanish, French, Italian, or German)
+          if (!isOtherCountry && !clean.includes("german") &&
+              (clean.includes("eurozone services") || clean.includes("hcob eurozone") || (clean.includes("services pmi") && isEurozoneWide))) return i;
+        }
+        if (iname === "cpi mom") {
+          // Eurozone CPI MoM (NOT German CPI, French CPI, Spanish CPI, Italian CPI)
+          if (!isOtherCountry && !clean.includes("german") && !clean.includes("yoy") &&
+              (clean === "cpi (mom)" || clean.startsWith("cpi (mom)") || clean.includes("eurozone cpi (mom)") || clean.includes("core cpi (mom)"))) return i;
+        }
+        if (iname === "unemployment rate") {
+          // Eurozone Unemployment Rate (NOT Spanish, German, French, Italian)
+          if (!isOtherCountry && !clean.includes("german") && !clean.includes("change") &&
+              (clean === "unemployment rate" || clean.startsWith("unemployment rate (") || clean.includes("eurozone unemployment rate"))) return i;
+        }
+        if (iname === "germany unemp change") {
+          // MUST BE German unemployment change (NOT Spanish unemployment change!)
+          if ((isGerman || clean.includes("german") || clean.includes("germany") || clean.includes("alemania")) &&
+              (clean.includes("unemployment change") || clean.includes("desempleo") || clean.includes("cambio del desempleo"))) return i;
+        }
+        if (iname === "retail sales mom") {
+          // Eurozone Retail Sales MoM (or German Retail Sales MoM)
+          if (!isOtherCountry && !clean.includes("yoy") &&
+              (clean === "retail sales (mom)" || clean.startsWith("retail sales (mom)") || clean.includes("german retail sales (mom)"))) return i;
+        }
+        if (iname === "consumer confidence") {
+          // Eurozone Consumer Confidence
+          if (!isOtherCountry && !clean.includes("german") &&
+              (clean === "consumer confidence" || clean.startsWith("consumer confidence (") || clean.includes("eurozone consumer confidence"))) return i;
+        }
+        if (iname === "ifo business climate") {
+          if (clean.includes("ifo business climate") || clean.includes("ifo")) return i;
+        }
+        if (iname === "industrial production mom") {
+          if (!isOtherCountry && !clean.includes("yoy") &&
+              (clean.includes("industrial production (mom)") || clean.includes("german industrial production (mom)"))) return i;
+        }
       }
 
       // GBP Indicators (9 slots: UK / GB)
       if (targetCurr === "GBP") {
         if (iname === "s&p mfg pmi" && clean.includes("manufacturing pmi")) return i;
         if (iname === "s&p services pmi" && clean.includes("services pmi")) return i;
-        if (iname === "cpi mom" && (clean === "cpi (mom)" || clean.startsWith("cpi (mom)"))) return i;
+        if (iname === "cpi mom" && !clean.includes("core") && !clean.includes("yoy") && (clean === "cpi (mom)" || clean.startsWith("cpi (mom)"))) return i;
         if (iname === "unemployment rate" && (clean === "unemployment rate" || clean.startsWith("unemployment rate ("))) return i;
         if (iname === "claimant count" && clean.includes("claimant count")) return i;
-        if (iname === "retail sales mom" && (clean === "retail sales (mom)" || clean.startsWith("retail sales (mom)"))) return i;
-        if (iname === "gfk consumer confidence" && clean.includes("gfk consumer confidence")) return i;
-        if (iname === "cbi industrial trends" && clean.includes("cbi industrial trends")) return i;
-        if (iname === "monthly gdp" && (clean.includes("gdp (mom)") || clean.includes("monthly gdp tracker") || clean.includes("monthly gdp"))) return i;
+        if (iname === "retail sales mom" && !clean.includes("core") && !clean.includes("ex") && !clean.includes("yoy") && (clean === "retail sales (mom)" || clean.startsWith("retail sales (mom)"))) return i;
+        if (iname === "gfk consumer confidence" && (clean.includes("gfk consumer confidence") || clean.includes("gfk"))) return i;
+        if (iname === "cbi industrial trends" && (clean.includes("cbi industrial trends") || clean.includes("cbi industrial"))) return i;
+        if (iname === "monthly gdp" && (clean.includes("monthly gdp") || clean.includes("monthly gdp tracker") || clean.startsWith("gdp (mom)") || clean === "gdp (mom)")) return i;
       }
 
       // JPY Indicators (9 slots: JP)
@@ -870,66 +930,66 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
         if (iname === "tokyo cpi mom" && (clean.includes("tokyo cpi") || clean.includes("tokyo core cpi") || clean.includes("national cpi"))) return i;
         if (iname === "unemployment rate" && (clean === "unemployment rate" || clean.startsWith("unemployment rate ("))) return i;
         if (iname === "cash earnings mom" && (clean.includes("cash earnings") || clean.includes("wage income"))) return i;
-        if (iname === "retail sales mom" && (clean.includes("retail sales (mom)") || clean.includes("large scale retail sales") || clean.includes("retailers' sales (mom)"))) return i;
+        if (iname === "retail sales mom" && !clean.includes("large") && !clean.includes("yoy") && (clean.includes("retail sales (mom)") || clean.includes("retail sales") || clean.includes("retailers' sales (mom)"))) return i;
         if (iname === "consumer survey" && (clean.includes("household confidence") || clean.includes("consumer survey") || clean.includes("consumer confidence"))) return i;
         if (iname === "reuters tankan" && clean.includes("reuters tankan")) return i;
-        if (iname === "jcer monthly gdp" && (clean.includes("tertiary industry activity") || clean.includes("jcer"))) return i;
+        if (iname === "jcer monthly gdp" && (clean.includes("jcer") || clean.includes("monthly gdp")) && !clean.includes("tertiary")) return i;
       }
 
       // AUD Indicators (9 slots: AU)
       if (targetCurr === "AUD") {
         if (iname === "judo mfg pmi" && clean.includes("manufacturing pmi")) return i;
         if (iname === "judo services pmi" && (clean.includes("services pmi") || clean.includes("manufacturing & services pmi"))) return i;
-        if (iname === "cpi indicator mom" && clean.includes("cpi indicator")) return i;
+        if (iname === "cpi indicator mom" && (clean.includes("cpi indicator") || clean.includes("monthly cpi"))) return i;
         if (iname === "unemployment rate" && (clean === "unemployment rate" || clean.startsWith("unemployment rate ("))) return i;
         if (iname === "employment change" && (clean === "employment change" || clean.startsWith("employment change ("))) return i;
-        if (iname === "retail sales mom" && clean.includes("retail sales")) return i;
-        if (iname === "westpac sentiment" && clean.includes("westpac consumer sentiment")) return i;
+        if (iname === "retail sales mom" && !clean.includes("yoy") && (clean.includes("retail sales (mom)") || clean === "retail sales" || clean.startsWith("retail sales (mom)"))) return i;
+        if (iname === "westpac sentiment" && (clean.includes("westpac consumer sentiment") || clean.includes("westpac sentiment"))) return i;
         if (iname === "nab business confidence" && clean.includes("nab business confidence")) return i;
-        if (iname === "aig industry index" && clean.includes("aig")) return i;
+        if (iname === "aig industry index" && (clean.includes("aig industry index") || clean.includes("ai group industry") || (clean.includes("aig") && clean.includes("index")))) return i;
       }
 
       // NZD Indicators (9 slots: NZ)
       if (targetCurr === "NZD") {
-        if (iname === "busnz mfg pmi" && (clean.includes("business nz pmi") || clean.includes("businessnz pmi"))) return i;
-        if (iname === "busnz services pmi" && (clean.includes("performance of services") || clean.includes("services index"))) return i;
-        if (iname === "food prices mom" && (clean.includes("fpi (mom)") || clean.includes("food price"))) return i;
+        if (iname === "busnz mfg pmi" && (clean.includes("business nz pmi") || clean.includes("businessnz pmi") || (clean.includes("manufacturing pmi") && clean.includes("businessnz")))) return i;
+        if (iname === "busnz services pmi" && (clean.includes("performance of services") || clean.includes("services index") || clean.includes("businessnz psi"))) return i;
+        if (iname === "food prices mom" && (clean.includes("fpi (mom)") || clean.includes("food price index (mom)") || clean.includes("food price"))) return i;
         if (iname === "unemployment rate" && (clean === "unemployment rate" || clean.startsWith("unemployment rate ("))) return i;
-        if (iname === "mei jobs change" && (clean.includes("employment change") || clean.includes("migration") || clean.includes("manufacturing sales"))) return i;
-        if (iname === "card transactions" && clean.includes("electronic card retail sales (mom)")) return i;
-        if (iname === "anz consumer confidence" && (clean.includes("consumer sentiment") || clean.includes("consumer confidence"))) return i;
-        if (iname === "anz business confidence" && clean.includes("anz business confidence")) return i;
-        if (iname === "busnz activity index" && (clean.includes("nbnz own activity") || clean.includes("terms of trade index"))) return i;
+        if (iname === "mei jobs change" && !clean.includes("migration") && !clean.includes("sales") && (clean.includes("mei jobs") || clean.includes("employment change"))) return i;
+        if (iname === "card transactions" && (clean.includes("electronic card retail sales (mom)") || clean.includes("card transactions") || clean.includes("card retail"))) return i;
+        if (iname === "anz consumer confidence" && (clean.includes("anz consumer confidence") || clean.includes("consumer confidence") || clean.includes("consumer sentiment"))) return i;
+        if (iname === "anz business confidence" && (clean.includes("anz business confidence") || clean.includes("business confidence"))) return i;
+        if (iname === "busnz activity index" && !clean.includes("terms of trade") && (clean.includes("nbnz own activity") || clean.includes("businessnz activity") || clean.includes("own activity"))) return i;
       }
 
       // CAD Indicators (9 slots: CA)
       if (targetCurr === "CAD") {
-        if (iname === "s&p mfg pmi" && clean.includes("manufacturing pmi")) return i;
+        if (iname === "s&p mfg pmi" && clean.includes("manufacturing pmi") && !clean.includes("ivey")) return i;
         if (iname === "ivey pmi" && clean.includes("ivey pmi") && !clean.includes("n.s.a")) return i;
-        if (iname === "cpi mom" && (clean === "cpi (mom)" || clean.startsWith("cpi (mom)"))) return i;
+        if (iname === "cpi mom" && !clean.includes("core") && !clean.includes("yoy") && (clean === "cpi (mom)" || clean.startsWith("cpi (mom)"))) return i;
         if (iname === "unemployment rate" && (clean === "unemployment rate" || clean.startsWith("unemployment rate ("))) return i;
-        if (iname === "net employment change" && (clean === "employment change" || clean.startsWith("employment change ("))) return i;
-        if (iname === "retail sales mom" && (clean === "retail sales (mom)" || clean.startsWith("retail sales (mom)"))) return i;
-        if (iname === "cb consumer survey" && (clean.includes("ipsos pcsi") || clean.includes("business outlook") || clean.includes("leading index"))) return i;
-        if (iname === "cfib business barometer" && (clean.includes("business barometer") || clean.includes("wholesale sales") || clean.includes("manufacturing sales"))) return i;
-        if (iname === "monthly gdp mom" && clean.startsWith("gdp (mom)")) return i;
+        if (iname === "net employment change" && (clean === "employment change" || clean.startsWith("employment change (") || clean.includes("net change in employment"))) return i;
+        if (iname === "retail sales mom" && !clean.includes("core") && !clean.includes("yoy") && (clean === "retail sales (mom)" || clean.startsWith("retail sales (mom)"))) return i;
+        if (iname === "cb consumer survey" && !clean.includes("leading index") && (clean.includes("ipsos pcsi") || clean.includes("business outlook") || clean.includes("consumer confidence"))) return i;
+        if (iname === "cfib business barometer" && !clean.includes("wholesale") && !clean.includes("manufacturing sales") && (clean.includes("business barometer") || clean.includes("cfib"))) return i;
+        if (iname === "monthly gdp mom" && (clean.startsWith("gdp (mom)") || clean === "gdp (mom)" || clean.includes("monthly gdp"))) return i;
       }
 
       // CHF Indicators (9 slots: CH)
       if (targetCurr === "CHF") {
         if (iname === "procure mfg pmi" && clean.includes("manufacturing pmi")) return i;
         if (iname === "procure services pmi" && clean.includes("services pmi")) return i;
-        if (iname === "cpi mom" && (clean === "cpi (mom)" || clean.startsWith("cpi (mom)"))) return i;
-        if (iname === "unemp rate" && clean.includes("unemployment rate")) return i;
+        if (iname === "cpi mom" && !clean.includes("core") && !clean.includes("yoy") && (clean === "cpi (mom)" || clean.startsWith("cpi (mom)"))) return i;
+        if (iname === "unemp rate" && clean.includes("unemployment rate") && !clean.includes("change")) return i;
         if (iname === "unemp change" && clean.includes("unemployment change")) return i;
-        if (iname === "retail sales mom" && clean.includes("retail sales")) return i;
-        if (iname === "consumer sentiment" && clean.includes("consumer climate")) return i;
+        if (iname === "retail sales mom" && !clean.includes("yoy") && (clean.includes("retail sales (mom)") || clean.includes("real retail sales (mom)"))) return i;
+        if (iname === "consumer sentiment" && (clean.includes("consumer climate") || clean.includes("consumer sentiment"))) return i;
         if (iname === "kof indicator" && clean.includes("kof")) return i;
-        if (iname === "seco economic indicators" && clean.includes("seco")) return i;
+        if (iname === "seco economic indicators" && !clean.includes("climate") && (clean.includes("seco") && (clean.includes("forecast") || clean.includes("economic") || clean.includes("gdp")))) return i;
       }
     }
 
-    // Direct name match fallback
+    // Direct name match fallback (exact string match only)
     for (let i = 0; i < indList.length; i++) {
       if (indList[i].name.toLowerCase() === clean) return i;
     }
@@ -937,54 +997,107 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
     return -1;
   };
 
-  const formatSpreadsheetDate = (dateVal: any): string => {
-    if (dateVal === null || dateVal === undefined || dateVal === '') {
-      return new Date().toISOString().slice(0, 10);
-    }
+  const formatSpreadsheetDate = (dateVal: any): string | null => {
+    if (dateVal === null || dateVal === undefined || dateVal === '') return null;
     if (dateVal instanceof Date) {
-      if (dateVal.getFullYear() <= 1905) {
-        return new Date().toISOString().slice(0, 10);
+      if (dateVal.getFullYear() > 1905 && dateVal.getFullYear() < 2100) {
+        const y = dateVal.getFullYear();
+        const m = String(dateVal.getMonth() + 1).padStart(2, '0');
+        const d = String(dateVal.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
       }
-      const y = dateVal.getFullYear();
-      const m = String(dateVal.getMonth() + 1).padStart(2, '0');
-      const d = String(dateVal.getDate()).padStart(2, '0');
-      return `${y}-${m}-${d}`;
+      return null;
     }
-    const str = String(dateVal).trim().replace(/[\u00A0\u200B\r\n]/g, '');
-    if (str.includes('1899') || str.includes('1900')) {
-      return new Date().toISOString().slice(0, 10);
-    }
-    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
-      return str;
-    }
-    // Serial date numbers (e.g. 46300 or "46300")
+    const str = String(dateVal).trim().replace(/[\u00A0\u200B\r\n\t]/g, ' ');
+    if (str.includes('1899') || str.includes('1900')) return null;
+
+    // ISO format: YYYY-MM-DD
+    const isoMatch = str.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);
+    if (isoMatch) return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+
+    // Excel numeric serial date (e.g. 45000 - 55000)
     const num = typeof dateVal === 'number' ? dateVal : parseFloat(str);
-    if (!isNaN(num) && num >= 25000 && num <= 60000) {
+    if (!isNaN(num) && num >= 25000 && num <= 65000 && !str.includes('/') && !str.includes('-') && !str.includes(' ')) {
       const epochDate = new Date(Math.round((num - 25569) * 86400 * 1000));
-      if (!isNaN(epochDate.getTime())) {
+      if (!isNaN(epochDate.getTime()) && epochDate.getUTCFullYear() > 1990 && epochDate.getUTCFullYear() < 2100) {
         return epochDate.toISOString().slice(0, 10);
       }
     }
-    // Formats with slashes or dots: DD/MM/YYYY, DD.MM.YYYY, MM/DD/YYYY
-    if (/^\d{1,2}[\/\.]\d{1,2}[\/\.]\d{4}$/.test(str)) {
-      const parts = str.split(/[\/\.]/);
-      const p1 = parseInt(parts[0], 10);
-      const p2 = parseInt(parts[1], 10);
-      const yr = parseInt(parts[2], 10);
-      if (p2 <= 12 && p1 <= 31) {
-        const mm = String(p2).padStart(2, '0');
-        const dd = String(p1).padStart(2, '0');
-        return `${yr}-${mm}-${dd}`;
+
+    // Formats with slashes or dots: DD/MM/YYYY, DD.MM.YYYY, MM/DD/YYYY, YYYY/MM/DD
+    const slashMatch = str.match(/\b(\d{1,4})[\/\.](\d{1,2})[\/\.](\d{1,4})\b/);
+    if (slashMatch) {
+      const p1 = slashMatch[1];
+      const p2 = slashMatch[2];
+      const p3 = slashMatch[3];
+      let yr = 0, mo = 0, da = 0;
+      if (p1.length === 4) {
+        yr = parseInt(p1, 10);
+        mo = parseInt(p2, 10);
+        da = parseInt(p3, 10);
+      } else if (p3.length === 4) {
+        yr = parseInt(p3, 10);
+        const n1 = parseInt(p1, 10);
+        const n2 = parseInt(p2, 10);
+        if (n1 > 12 && n2 <= 12) {
+          da = n1; mo = n2;
+        } else if (n2 > 12 && n1 <= 12) {
+          mo = n1; da = n2;
+        } else {
+          // Standard international DD/MM/YYYY
+          da = n1; mo = n2;
+        }
+      }
+      if (yr >= 1990 && yr <= 2050 && mo >= 1 && mo <= 12 && da >= 1 && da <= 31) {
+        return `${yr}-${String(mo).padStart(2, '0')}-${String(da).padStart(2, '0')}`;
       }
     }
+
+    // Spanish natural dates: e.g. "Lunes, 2 de Noviembre de 2026" or "2 de noviembre 2026"
+    const cleanLower = str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const SPANISH_MONTHS: Record<string, string> = {
+      enero: '01', febrero: '02', marzo: '03', abril: '04',
+      mayo: '05', junio: '06', julio: '07', agosto: '08',
+      septiembre: '09', setiembre: '09', octubre: '10', noviembre: '11', diciembre: '12',
+      ene: '01', feb: '02', mar: '03', abr: '04', may: '05', jun: '06',
+      jul: '07', ago: '08', sep: '09', oct: '10', nov: '11', dic: '12'
+    };
+    const spMatch = cleanLower.match(/(\d{1,2})\s+de\s+([a-z]+)(?:\s+de|\s*,)?\s*(\d{4})/);
+    if (spMatch && SPANISH_MONTHS[spMatch[2]]) {
+      const d = String(parseInt(spMatch[1], 10)).padStart(2, '0');
+      const m = SPANISH_MONTHS[spMatch[2]];
+      const y = spMatch[3];
+      return `${y}-${m}-${d}`;
+    }
+
+    // English natural dates: e.g. "Monday, Nov 2, 2026" or "November 2, 2026"
+    const ENGLISH_MONTHS: Record<string, string> = {
+      january: '01', february: '02', march: '03', april: '04',
+      may: '05', june: '06', july: '07', august: '08',
+      september: '09', october: '10', november: '11', december: '12',
+      jan: '01', feb: '02', mar: '03', abr: '04', jun: '06',
+      jul: '07', aug: '08', sep: '09', oct: '10', nov: '11', dec: '12'
+    };
+    const enMatch = cleanLower.match(/([a-z]{3,9})\s+(\d{1,2})(?:st|nd|rd|th)?[\s,]+(\d{4})/);
+    if (enMatch && ENGLISH_MONTHS[enMatch[1]]) {
+      const m = ENGLISH_MONTHS[enMatch[1]];
+      const d = String(parseInt(enMatch[2], 10)).padStart(2, '0');
+      const y = enMatch[3];
+      return `${y}-${m}-${d}`;
+    }
+
+    // Standard Date fallback only if valid year between 1990 and 2050
     const d = new Date(str);
     if (!isNaN(d.getTime())) {
-      const yr = d.getUTCFullYear();
+      const yr = d.getFullYear();
       if (yr >= 1990 && yr <= 2050) {
-        return d.toISOString().slice(0, 10);
+        const mo = String(d.getMonth() + 1).padStart(2, '0');
+        const da = String(d.getDate()).padStart(2, '0');
+        return `${yr}-${mo}-${da}`;
       }
     }
-    return new Date().toISOString().slice(0, 10);
+
+    return null;
   };
 
   // 3. Normalizes Imp. (Importance): Maps "High", "Med", "Low" or star counts (1, 2, 3) to numerical weights (5.0, 4.0, 3.0)
@@ -1181,31 +1294,7 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
         return;
       }
 
-      // Step 1: Skip the first 3 rows of the Excel file so it targets the correct header row
-      // Actual file structure:
-      // - First 3 rows are empty or contain metadata
-      // - Row 4 contains column headers: ['Time', 'Cur.', 'Event', 'Imp.', 'Actual', 'Forecast', 'Previous']
-      // - Data rows start from row 5
-      let effectiveRows = rawRows;
-      if (effectiveRows.length >= 4) {
-        const row4 = effectiveRows[3] || [];
-        const row4Str = (Array.isArray(row4) ? row4 : Object.values(row4))
-          .map((c: any) => String(c || '').trim().toLowerCase())
-          .join(' ');
-
-        // Check if row 4 (index 3) is the designated header row
-        const hasCurHeader = row4Str.includes('cur') || row4Str.includes('ccy') || row4Str.includes('div');
-        const hasEventHeader = row4Str.includes('event') || row4Str.includes('indicat') || row4Str.includes('title');
-        const hasTimeHeader = row4Str.includes('time') || row4Str.includes('hora');
-        const hasMetricHeader = row4Str.includes('actual') || row4Str.includes('forecast') || row4Str.includes('imp');
-
-        if ((hasCurHeader && (hasEventHeader || hasMetricHeader)) || (hasTimeHeader && hasEventHeader)) {
-          // Explicitly skip the first 3 metadata rows to target row 4 headers
-          effectiveRows = effectiveRows.slice(3);
-        }
-      }
-
-      const mappedRows = effectiveRows.map(row => {
+      const mappedRows = rawRows.map(row => {
         if (!row) return [];
         const cleanRow = (Array.isArray(row) ? row : Object.values(row)).map((cell: any) => {
           if (cell === null || cell === undefined) return '';
@@ -1411,7 +1500,7 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
         return;
       }
 
-      let currentDate = new Date().toISOString().split('T')[0];
+      let currentDate: string | null = null;
 
       // Check if LocalStorage is empty or needs baseline load
       const isStorageEmpty = !localStorage.getItem('forex_dashboard_data_v2');
@@ -1430,14 +1519,15 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
       const slotUpdates: Record<string, Record<number, CandidateRelease[]>> = {};
 
       dataRows.forEach((row) => {
-        // Check for date row separator (e.g. "Monday, Oct 12, 2026" or "2026-10-12" or Excel serial 46300)
-        const fullRowText = row.map((c: any) => String(c || '')).join(' ').trim();
-        if (fullRowText.length > 0 && row.filter((c: any) => String(c || '').trim() !== '').length <= 2) {
-          const rawDateStr = row[0] || row[1] || '';
-          const parsedD = formatSpreadsheetDate(rawDateStr);
-          if (parsedD && parsedD !== currentDate) {
-            currentDate = parsedD;
-            return;
+        // Check for date row separator (e.g. "Monday, Nov 2, 2026", "Lunes, 2 de Noviembre de 2026", "2026-11-02", etc.)
+        const nonBlankCells = row.filter((c: any) => String(c || '').trim() !== '');
+        if (nonBlankCells.length <= 3) {
+          for (const cell of nonBlankCells) {
+            const parsedD = formatSpreadsheetDate(cell);
+            if (parsedD) {
+              currentDate = parsedD;
+              return; // Header/separator row, skip to next row
+            }
           }
         }
 
@@ -1470,15 +1560,17 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
 
         const G10_CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'NZD', 'CAD', 'CHF'];
 
-        // Fallback scan if currCol cell was empty
+        // Fallback scan ONLY if safeStr was empty or not in G10 (only match valid isolated currency codes or countries)
         if (!G10_CURRENCIES.includes(normalizedCurrency)) {
           const cells = Array.isArray(row) ? row : Object.values(row);
           for (const cell of cells) {
             const s = typeof cell === 'string' ? cell.trim().toUpperCase() : String(cell || '').trim().toUpperCase();
-            const mapped = INVESTING_COM_MAP[s];
-            if (mapped && G10_CURRENCIES.includes(mapped)) {
-              normalizedCurrency = mapped;
-              break;
+            if (G10_CURRENCIES.includes(s) || (s.length >= 3 && INVESTING_COM_MAP[s])) {
+              const mapped = INVESTING_COM_MAP[s];
+              if (mapped && G10_CURRENCIES.includes(mapped)) {
+                normalizedCurrency = mapped;
+                break;
+              }
             }
           }
         }
@@ -1494,7 +1586,7 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
 
         const targetCurr = normalizedCurrency;
         const indList = DEFAULT_CURRENCY_INDICATORS[targetCurr] || [];
-        const matchedIdx = findIndicatorIndex(targetCurr, rawEvent, indList);
+        const matchedIdx = findIndicatorIndex(targetCurr, rawEvent, indList, safeStr || rawCur);
 
         if (matchedIdx !== -1) {
           const item = indList[matchedIdx];
@@ -1543,7 +1635,12 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
             timeVal = formatTimeTo24h(row[timeCol], timeVal);
           }
 
-          const releaseDate = (dateCol !== -1 && row[dateCol]) ? formatSpreadsheetDate(row[dateCol]) : currentDate;
+          let releaseDate = currentDate;
+          if (dateCol !== -1 && row[dateCol]) {
+            const parsedColDate = formatSpreadsheetDate(row[dateCol]);
+            if (parsedColDate) releaseDate = parsedColDate;
+          }
+          if (!releaseDate) releaseDate = new Date().toISOString().split('T')[0];
 
           if (!slotUpdates[targetCurr]) slotUpdates[targetCurr] = {};
           if (!slotUpdates[targetCurr][matchedIdx]) slotUpdates[targetCurr][matchedIdx] = [];
@@ -1580,17 +1677,42 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
             const candidates = slotMap[slotIdx];
             if (!candidates || candidates.length === 0 || !list[slotIdx]) continue;
 
-            // Sort releases by date ascending: pick latest release
-            candidates.sort((a, b) => a.date.localeCompare(b.date));
-            const latest = candidates[candidates.length - 1];
+            let chosenCandidate: CandidateRelease | null = null;
+
+            if (!isBaselineMode) {
+              // Incremental Weekly Mode:
+              // Only update indicators that were ACTUALLY RELEASED during this week!
+              // Events pending release (actual === null) in the weekly table MUST NOT overwrite
+              // or clear the existing baseline data in storage!
+              const releasedCandidates = candidates.filter(c => c.hasActual && c.actual !== null && !isNaN(c.actual));
+              if (releasedCandidates.length === 0) {
+                // No release this week for this slot: keep baseline completely intact!
+                continue;
+              }
+              releasedCandidates.sort((a, b) => a.date.localeCompare(b.date));
+              chosenCandidate = releasedCandidates[releasedCandidates.length - 1];
+            } else {
+              // Baseline Mode (2-month history):
+              // Pick the latest released candidate if available, else the latest candidate
+              const releasedCandidates = candidates.filter(c => c.hasActual && c.actual !== null && !isNaN(c.actual));
+              if (releasedCandidates.length > 0) {
+                releasedCandidates.sort((a, b) => a.date.localeCompare(b.date));
+                chosenCandidate = releasedCandidates[releasedCandidates.length - 1];
+              } else {
+                candidates.sort((a, b) => a.date.localeCompare(b.date));
+                chosenCandidate = candidates[candidates.length - 1];
+              }
+            }
+
+            if (!chosenCandidate) continue;
 
             const item = { ...list[slotIdx] };
-            item.date = latest.date;
-            item.time = latest.time;
-            if (latest.previous !== null) item.previous = latest.previous;
-            if (latest.forecast !== null) item.forecast = latest.forecast;
-            item.actual = latest.actual;
-            if (latest.weight) item.weight = latest.weight;
+            if (chosenCandidate.date) item.date = chosenCandidate.date;
+            if (chosenCandidate.time) item.time = chosenCandidate.time;
+            if (chosenCandidate.previous !== null) item.previous = chosenCandidate.previous;
+            if (chosenCandidate.forecast !== null) item.forecast = chosenCandidate.forecast;
+            item.actual = chosenCandidate.actual;
+            if (chosenCandidate.weight) item.weight = chosenCandidate.weight;
 
             const evalRes = evaluateIndicator(item);
             item.netChange = evalRes.netChange;
@@ -1703,25 +1825,8 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
               }
             }
 
-            // 1. DYNAMIC HEADER PARSING
-            // Scan first 15 rows to find the row containing the header "Cur." dynamically
-            const peekMatrix: any[][] = XLSX.utils.sheet_to_json(bestSheet, { header: 1, defval: "" });
-            let headerRowIndex = -1;
-            for (let r = 0; r < Math.min(peekMatrix.length, 15); r++) {
-              const row = peekMatrix[r] || [];
-              const cells = (Array.isArray(row) ? row : Object.values(row)).map((c: any) => String(c || '').toLowerCase().trim());
-              const hasCur = cells.some(c => c === 'cur.' || c === 'cur' || c === 'currency' || c === 'ccy');
-              const hasEvent = cells.some(c => c === 'event' || c === 'evento' || c === 'indicator');
-              if (hasCur && (hasEvent || cells.includes('actual') || cells.includes('time') || cells.includes('imp.'))) {
-                headerRowIndex = r;
-                break;
-              }
-            }
-
-            // Fallback: Skip first 3 rows if headers are on Row 4 (0-indexed 3)
-            const skipRange = headerRowIndex !== -1 ? headerRowIndex : (peekMatrix.length >= 4 ? 3 : 0);
-            const targetMatrix: any[][] = XLSX.utils.sheet_to_json(bestSheet, { header: 1, defval: "", range: skipRange });
-            processMatrix(targetMatrix);
+            const sheetMatrix: any[][] = XLSX.utils.sheet_to_json(bestSheet, { header: 1, defval: "" });
+            processMatrix(sheetMatrix);
           }
         } catch (err: any) {
           setUploadModal({
