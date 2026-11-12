@@ -44,106 +44,115 @@ export interface KairosMacroHubProps {
   language?: Language;
 }
 
-const CORE_INDICATOR_RULES = [
-  // USD - 9 Indicators
-  { id: 'USD_ISM_MFG', ccy: 'USD', match: ['ism manufacturing pmi', 'ism mfg', 'ism manufacturing', 'pmi manufacturero del ism'], avoid: ['prices', 'employment', 'orders', 'services', 'non-manufacturing'] },
-  { id: 'USD_ISM_SERVICES', ccy: 'USD', match: ['ism non-manufacturing pmi', 'ism services pmi', 'ism services', 'pmi del sector servicios del ism', 'pmi no manufacturero'], avoid: ['prices', 'employment', 'orders'] },
-  { id: 'USD_CPI', ccy: 'USD', match: ['cpi', 'consumer price index', 'ipc'], avoid: ['core', 'ex food', 'subyacente'] },
+const CORE_INDICATOR_RULES: Array<{
+  id: string;
+  ccy: string;
+  match: string[];
+  avoid: string[];
+}> = [
+  // USD - Inflation (PCE/CPI/PPI), Employment (NFP/Wages/Claims), Activity (ISM/PMIs/Retail/GDP)
+  { id: 'USD_ISM_MFG', ccy: 'USD', match: ['ism manufacturing pmi', 'ism mfg', 'ism manufacturing', 'pmi manufacturero del ism'], avoid: ['services', 'non-manufacturing'] },
+  { id: 'USD_ISM_SERVICES', ccy: 'USD', match: ['ism non-manufacturing pmi', 'ism services pmi', 'ism services', 'pmi del sector servicios del ism', 'pmi no manufacturero'], avoid: [] },
+  { id: 'USD_PCE', ccy: 'USD', match: ['pce price index', 'core pce', 'gasto en consumo personal'], avoid: [] },
+  { id: 'USD_CPI', ccy: 'USD', match: ['cpi', 'consumer price index', 'ipc'], avoid: [] },
   { id: 'USD_UNEMP', ccy: 'USD', match: ['unemployment rate', 'tasa de desempleo'], avoid: ['youth', 'underemployment'] },
   { id: 'USD_NFP', ccy: 'USD', match: ['nonfarm payrolls', 'non-farm payrolls', 'nfp', 'nominas no agricolas', 'empleo no agricola'], avoid: ['private', 'manufacturing', 'government'] },
-  { id: 'USD_RETAIL', ccy: 'USD', match: ['retail sales', 'ventas minoristas'], avoid: ['core', 'ex gas', 'control group', 'subyacente'] },
-  { id: 'USD_CB_CONF', ccy: 'USD', match: ['cb consumer confidence', 'confianza del consumidor de the conference board', 'confianza del consumidor de cb'], avoid: ['michigan'] },
-  { id: 'USD_NFIB', ccy: 'USD', match: ['nfib small business optimism', 'nfib small business index', 'nfib'], avoid: [] },
-  { id: 'USD_GDPNOW', ccy: 'USD', match: ['atlanta fed gdpnow', 'gdpnow', 'atlanta fed gdp'], avoid: [] },
+  { id: 'USD_WAGES', ccy: 'USD', match: ['average hourly earnings', 'ingresos medios por hora'], avoid: [] },
+  { id: 'USD_RETAIL', ccy: 'USD', match: ['retail sales', 'ventas minoristas'], avoid: [] },
+  { id: 'USD_GDP', ccy: 'USD', match: ['gdp', 'atlanta fed gdpnow', 'gdpnow', 'pib'], avoid: ['final'] },
 
-  // EUR - 9 Indicators
-  { id: 'EUR_HCOB_MFG', ccy: 'EUR', match: ['hcob euro zone manufacturing pmi', 'hcob eurozone manufacturing', 'euro zone manufacturing pmi', 'pmi manufacturero de la zona euro'], avoid: ['services', 'composite', 'construction', 'italy', 'france', 'spain', 'german'] },
-  { id: 'EUR_HCOB_SERV', ccy: 'EUR', match: ['hcob euro zone services pmi', 'hcob eurozone services', 'euro zone services pmi', 'pmi servicios de la zona euro'], avoid: ['mfg', 'manufacturing', 'composite', 'construction', 'italy', 'france', 'spain', 'german'] },
-  { id: 'EUR_CPI', ccy: 'EUR', match: ['cpi', 'hicp', 'ipc'], avoid: ['core', 'subyacente', 'tokyo', 'german', 'french', 'spanish', 'italian'] },
-  { id: 'EUR_UNEMP', ccy: 'EUR', match: ['euro zone unemployment rate', 'eurozone unemployment rate', 'tasa de desempleo de la zona euro'], avoid: ['youth', 'germany', 'german', 'french', 'spanish', 'italian', 'change', 'cambio'] },
-  { id: 'EUR_GER_UNEMP_CHG', ccy: 'EUR', match: ['german unemployment change', 'germany unemployment change', 'cambio del desempleo en alemania'], avoid: ['rate', 'tasa'] },
-  { id: 'EUR_RETAIL', ccy: 'EUR', match: ['euro zone retail sales', 'eurozone retail sales', 'ventas minoristas de la zona euro'], avoid: ['german', 'french', 'spanish', 'italian', 'core', 'subyacente'] },
-  { id: 'EUR_CONS_CONF', ccy: 'EUR', match: ['euro zone consumer confidence', 'eurozone consumer confidence', 'confianza del consumidor en la zona euro'], avoid: ['business', 'germany', 'german', 'french', 'spanish', 'gfk'] },
-  { id: 'EUR_IFO', ccy: 'EUR', match: ['german ifo business climate', 'ifo business climate', 'indice ifo de confianza empresarial'], avoid: ['current assessment', 'expectations'] },
-  { id: 'EUR_IND_PROD', ccy: 'EUR', match: ['euro zone industrial production', 'eurozone industrial production', 'produccion industrial de la zona euro'], avoid: ['german', 'french', 'spanish', 'italian'] },
+  // EUR - Single Mandate Inflation (CPI/PPI/Wages) + Leading Activity (HCOB PMIs, IFO, ZEW)
+  { id: 'EUR_HCOB_MFG', ccy: 'EUR', match: ['hcob euro zone manufacturing pmi', 'german manufacturing pmi', 'french manufacturing pmi', 'pmi manufacturero de la zona euro'], avoid: ['services', 'composite', 'construction', 'final', 'italy', 'spain'] },
+  { id: 'EUR_HCOB_SERV', ccy: 'EUR', match: ['hcob euro zone services pmi', 'german services pmi', 'french services pmi', 'pmi servicios de la zona euro'], avoid: ['mfg', 'manufacturing', 'composite', 'construction', 'final', 'italy', 'spain'] },
+  { id: 'EUR_CPI', ccy: 'EUR', match: ['cpi', 'hicp', 'ipc'], avoid: ['tokyo', 'italian', 'italy', 'spanish', 'spain', 'final'] },
+  { id: 'EUR_PPI', ccy: 'EUR', match: ['ppi', 'producer price', 'ipp'], avoid: ['final'] },
+  { id: 'EUR_IFO', ccy: 'EUR', match: ['german ifo business climate', 'ifo business climate', 'indice ifo de confianza empresarial'], avoid: [] },
+  { id: 'EUR_ZEW', ccy: 'EUR', match: ['zew economic sentiment', 'sentimiento economico zew'], avoid: [] },
+  { id: 'EUR_RETAIL', ccy: 'EUR', match: ['euro zone retail sales', 'eurozone retail sales', 'ventas minoristas de la zona euro'], avoid: ['italy', 'spain', 'final'] },
+  { id: 'EUR_GDP', ccy: 'EUR', match: ['euro zone gdp', 'eurozone gdp', 'german gdp', 'pib de la zona euro'], avoid: ['final'] },
 
-  // GBP - 9 Indicators
-  { id: 'GBP_SP_MFG', ccy: 'GBP', match: ['s&p global/cips uk manufacturing pmi', 's&p global uk manufacturing', 'pmi manufacturero reino unido', 'pmi del sector manufacturero de gran bretaña'], avoid: ['services', 'composite', 'construction'] },
-  { id: 'GBP_SP_SERV', ccy: 'GBP', match: ['s&p global/cips uk services pmi', 's&p global uk services', 'pmi servicios reino unido', 'pmi del sector servicios de gran bretaña'], avoid: ['mfg', 'manufacturing', 'composite', 'construction'] },
-  { id: 'GBP_CPI', ccy: 'GBP', match: ['cpi', 'uk cpi', 'ipc'], avoid: ['core', 'subyacente'] },
-  { id: 'GBP_UNEMP', ccy: 'GBP', match: ['unemployment rate', 'tasa de desempleo'], avoid: ['youth', 'claimant'] },
-  { id: 'GBP_CLAIMANT', ccy: 'GBP', match: ['claimant count change', 'claimant count', 'evolucion del desempleo (claimant count)'], avoid: ['rate'] },
-  { id: 'GBP_RETAIL', ccy: 'GBP', match: ['retail sales', 'ventas minoristas'], avoid: ['ex fuel', 'core', 'subyacente'] },
-  { id: 'GBP_GFK', ccy: 'GBP', match: ['gfk consumer confidence', 'confianza del consumidor de gfk'], avoid: [] },
-  { id: 'GBP_CBI', ccy: 'GBP', match: ['cbi industrial trends orders', 'pedidos de tendencias industriales segun el cbi'], avoid: ['distributive', 'selling prices'] },
-  { id: 'GBP_GDP', ccy: 'GBP', match: ['monthly gdp', 'gdp', 'pib mensual', 'pib'], avoid: ['3m/3m', 'qoq', 'yoy', 'annualized'] },
+  // GBP - Driver #1 Wages (Average Earnings) + CPI + Services PMI + Monthly GDP
+  { id: 'GBP_EARNINGS', ccy: 'GBP', match: ['average earnings', 'ingresos medios'], avoid: [] },
+  { id: 'GBP_CPI', ccy: 'GBP', match: ['cpi', 'uk cpi', 'ipc'], avoid: [] },
+  { id: 'GBP_SP_SERV', ccy: 'GBP', match: ['uk services pmi', 'services pmi', 'pmi del sector servicios de gran bretana'], avoid: ['mfg', 'manufacturing', 'composite', 'construction', 'final'] },
+  { id: 'GBP_SP_MFG', ccy: 'GBP', match: ['uk manufacturing pmi', 'manufacturing pmi', 'pmi del sector manufacturero de gran bretana'], avoid: ['services', 'composite', 'construction', 'final'] },
+  { id: 'GBP_UNEMP', ccy: 'GBP', match: ['unemployment rate', 'claimant count change', 'tasa de desempleo'], avoid: [] },
+  { id: 'GBP_RETAIL', ccy: 'GBP', match: ['retail sales', 'ventas minoristas'], avoid: [] },
+  { id: 'GBP_GDP', ccy: 'GBP', match: ['monthly gdp', 'gdp', 'pib mensual', 'pib'], avoid: ['final'] },
 
-  // JPY - 9 Indicators
-  { id: 'JPY_JIBUN_MFG', ccy: 'JPY', match: ['au jibun bank japan manufacturing', 'jibun bank manufacturing', 'jibun mfg', 'pmi del sector manufacturero de japon'], avoid: ['services', 'composite', 'construction'] },
-  { id: 'JPY_JIBUN_SERV', ccy: 'JPY', match: ['au jibun bank japan services', 'jibun bank services', 'jibun services', 'pmi del sector servicios de japon'], avoid: ['mfg', 'manufacturing', 'composite', 'construction'] },
-  { id: 'JPY_TOKYO_CPI', ccy: 'JPY', match: ['tokyo cpi', 'tokyo core cpi', 'ipc de tokio'], avoid: ['ex fresh food', 'national'] },
-  { id: 'JPY_UNEMP', ccy: 'JPY', match: ['unemployment rate', 'tasa de desempleo'], avoid: [] },
+  // JPY - Tokyo CPI (Leading Proxy) + National CPI + Tankan + Cash Earnings
+  { id: 'JPY_TOKYO_CPI', ccy: 'JPY', match: ['tokyo cpi', 'tokyo core cpi', 'ipc de tokio'], avoid: [] },
+  { id: 'JPY_NAT_CPI', ccy: 'JPY', match: ['national cpi', 'national core cpi', 'ipc nacional'], avoid: [] },
+  { id: 'JPY_TANKAN', ccy: 'JPY', match: ['tankan', 'indice tankan'], avoid: [] },
   { id: 'JPY_EARNINGS', ccy: 'JPY', match: ['labor cash earnings', 'cash earnings', 'ingresos salariales en efectivo'], avoid: [] },
-  { id: 'JPY_RETAIL', ccy: 'JPY', match: ['retail sales', 'ventas minoristas'], avoid: [] },
-  { id: 'JPY_CONS_SURVEY', ccy: 'JPY', match: ['consumer survey', 'consumer confidence', 'confianza del consumidor'], avoid: [] },
-  { id: 'JPY_TANKAN', ccy: 'JPY', match: ['reuters tankan index', 'reuters tankan', 'tankan large manufacturers', 'indice tankan de grandes fabricantes'], avoid: ['non-manufacturers'] },
-  { id: 'JPY_JCER_GDP', ccy: 'JPY', match: ['jcer monthly gdp', 'jcer gdp', 'pib mensual de jcer'], avoid: [] },
+  { id: 'JPY_JIBUN_MFG', ccy: 'JPY', match: ['jibun bank japan manufacturing', 'jibun bank manufacturing', 'pmi del sector manufacturero de japon'], avoid: ['services', 'composite', 'final'] },
+  { id: 'JPY_JIBUN_SERV', ccy: 'JPY', match: ['jibun bank japan services', 'jibun bank services', 'pmi del sector servicios de japon'], avoid: ['mfg', 'manufacturing', 'composite', 'final'] },
+  { id: 'JPY_GDP', ccy: 'JPY', match: ['gdp', 'jcer monthly gdp', 'pib'], avoid: ['final'] },
 
-  // AUD - 9 Indicators
-  { id: 'AUD_JUDO_MFG', ccy: 'AUD', match: ['judo bank australia manufacturing', 'judo bank manufacturing', 'judo mfg', 'pmi del sector manufacturero de australia'], avoid: ['services', 'composite', 'construction'] },
-  { id: 'AUD_JUDO_SERV', ccy: 'AUD', match: ['judo bank australia services', 'judo bank services', 'judo services', 'pmi del sector servicios de australia'], avoid: ['mfg', 'manufacturing', 'composite', 'construction'] },
-  { id: 'AUD_CPI_IND', ccy: 'AUD', match: ['monthly cpi indicator', 'cpi indicator', 'indicador mensual del ipc'], avoid: ['trimmed'] },
-  { id: 'AUD_UNEMP', ccy: 'AUD', match: ['unemployment rate', 'tasa de desempleo'], avoid: [] },
+  // AUD - Quarterly CPI, Trimmed Mean CPI (RBA Core), Monthly CPI, Employment, Confidence
+  { id: 'AUD_CPI_ALL', ccy: 'AUD', match: ['cpi', 'trimmed mean cpi', 'weighted mean cpi', 'monthly cpi indicator', 'ipc'], avoid: [] },
   { id: 'AUD_EMP_CHG', ccy: 'AUD', match: ['employment change', 'variacion del empleo', 'cambio en el empleo'], avoid: ['full time', 'part time'] },
-  { id: 'AUD_RETAIL', ccy: 'AUD', match: ['retail sales', 'ventas minoristas'], avoid: [] },
-  { id: 'AUD_WESTPAC', ccy: 'AUD', match: ['westpac consumer sentiment', 'westpac sentiment', 'confianza del consumidor de westpac'], avoid: [] },
-  { id: 'AUD_NAB', ccy: 'AUD', match: ['nab business confidence', 'confianza empresarial de nab'], avoid: ['business conditions'] },
-  { id: 'AUD_AIG', ccy: 'AUD', match: ['ai group industry index', 'aig industry index', 'indice de la industria de ai group'], avoid: ['construction', 'services', 'manufacturing'] },
+  { id: 'AUD_UNEMP', ccy: 'AUD', match: ['unemployment rate', 'tasa de desempleo'], avoid: [] },
+  { id: 'AUD_WPI', ccy: 'AUD', match: ['wage price index', 'indice de precios salariales'], avoid: [] },
+  { id: 'AUD_NAB', ccy: 'AUD', match: ['nab business confidence', 'confianza empresarial de nab'], avoid: [] },
+  { id: 'AUD_WESTPAC', ccy: 'AUD', match: ['westpac consumer sentiment', 'confianza del consumidor de westpac'], avoid: [] },
+  { id: 'AUD_JUDO_PMIS', ccy: 'AUD', match: ['judo bank australia manufacturing', 'judo bank australia services', 'pmi del sector manufacturero de australia', 'pmi del sector servicios de australia'], avoid: ['composite', 'construction', 'final'] },
+  { id: 'AUD_GDP', ccy: 'AUD', match: ['gdp', 'pib'], avoid: ['final'] },
 
-  // NZD - 9 Indicators
-  { id: 'NZD_BNZ_MFG', ccy: 'NZD', match: ['businessnz manufacturing pmi', 'businessnz pmi', 'pmi manufacturero de businessnz'], avoid: ['services', 'performance of services'] },
-  { id: 'NZD_BNZ_SERV', ccy: 'NZD', match: ['businessnz performance of services', 'businessnz psi', 'indice del rendimiento del sector servicios'], avoid: ['manufacturing'] },
-  { id: 'NZD_CPI', ccy: 'NZD', match: ['cpi', 'ipc'], avoid: ['food', 'tradeable', 'non-tradeable'] },
-  { id: 'NZD_UNEMP', ccy: 'NZD', match: ['unemployment rate', 'tasa de desempleo'], avoid: [] },
-  { id: 'NZD_EMP_CHG', ccy: 'NZD', match: ['employment change', 'variacion del empleo', 'cambio en el empleo'], avoid: ['full time', 'part time'] },
-  { id: 'NZD_CARD_TRANS', ccy: 'NZD', match: ['electronic card retail transactions', 'card spending', 'transacciones con tarjeta electronica', 'gasto minorista con tarjeta'], avoid: ['core'] },
-  { id: 'NZD_ANZ_CONF', ccy: 'NZD', match: ['anz-roy morgan consumer confidence', 'anz consumer confidence', 'confianza del consumidor de anz-roy morgan'], avoid: ['business'] },
-  { id: 'NZD_ANZ_BIZ', ccy: 'NZD', match: ['anz business confidence', 'confianza empresarial de anz'], avoid: ['own activity'] },
-  { id: 'NZD_GDT', ccy: 'NZD', match: ['globaldairytrade price index', 'gdt price index', 'indice de precios de gdt', 'lacteos gdt'], avoid: [] },
+  // NZD - Quarterly CPI, Food Prices, GDT Dairy, Trade Balance, Quarterly Employment
+  { id: 'NZD_CPI', ccy: 'NZD', match: ['cpi', 'ipc'], avoid: [] },
+  { id: 'NZD_FOOD_PRICES', ccy: 'NZD', match: ['food price index', 'food prices', 'indice de precios de los alimentos'], avoid: [] },
+  { id: 'NZD_GDT', ccy: 'NZD', match: ['gdt price index', 'global dairy trade'], avoid: [] },
+  { id: 'NZD_EMP', ccy: 'NZD', match: ['unemployment rate', 'employment change', 'tasa de desempleo', 'variacion del empleo'], avoid: [] },
+  { id: 'NZD_ANZ_BIZ', ccy: 'NZD', match: ['anz business confidence', 'confianza empresarial de anz'], avoid: [] },
+  { id: 'NZD_BUSNZ', ccy: 'NZD', match: ['businessnz manufacturing pmi', 'businessnz performance of services', 'pmi manufacturero de businessnz'], avoid: [] },
+  { id: 'NZD_TRADE_GDP', ccy: 'NZD', match: ['trade balance', 'gdp', 'balanza comercial', 'pib'], avoid: [] },
 
-  // CAD - 9 Indicators
-  { id: 'CAD_SP_MFG', ccy: 'CAD', match: ['s&p global canada manufacturing pmi', 's&p global canada manufacturing', 'pmi manufacturero de canada de s&p global'], avoid: ['services', 'composite'] },
-  { id: 'CAD_IVEY_PMI', ccy: 'CAD', match: ['ivey pmi', 'pmi de ivey'], avoid: [] },
-  { id: 'CAD_CPI', ccy: 'CAD', match: ['cpi', 'ipc'], avoid: ['core', 'median', 'trimmed', 'common', 'subyacente'] },
+  // CAD - Headline CPI + BoC Core (Median, Trimmed, Common) + Employment + Ivey PMI + GDP
+  { id: 'CAD_CPI_ALL', ccy: 'CAD', match: ['cpi', 'core cpi', 'median cpi', 'trimmed cpi', 'common cpi', 'ipc'], avoid: [] },
+  { id: 'CAD_NET_EMP', ccy: 'CAD', match: ['net change in employment', 'employment change', 'variacion neta del empleo'], avoid: ['full time', 'part time'] },
   { id: 'CAD_UNEMP', ccy: 'CAD', match: ['unemployment rate', 'tasa de desempleo'], avoid: [] },
-  { id: 'CAD_NET_EMP', ccy: 'CAD', match: ['net change in employment', 'employment change', 'variacion del empleo'], avoid: ['full time', 'part time'] },
-  { id: 'CAD_RETAIL', ccy: 'CAD', match: ['retail sales', 'ventas minoristas'], avoid: ['core', 'subyacente'] },
-  { id: 'CAD_BOSED', ccy: 'CAD', match: ['business outlook survey', 'bos indicator', 'boc business outlook', 'encuesta de perspectivas empresariales'], avoid: [] },
-  { id: 'CAD_CFIB', ccy: 'CAD', match: ['cfib business barometer', 'cfib', 'barometro empresarial de cfib'], avoid: [] },
-  { id: 'CAD_GDP', ccy: 'CAD', match: ['monthly gdp', 'real gdp', 'gdp', 'pib mensual', 'pib'], avoid: ['annualized'] },
+  { id: 'CAD_IVEY', ccy: 'CAD', match: ['ivey pmi', 'pmi del gestor de compras ivey'], avoid: ['unadjusted'] },
+  { id: 'CAD_SP_MFG', ccy: 'CAD', match: ['s&p global canada manufacturing', 'pmi del sector manufacturero de canada'], avoid: ['final'] },
+  { id: 'CAD_RETAIL', ccy: 'CAD', match: ['retail sales', 'ventas minoristas'], avoid: [] },
+  { id: 'CAD_GDP', ccy: 'CAD', match: ['monthly gdp', 'gdp', 'pib mensual', 'pib'], avoid: ['final'] },
 
-  // CHF - 9 Indicators
-  { id: 'CHF_PROCURA_MFG', ccy: 'CHF', match: ['procure.ch manufacturing pmi', 'procure.ch pmi', 'pmi manufacturero de procure.ch'], avoid: ['services'] },
-  { id: 'CHF_PROCURA_SERV', ccy: 'CHF', match: ['procure.ch services pmi', 'procure.ch services', 'pmi servicios de procure.ch'], avoid: ['manufacturing', 'mfg'] },
-  { id: 'CHF_CPI', ccy: 'CHF', match: ['cpi', 'ipc'], avoid: ['core', 'subyacente'] },
-  { id: 'CHF_UNEMP', ccy: 'CHF', match: ['unemployment rate', 'tasa de desempleo'], avoid: ['change', 'cambio'] },
-  { id: 'CHF_RETAIL', ccy: 'CHF', match: ['real retail sales', 'retail sales', 'ventas minoristas reales'], avoid: [] },
-  { id: 'CHF_SECO_CONF', ccy: 'CHF', match: ['seco consumer climate', 'consumer confidence', 'clima de consumo seco', 'confianza del consumidor'], avoid: [] },
-  { id: 'CHF_KOF', ccy: 'CHF', match: ['kof leading indicator', 'kof economic barometer', 'indicador kof', 'barometro economico kof'], avoid: [] },
-  { id: 'CHF_ZEW_CS', ccy: 'CHF', match: ['cs-cfas economic expectations', 'cs cfas', 'zew', 'expectativas economicas de cs-cfas'], avoid: [] },
-  { id: 'CHF_GDP', ccy: 'CHF', match: ['quarterly gdp', 'gdp', 'pib trimestral', 'pib'], avoid: [] },
+  // CHF - CPI (Deflation/SNB Trigger) + KOF + Procure.ch PMI
+  { id: 'CHF_CPI', ccy: 'CHF', match: ['cpi', 'ipc'], avoid: [] },
+  { id: 'CHF_KOF', ccy: 'CHF', match: ['kof economic barometer', 'kof indicator', 'barometro economico kof'], avoid: [] },
+  { id: 'CHF_PROCURE', ccy: 'CHF', match: ['procure.ch manufacturing pmi', 'procure.ch pmi', 'pmi del sector manufacturero de procure.ch'], avoid: ['services'] },
+  { id: 'CHF_GDP_RETAIL', ccy: 'CHF', match: ['gdp', 'real retail sales', 'retail sales', 'pib', 'ventas minoristas'], avoid: [] },
 
-  // CNH - 9 Indicators
-  { id: 'CNH_NBS_MFG', ccy: 'CNH', match: ['nbs manufacturing pmi', 'official manufacturing pmi', 'pmi manufacturero oficial', 'pmi manufacturero del nbs'], avoid: ['non-manufacturing', 'services'] },
-  { id: 'CNH_NBS_NON_MFG', ccy: 'CNH', match: ['nbs non-manufacturing pmi', 'official non-manufacturing pmi', 'pmi no manufacturero', 'pmi no manufacturero del nbs'], avoid: [] },
-  { id: 'CNH_CAIXIN_MFG', ccy: 'CNH', match: ['caixin manufacturing pmi', 'caixin mfg', 'pmi manufacturero de caixin'], avoid: ['services', 'composite'] },
-  { id: 'CNH_CAIXIN_SERV', ccy: 'CNH', match: ['caixin services pmi', 'caixin services', 'pmi de servicios de caixin'], avoid: ['mfg', 'manufacturing'] },
-  { id: 'CNH_CPI', ccy: 'CNH', match: ['cpi', 'ipc'], avoid: ['core', 'subyacente'] },
-  { id: 'CNH_PPI', ccy: 'CNH', match: ['ppi', 'producer price index', 'ipp'], avoid: [] },
-  { id: 'CNH_RETAIL', ccy: 'CNH', match: ['retail sales', 'ventas minoristas'], avoid: [] },
-  { id: 'CNH_IND_PROD', ccy: 'CNH', match: ['industrial production', 'produccion industrial'], avoid: [] },
-  { id: 'CNH_GDP', ccy: 'CNH', match: ['gdp', 'pib'], avoid: [] }
+  // CNH - China Catalysts Driving AUD, NZD & Global Commodities (Course Page 29)
+  { id: 'CNH_PPI', ccy: 'CNH', match: ['ppi', 'producer price', 'ipp'], avoid: [] },
+  { id: 'CNH_MFG_PMI', ccy: 'CNH', match: ['manufacturing pmi', 'caixin manufacturing pmi', 'pmi manufacturero'], avoid: ['services', 'composite', 'non-manufacturing'] },
+  { id: 'CNH_GDP_IND', ccy: 'CNH', match: ['gdp', 'industrial production', 'pib', 'produccion industrial'], avoid: [] },
+  { id: 'CNH_TRADE', ccy: 'CNH', match: ['trade balance', 'imports', 'exports', 'balanza comercial'], avoid: [] },
+  { id: 'CNH_TSF', ccy: 'CNH', match: ['total social financing', 'aggregate financing', 'new yuan loans', 'loan prime rate'], avoid: [] }
 ];
+
+const WHITELIST: Record<string, string[]> = {
+  UNIVERSAL: [
+    // Rate Decisions, Policy Statements, Minutes & Press Conferences (No generic 'speaks' or 'statement')
+    'interest rate decision', 'monetary policy statement', 'rate statement', 'fomc statement',
+    'press conference', 'meeting minutes', 'summary of opinions', 'economic projections',
+    'dot plot', 'monetary policy assessment', 'monetary policy report',
+    'cash rate', 'overnight rate', 'policy rate', 'bank rate', 'loan prime rate',
+    'tasas de interes', 'politica monetaria', 'actas', 'rueda de prensa',
+    // Core PMI Surveys (Flash/Preliminary Mfg & Services)
+    'manufacturing pmi', 'services pmi', 'non-manufacturing pmi',
+    'pmi manufacturero', 'pmi de servicios', 'pmi no manufacturero'
+  ],
+  USD: ['ism', 'cpi', 'pce', 'ppi', 'unemployment rate', 'unemployment', 'nfp', 'nonfarm payrolls', 'non-farm payrolls', 'adp', 'average hourly earnings', 'employment cost index', 'eci', 'jobless claims', 'jolts', 'retail sales', 'gdp', 'gdpnow', 'atlanta fed', 'cb consumer confidence', 'michigan', 'u-mich', 'nfib', 'philly fed', 'empire state', 'durable goods', 'ipc', 'tasa de desempleo'],
+  CAD: ['ivey', 'cpi', 'median cpi', 'trimmed cpi', 'common cpi', 'ppi', 'ippi', 'unemployment rate', 'unemployment', 'net employment change', 'employment change', 'average hourly wages', 'hourly wages', 'retail sales', 'monthly gdp', 'gdp', 'boc business outlook', 'cfib', 'cb consumer survey', 'ipc', 'tasa de desempleo', 'desempleo', 'empleo', 'ventas minoristas', 'pib'],
+  EUR: ['hcob', 'cpi', 'hicp', 'ppi', 'negotiated wages', 'unemployment', 'germany unemp', 'retail sales', 'gdp', 'ifo', 'zew', 'consumer confidence', 'gfk', 'ipc', 'tasa de desempleo', 'desempleo', 'ventas minoristas', 'pib'],
+  CHF: ['procure', 'svme', 'cpi', 'ppi', 'unemp', 'unemployment', 'retail sales', 'gdp', 'kof', 'seco', 'consumer sentiment', 'ipc', 'tasa de desempleo', 'desempleo', 'ventas minoristas', 'pib'],
+  GBP: ['cpi', 'rpi', 'ppi', 'average earnings', 'unemployment rate', 'unemployment', 'claimant count', 'retail sales', 'monthly gdp', 'gdp', 'gfk', 'cbi', 'ipc', 'tasa de desempleo', 'desempleo', 'ventas minoristas', 'pib'],
+  JPY: ['jibun', 'tokyo cpi', 'national cpi', 'ppi', 'cgpi', 'unemployment rate', 'unemployment', 'cash earnings', 'retail sales', 'gdp', 'jcer', 'tankan', 'consumer survey', 'ipc', 'tasa de desempleo', 'desempleo', 'ventas minoristas', 'pib'],
+  AUD: ['judo', 'cpi', 'trimmed mean', 'weighted mean', 'monthly cpi indicator', 'ppi', 'wage price index', 'wpi', 'unemployment rate', 'unemployment', 'employment change', 'retail sales', 'gdp', 'westpac', 'nab', 'aig', 'trade balance', 'ipc', 'tasa de desempleo', 'desempleo', 'empleo', 'ventas minoristas', 'pib'],
+  NZD: ['busnz', 'psi', 'cpi', 'food prices', 'ppi', 'unemployment rate', 'unemployment', 'mei jobs', 'filled jobs', 'retail sales', 'gdp', 'anz', 'gdt', 'trade balance', 'ipc', 'tasa de desempleo', 'desempleo', 'pib'],
+  CNH: ['lpr', 'cpi', 'ppi', 'gdp', 'caixin', 'manufacturing pmi', 'industrial production', 'retail sales', 'trade balance', 'tsf', 'total social financing', 'new yuan loans', 'aggregate financing', 'ipc', 'pib']
+};
 
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD', 'NZD', 'CHF', 'CNH'];
 
@@ -185,33 +194,89 @@ function getCoreRuleId(ccy: string, eventName: string): string | null {
 }
 
 function isWhitelisted(ccy: string, eventName: string): boolean {
-  if (!CURRENCIES.includes(ccy)) return false;
-  const norm = normalizeText(eventName);
-  const discardWords = [
-    'holiday', 'bank holiday', 'auction', 'bill', 'bond', 'note',
-    'fomc member', 'ecb member', 'boe member', 'speaks', 'speech',
-    'feriado', 'festivo', 'subasta', 'discurso', 'comparecencia', 'miembro del fomc', 'miembro del bce'
+  if (!eventName) return false;
+  if (!CURRENCIES.includes(ccy) && ccy !== 'CNY' && ccy !== 'CN') return false;
+  const lower = normalizeText(eventName);
+
+  const blacklist = [
+    // Energy & Commodities (Scored separately in Intermarket)
+    'opec', 'crude oil', 'oil inventories', 'eia crude', 'gasoline inventories', 'distillate stocks', 'baker hughes',
+    // Sovereign Debt, Bond, Note & Bill Auctions
+    'auction', 'bill auction', 'note auction', 'bond auction', 'oat', 'bund', 'btp', 'gilt', 'jgb',
+    'subasta', 'obligacion', 'bonos', 'letras',
+    // Car Registrations, Housing & Construction Noise
+    'car registration', 'car registrations', 'auto sales', 'matriculaciones',
+    'building permits', 'housing starts', 'building approvals', 'building consents',
+    'home sales', 'halifax', 'nationwide', 'nahb', 'construction pmi',
+    // Fiscal, Positioning & Lagging Secondary Releases
+    'budget', 'public sector net borrowing', 'current account', 'tic net', 'foreign securities',
+    'cftc', 'speculative net', 'factory orders', 'machine orders', 'wholesale sales',
+    'manufacturing sales', 'business inventories', 'capacity utilization',
+    'redbook', 'consumer credit', 'household spending',
+    // Redundant Final Revisions & NFP Sub-Lines
+    'final', '4-week', 'continuing jobless',
+    'private nonfarm payrolls', 'manufacturing payrolls', 'government payrolls',
+    // Minor Regional Surveys & Calendar Non-Events
+    'fed regional', 'dallas fed', 'richmond fed', 'kansas city fed', 'chicago fed',
+    'buba', 'bank holiday', 'daylight saving'
   ];
-  if (discardWords.some(w => norm.includes(w))) return false;
-  return true;
+  if (blacklist.some(term => lower.includes(normalizeText(term)))) return false;
+
+  // EUR Regional Noise Filter (Keep Eurozone aggregate & Germany; block peripheral prints)
+  if (ccy === 'EUR') {
+    const regionalNoise = ['italy', 'italian', 'spain', 'spanish', 'belgium', 'austria', 'greece', 'portugal', 'dutch', 'netherlands'];
+    const isAllowedSpeech = lower.includes('lagarde') || lower.includes('schnabel') || lower.includes('lane') || lower.includes('nagel') || lower.includes('villeroy') || lower.includes('knot') || lower.includes('panetta') || lower.includes('escriva');
+    const isCoreMacro = lower.includes('euro zone') || lower.includes('eurozone') || lower.includes('german') || lower.includes('germany') || lower.includes('ifo') || lower.includes('zew');
+    if (regionalNoise.some(term => lower.includes(term)) && !isAllowedSpeech && !isCoreMacro) {
+      return false;
+    }
+  }
+
+  // Central Bank Speakers Filter ("Los Ruidosos" vs "Los Monolitos" - Course Pages 59-61)
+  if (lower.includes('speaks') || lower.includes('speech') || lower.includes('testimony') || lower.includes('discurso')) {
+    if (ccy === 'USD') return true; // Fed: All governors & regional presidents move markets
+    if (ccy === 'EUR') {
+      const ecbVips = ['lagarde', 'schnabel', 'lane', 'nagel', 'villeroy', 'knot', 'panetta', 'escriva', 'president'];
+      return ecbVips.some(name => lower.includes(name));
+    }
+    if (ccy === 'GBP') {
+      const boeVips = ['bailey', 'pill', 'mann', 'dhingra', 'greene', 'taylor', 'governor', 'mpc member'];
+      return boeVips.some(name => lower.includes(name));
+    }
+    if (ccy === 'CAD') return lower.includes('macklem') || lower.includes('governor'); // Monolith: Governor only
+    if (ccy === 'AUD') return lower.includes('bullock') || lower.includes('governor'); // Monolith: Governor only
+    if (ccy === 'NZD') return lower.includes('breman') || lower.includes('orr') || lower.includes('governor'); // Monolith: Governor only
+    if (ccy === 'JPY') return lower.includes('ueda') || lower.includes('governor'); // Monolith: Governor only
+    if (ccy === 'CHF') return lower.includes('schlegel') || lower.includes('president') || lower.includes('chairman'); // Extreme Monolith: President only
+    return false;
+  }
+
+  const coreRuleId = getCoreRuleId(ccy, eventName);
+  if (coreRuleId) return true;
+
+  if (WHITELIST.UNIVERSAL.some(term => lower.includes(normalizeText(term)))) return true;
+
+  const targetCcy = (ccy === 'CNY' || ccy === 'CN') ? 'CNH' : ccy;
+  const terms = WHITELIST[targetCcy] || [];
+  return terms.some(term => lower.includes(normalizeText(term)));
 }
 
 function getCategorySentimentTitle(ccy: string, eventName: string, isEs: boolean): string {
   const norm = normalizeText(eventName);
 
-  if (norm.includes('pmi') || norm.includes('manufacturing') || norm.includes('services') || norm.includes('manufacturero') || norm.includes('servicios') || norm.includes('ifo') || norm.includes('tankan') || norm.includes('industry') || norm.includes('industria')) {
+  if (norm.includes('pmi') || norm.includes('manufacturing') || norm.includes('services') || norm.includes('manufacturero') || norm.includes('servicios') || norm.includes('ifo') || norm.includes('zew') || norm.includes('kof') || norm.includes('tankan') || norm.includes('industry') || norm.includes('industria')) {
     return isEs ? `Actividad Económica y PMI (${ccy})` : `Economic Activity & PMIs (${ccy})`;
   }
-  if (norm.includes('cpi') || norm.includes('ipc') || norm.includes('inflation') || norm.includes('inflacion') || norm.includes('ppi') || norm.includes('ipp') || norm.includes('price') || norm.includes('precios') || norm.includes('hicp')) {
+  if (norm.includes('cpi') || norm.includes('pce') || norm.includes('ipc') || norm.includes('inflation') || norm.includes('inflacion') || norm.includes('ppi') || norm.includes('ipp') || norm.includes('price') || norm.includes('precios') || norm.includes('hicp')) {
     return isEs ? `Inflación y Presión de Precios (${ccy})` : `Inflation & Price Pressures (${ccy})`;
   }
-  if (norm.includes('employment') || norm.includes('payroll') || norm.includes('unemployment') || norm.includes('desempleo') || norm.includes('empleo') || norm.includes('claimant') || norm.includes('jobs') || norm.includes('nominas') || norm.includes('earnings') || norm.includes('salarial')) {
+  if (norm.includes('employment') || norm.includes('payroll') || norm.includes('unemployment') || norm.includes('desempleo') || norm.includes('empleo') || norm.includes('claimant') || norm.includes('jobs') || norm.includes('jobless') || norm.includes('jolts') || norm.includes('adp') || norm.includes('nominas') || norm.includes('earnings') || norm.includes('wages') || norm.includes('salarial')) {
     return isEs ? `Mercado Laboral y Empleo (${ccy})` : `Labor Market & Employment (${ccy})`;
   }
   if (norm.includes('retail') || norm.includes('ventas') || norm.includes('sales') || norm.includes('consumer') || norm.includes('consumidor') || norm.includes('spending') || norm.includes('gasto') || norm.includes('card') || norm.includes('tarjeta')) {
     return isEs ? `Consumo y Ventas Minoristas (${ccy})` : `Consumer Spending & Retail (${ccy})`;
   }
-  if (norm.includes('rate') || norm.includes('tasa') || norm.includes('central bank') || norm.includes('banco central') || norm.includes('interest') || norm.includes('interes') || norm.includes('policy') || norm.includes('politica')) {
+  if (norm.includes('rate') || norm.includes('tasa') || norm.includes('central bank') || norm.includes('banco central') || norm.includes('interest') || norm.includes('interes') || norm.includes('policy') || norm.includes('politica') || norm.includes('speaks') || norm.includes('speech') || norm.includes('testimony') || norm.includes('discurso') || norm.includes('minutes') || norm.includes('actas') || norm.includes('dot plot') || norm.includes('lpr')) {
     return isEs ? `Decisión de Tasas y Política (${ccy})` : `Rate Decision & Policy (${ccy})`;
   }
   if (norm.includes('confidence') || norm.includes('confianza') || norm.includes('sentiment') || norm.includes('sentimiento') || norm.includes('optimism') || norm.includes('optimismo') || norm.includes('barometer') || norm.includes('barometro')) {
@@ -285,7 +350,8 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
                 if (timeMatch) cleanTime = timeMatch[1];
                 else cleanTime = "—";
               }
-              return { ...item, time: cleanTime };
+              const ruleId = getCoreRuleId(item.ccy, item.event);
+              return { ...item, time: cleanTime, coreRuleId: ruleId, isCore: Boolean(ruleId) };
             });
           });
 
@@ -1052,10 +1118,10 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
     };
 
     let headerRowIdx = -1;
-    for (let r = 0; r < Math.min(rawRows.length, 5); r++) {
+    for (let r = 0; r < Math.min(rawRows.length, 15); r++) {
       const row = (rawRows[r] || []).map(c => String(c || '').trim().toLowerCase());
       const hasEventHeader = row.some(c => c === 'event' || c === 'indicator' || c === 'evento' || c === 'indicador');
-      const hasCcyHeader = row.some(c => c === 'cur.' || c === 'cur' || c === 'currency' || c === 'divisa' || c === 'moneda' || c === 'country' || c === 'pais');
+      const hasCcyHeader = row.some(c => c === 'cur.' || c === 'cur' || c === 'currency' || c === 'divisa' || c === 'moneda' || c === 'country' || c === 'pais' || c === 'país');
       if (hasEventHeader || hasCcyHeader) {
         headerRowIdx = r;
         row.forEach((cell, idx) => {

@@ -927,10 +927,10 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
       if (targetCurr === "JPY") {
         if (iname === "jibun mfg pmi" && clean.includes("manufacturing pmi")) return i;
         if (iname === "jibun services pmi" && (clean.includes("services pmi") || clean.includes("manufacturing & services pmi"))) return i;
-        if (iname === "tokyo cpi mom" && (clean.includes("tokyo cpi") || clean.includes("tokyo core cpi") || clean.includes("national cpi"))) return i;
+        if (iname === "tokyo cpi mom" && (clean.includes("tokyo cpi") || clean.includes("tokyo core cpi") || clean.includes("national cpi") || clean.includes("cpi, n.s.a") || clean.includes("cpi n.s.a") || (clean.includes("cpi") && clean.includes("mom")))) return i;
         if (iname === "unemployment rate" && (clean === "unemployment rate" || clean.startsWith("unemployment rate ("))) return i;
-        if (iname === "cash earnings mom" && (clean.includes("cash earnings") || clean.includes("wage income"))) return i;
-        if (iname === "retail sales mom" && !clean.includes("large") && !clean.includes("yoy") && (clean.includes("retail sales (mom)") || clean.includes("retail sales") || clean.includes("retailers' sales (mom)"))) return i;
+        if (iname === "cash earnings mom" && (clean.includes("cash earnings") || clean.includes("wage income") || clean.includes("overall wage") || clean.includes("labor cash earnings") || clean.includes("wage"))) return i;
+        if (iname === "retail sales mom" && !clean.includes("large") && (clean.includes("retail sales (mom)") || clean.includes("retail sales") || clean.includes("retailers' sales (mom)"))) return i;
         if (iname === "consumer survey" && (clean.includes("household confidence") || clean.includes("consumer survey") || clean.includes("consumer confidence"))) return i;
         if (iname === "reuters tankan" && clean.includes("reuters tankan")) return i;
         if (iname === "jcer monthly gdp" && (clean.includes("jcer") || clean.includes("monthly gdp")) && !clean.includes("tertiary")) return i;
@@ -943,7 +943,7 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
         if (iname === "cpi indicator mom" && (clean.includes("cpi indicator") || clean.includes("monthly cpi"))) return i;
         if (iname === "unemployment rate" && (clean === "unemployment rate" || clean.startsWith("unemployment rate ("))) return i;
         if (iname === "employment change" && (clean === "employment change" || clean.startsWith("employment change ("))) return i;
-        if (iname === "retail sales mom" && !clean.includes("yoy") && (clean.includes("retail sales (mom)") || clean === "retail sales" || clean.startsWith("retail sales (mom)"))) return i;
+        if (iname === "retail sales mom" && (clean.includes("retail sales (mom)") || clean.includes("retail sales (yoy)") || clean.includes("retail sales") || clean.startsWith("retail sales"))) return i;
         if (iname === "westpac sentiment" && (clean.includes("westpac consumer sentiment") || clean.includes("westpac sentiment"))) return i;
         if (iname === "nab business confidence" && clean.includes("nab business confidence")) return i;
         if (iname === "aig industry index" && (clean.includes("aig industry index") || clean.includes("ai group industry") || (clean.includes("aig") && clean.includes("index")))) return i;
@@ -951,13 +951,13 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
 
       // NZD Indicators (9 slots: NZ)
       if (targetCurr === "NZD") {
-        if (iname === "busnz mfg pmi" && (clean.includes("business nz pmi") || clean.includes("businessnz pmi") || (clean.includes("manufacturing pmi") && clean.includes("businessnz")))) return i;
-        if (iname === "busnz services pmi" && (clean.includes("performance of services") || clean.includes("services index") || clean.includes("businessnz psi"))) return i;
-        if (iname === "food prices mom" && (clean.includes("fpi (mom)") || clean.includes("food price index (mom)") || clean.includes("food price"))) return i;
-        if (iname === "unemployment rate" && (clean === "unemployment rate" || clean.startsWith("unemployment rate ("))) return i;
-        if (iname === "mei jobs change" && !clean.includes("migration") && !clean.includes("sales") && (clean.includes("mei jobs") || clean.includes("employment change"))) return i;
+        if (iname === "busnz mfg pmi" && (clean.includes("business nz pmi") || clean.includes("businessnz pmi") || clean.includes("business nz") || clean.includes("mfg pmi") || (clean.includes("manufacturing") && clean.includes("pmi")))) return i;
+        if (iname === "busnz services pmi" && (clean.includes("performance of services index") || clean.includes("performance of services") || clean.includes("services index") || clean.includes("psi") || clean.includes("services pmi") || clean.includes("businessnz psi"))) return i;
+        if (iname === "food prices mom" && (clean.includes("fpi (mom)") || clean.includes("fpi mom") || clean.includes("fpi") || clean.includes("food price index") || clean.includes("food price") || clean.includes("food prices"))) return i;
+        if (iname === "unemployment rate" && (clean === "unemployment rate" || clean.startsWith("unemployment rate (") || clean.includes("hlfs unemployment") || clean.includes("unemployment"))) return i;
+        if (iname === "mei jobs change" && !clean.includes("migration") && (clean.includes("mei jobs") || clean.includes("employment change") || clean.includes("filled jobs") || clean.includes("jobs change"))) return i;
         if (iname === "card transactions" && (clean.includes("electronic card retail sales (mom)") || clean.includes("card transactions") || clean.includes("card retail"))) return i;
-        if (iname === "anz consumer confidence" && (clean.includes("anz consumer confidence") || clean.includes("consumer confidence") || clean.includes("consumer sentiment"))) return i;
+        if (iname === "anz consumer confidence" && (clean.includes("anz consumer confidence") || clean.includes("westpac consumer sentiment") || clean.includes("westpac sentiment") || clean.includes("consumer confidence") || clean.includes("consumer sentiment"))) return i;
         if (iname === "anz business confidence" && (clean.includes("anz business confidence") || clean.includes("business confidence"))) return i;
         if (iname === "busnz activity index" && !clean.includes("terms of trade") && (clean.includes("nbnz own activity") || clean.includes("businessnz activity") || clean.includes("own activity"))) return i;
       }
@@ -970,22 +970,22 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
         if (iname === "unemployment rate" && (clean === "unemployment rate" || clean.startsWith("unemployment rate ("))) return i;
         if (iname === "net employment change" && (clean === "employment change" || clean.startsWith("employment change (") || clean.includes("net change in employment"))) return i;
         if (iname === "retail sales mom" && !clean.includes("core") && !clean.includes("yoy") && (clean === "retail sales (mom)" || clean.startsWith("retail sales (mom)"))) return i;
-        if (iname === "cb consumer survey" && !clean.includes("leading index") && (clean.includes("ipsos pcsi") || clean.includes("business outlook") || clean.includes("consumer confidence"))) return i;
-        if (iname === "cfib business barometer" && !clean.includes("wholesale") && !clean.includes("manufacturing sales") && (clean.includes("business barometer") || clean.includes("cfib"))) return i;
+        if (iname === "cb consumer survey" && (clean.includes("ipsos pcsi") || clean.includes("business outlook") || clean.includes("boc business outlook") || clean.includes("consumer confidence") || clean.includes("consumer survey") || clean.includes("leading index"))) return i;
+        if (iname === "cfib business barometer" && !clean.includes("wholesale") && (clean.includes("business barometer") || clean.includes("cfib") || clean.includes("barometer"))) return i;
         if (iname === "monthly gdp mom" && (clean.startsWith("gdp (mom)") || clean === "gdp (mom)" || clean.includes("monthly gdp"))) return i;
       }
 
       // CHF Indicators (9 slots: CH)
       if (targetCurr === "CHF") {
         if (iname === "procure mfg pmi" && clean.includes("manufacturing pmi")) return i;
-        if (iname === "procure services pmi" && clean.includes("services pmi")) return i;
+        if (iname === "procure services pmi" && (clean.includes("services pmi") || clean.includes("procure services") || clean.includes("procure.ch services"))) return i;
         if (iname === "cpi mom" && !clean.includes("core") && !clean.includes("yoy") && (clean === "cpi (mom)" || clean.startsWith("cpi (mom)"))) return i;
         if (iname === "unemp rate" && clean.includes("unemployment rate") && !clean.includes("change")) return i;
-        if (iname === "unemp change" && clean.includes("unemployment change")) return i;
-        if (iname === "retail sales mom" && !clean.includes("yoy") && (clean.includes("retail sales (mom)") || clean.includes("real retail sales (mom)"))) return i;
+        if (iname === "unemp change" && (clean.includes("unemployment change") || clean.includes("unemployment rate s.a") || clean.includes("unemployment rate sa"))) return i;
+        if (iname === "retail sales mom" && (clean.includes("retail sales (mom)") || clean.includes("real retail sales (mom)") || clean.includes("retail sales (yoy)") || clean.includes("real retail sales (yoy)") || clean.includes("retail sales"))) return i;
         if (iname === "consumer sentiment" && (clean.includes("consumer climate") || clean.includes("consumer sentiment"))) return i;
         if (iname === "kof indicator" && clean.includes("kof")) return i;
-        if (iname === "seco economic indicators" && !clean.includes("climate") && (clean.includes("seco") && (clean.includes("forecast") || clean.includes("economic") || clean.includes("gdp")))) return i;
+        if (iname === "seco economic indicators" && (clean.includes("seco") || clean.includes("consumer climate") || clean.includes("economic forecast"))) return i;
       }
     }
 
