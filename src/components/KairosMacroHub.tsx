@@ -394,6 +394,9 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
   const [activeCurrencyFilter, setActiveCurrencyFilter] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isDivergenceExpanded, setIsDivergenceExpanded] = useState<boolean>(false);
+  const [divergenceDirectionFilter, setDivergenceDirectionFilter] = useState<'ALL' | 'BUY' | 'SELL'>('ALL');
+  const [divergenceMinDiff, setDivergenceMinDiff] = useState<number>(3);
+  const [divergenceCurrencyFilter, setDivergenceCurrencyFilter] = useState<string>('ALL');
   const [isDragOver, setIsDragOver] = useState<boolean>(false);
 
   const [confirmModal, setConfirmModal] = useState<{
@@ -528,6 +531,7 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
     const results: Array<{
       pair: string;
       actionBadge: string;
+      direction: 'BUY' | 'SELL';
       strong: string;
       weak: string;
       strongScore: number;
@@ -550,6 +554,7 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
           let base = '';
           let quote = '';
           let actionText = '';
+          let direction: 'BUY' | 'SELL' = 'BUY';
 
           const pairCandidate = `${strong}${weak}`;
           const reverseCandidate = `${weak}${strong}`;
@@ -558,23 +563,28 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
             if (APPROVED_PAIRS.includes(reverseCandidate)) {
               base = weak;
               quote = strong;
+              direction = 'SELL';
               actionText = isEs ? `VENTA ${base}/${quote}` : `SELL ${base}/${quote}`;
             } else {
               base = strong;
               quote = weak;
-              actionText = (base === 'EUR' || base === 'GBP' || base === 'AUD' || base === 'NZD')
+              const isDirectBuy = base === 'EUR' || base === 'GBP' || base === 'AUD' || base === 'NZD';
+              direction = isDirectBuy ? 'BUY' : 'SELL';
+              actionText = isDirectBuy
                 ? (isEs ? `COMPRA ${base}/${quote}` : `BUY ${base}/${quote}`)
                 : (isEs ? `VENTA ${base}/${quote}` : `SELL ${base}/${quote}`);
             }
           } else {
             base = strong;
             quote = weak;
+            direction = 'BUY';
             actionText = isEs ? `COMPRA ${base}/${quote}` : `BUY ${base}/${quote}`;
           }
 
           results.push({
             pair: `${base}/${quote}`,
             actionBadge: actionText,
+            direction,
             strong,
             weak,
             strongScore: computedMatrix.totals[strong] || 0,
@@ -585,9 +595,60 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
       }
     }
 
-    results.sort((a, b) => b.diff - a.diff);
+    results.sort((a, b) => (b.diff - a.diff) || (b.strongScore - a.strongScore));
     return results;
   }, [computedMatrix.totals, isEs]);
+
+  const divergenceFilterStats = useMemo(() => {
+    const byCurrencyAndSpread = divergences.filter(d => {
+      const matchesCcy = divergenceCurrencyFilter === 'ALL' || d.strong === divergenceCurrencyFilter || d.weak === divergenceCurrencyFilter;
+      return matchesCcy && d.diff >= divergenceMinDiff;
+    });
+
+    const byCurrencyAndDir = divergences.filter(d => {
+      const matchesCcy = divergenceCurrencyFilter === 'ALL' || d.strong === divergenceCurrencyFilter || d.weak === divergenceCurrencyFilter;
+      const matchesDir = divergenceDirectionFilter === 'ALL' || d.direction === divergenceDirectionFilter;
+      return matchesCcy && matchesDir;
+    });
+
+    const currencyCounts: Record<string, number> = {};
+    CURRENCIES.forEach(ccy => {
+      currencyCounts[ccy] = divergences.filter(d =>
+        (d.strong === ccy || d.weak === ccy) &&
+        (divergenceDirectionFilter === 'ALL' || d.direction === divergenceDirectionFilter) &&
+        d.diff >= divergenceMinDiff
+      ).length;
+    });
+
+    const filtered = byCurrencyAndSpread.filter(
+      d => divergenceDirectionFilter === 'ALL' || d.direction === divergenceDirectionFilter
+    );
+
+    return {
+      filtered,
+      allDirCount: byCurrencyAndSpread.length,
+      buyCount: byCurrencyAndSpread.filter(d => d.direction === 'BUY').length,
+      sellCount: byCurrencyAndSpread.filter(d => d.direction === 'SELL').length,
+      tierCounts: {
+        3: byCurrencyAndDir.filter(d => d.diff >= 3).length,
+        4: byCurrencyAndDir.filter(d => d.diff >= 4).length,
+        5: byCurrencyAndDir.filter(d => d.diff >= 5).length,
+        6: byCurrencyAndDir.filter(d => d.diff >= 6).length
+      },
+      currencyCounts
+    };
+  }, [divergences, divergenceDirectionFilter, divergenceMinDiff, divergenceCurrencyFilter]);
+
+  const hasActiveDivergenceFilters =
+    divergenceDirectionFilter !== 'ALL' ||
+    divergenceMinDiff !== 3 ||
+    divergenceCurrencyFilter !== 'ALL';
+
+  const resetDivergenceFilters = () => {
+    setDivergenceDirectionFilter('ALL');
+    setDivergenceMinDiff(3);
+    setDivergenceCurrencyFilter('ALL');
+  };
 
   // Handlers for Score Buttons
   const setCategoryScore = (categoryId: string, ccy: string, scoreVal: number, title: string, eventsSummary: string) => {
@@ -1596,14 +1657,16 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
                 <span>⚡</span> {isEs ? 'Escáner de Divergencias Macro Detectadas' : 'Macro Divergence Opportunities Scanner'}
               </span>
               <p className="text-[10px] text-zinc-500 font-sans mt-0.5">
-                {isEs ? 'Pares de divisas con asimetría direccional ≥ 3 puntos' : 'Currency crosses with directional score differential ≥ 3 pts'}
+                {isEs ? 'Pares de divisas con asimetría direccional ≥ 3 puntos (ordenados de mayor a menor)' : 'Currency crosses with directional score differential ≥ 3 pts (ranked highest first)'}
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="text-[10px] bg-cyan-950/70 text-cyan-300 border border-cyan-500/40 px-2.5 py-1 font-bold">
-                {divergences.length} {isEs ? 'Pares Aprobados' : 'Approved Pairs'}
+                {hasActiveDivergenceFilters
+                  ? `${divergenceFilterStats.filtered.length} / ${divergences.length} ${isEs ? 'Filtrados' : 'Filtered'}`
+                  : `${divergences.length} ${isEs ? 'Pares Aprobados' : 'Approved Pairs'}`}
               </span>
-              {divergences.length > 2 && (
+              {divergenceFilterStats.filtered.length > 2 && (
                 <button
                   type="button"
                   onClick={() => setIsDivergenceExpanded(!isDivergenceExpanded)}
@@ -1611,29 +1674,166 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
                 >
                   {isDivergenceExpanded 
                     ? (isEs ? '↑ Mostrar Menos (Top 2)' : '↑ Show Less (Top 2)') 
-                    : (isEs ? `↕️ Ver todos (${divergences.length} Pares)` : `↕️ View All (${divergences.length} Pairs)`)}
+                    : (isEs ? `↕️ Ver todos (${divergenceFilterStats.filtered.length} Pares)` : `↕️ View All (${divergenceFilterStats.filtered.length} Pairs)`)}
                 </button>
               )}
             </div>
           </div>
 
-          {divergences.length > 0 ? (
+          {divergences.length > 0 && (
+            <div className="bg-[#05060a] border border-zinc-800/90 p-3 flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+              {/* Direction Filter: ALL / BUY / SELL */}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                <span className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold shrink-0">
+                  {isEs ? 'Dirección:' : 'Direction:'}
+                </span>
+                <div className="grid grid-cols-3 sm:flex items-center gap-1.5 w-full sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={() => setDivergenceDirectionFilter('ALL')}
+                    className={`px-2.5 py-1.5 text-[10px] sm:text-[11px] font-bold uppercase border transition cursor-pointer min-h-[34px] flex items-center justify-center gap-1 ${
+                      divergenceDirectionFilter === 'ALL'
+                        ? 'bg-cyan-500 text-black border-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.3)]'
+                        : 'bg-zinc-900/90 text-zinc-300 border-zinc-800 hover:bg-zinc-800'
+                    }`}
+                  >
+                    <span>{isEs ? 'TODAS' : 'ALL'}</span>
+                    <span className="opacity-80">({divergenceFilterStats.allDirCount})</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDivergenceDirectionFilter('BUY')}
+                    className={`px-2.5 py-1.5 text-[10px] sm:text-[11px] font-bold uppercase border transition cursor-pointer min-h-[34px] flex items-center justify-center gap-1 ${
+                      divergenceDirectionFilter === 'BUY'
+                        ? 'bg-emerald-500 text-black border-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.35)]'
+                        : 'bg-emerald-950/30 text-emerald-400 border-emerald-500/30 hover:bg-emerald-950/60'
+                    }`}
+                  >
+                    <span>▲ {isEs ? 'COMPRAS' : 'BUY'}</span>
+                    <span className="opacity-85">({divergenceFilterStats.buyCount})</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDivergenceDirectionFilter('SELL')}
+                    className={`px-2.5 py-1.5 text-[10px] sm:text-[11px] font-bold uppercase border transition cursor-pointer min-h-[34px] flex items-center justify-center gap-1 ${
+                      divergenceDirectionFilter === 'SELL'
+                        ? 'bg-rose-500 text-black border-rose-400 shadow-[0_0_8px_rgba(244,63,94,0.35)]'
+                        : 'bg-rose-950/30 text-rose-400 border-rose-500/30 hover:bg-rose-950/60'
+                    }`}
+                  >
+                    <span>▼ {isEs ? 'VENTAS' : 'SELL'}</span>
+                    <span className="opacity-85">({divergenceFilterStats.sellCount})</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Priority / Spread Threshold + Currency Filter */}
+              <div className="flex flex-col md:flex-row md:items-center gap-2.5 flex-wrap">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                  <span className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold shrink-0">
+                    {isEs ? 'Divergencia Mín:' : 'Min Spread:'}
+                  </span>
+                  <div className="grid grid-cols-4 sm:flex items-center gap-1 w-full sm:w-auto">
+                    {([
+                      { val: 3, label: '≥ 3' },
+                      { val: 4, label: '≥ 4' },
+                      { val: 5, label: '≥ 5' },
+                      { val: 6, label: isEs ? '≥ 6 Top' : '≥ 6 Top' }
+                    ] as const).map(tier => {
+                      const isActive = divergenceMinDiff === tier.val;
+                      const tierCount = divergenceFilterStats.tierCounts[tier.val];
+                      return (
+                        <button
+                          key={tier.val}
+                          type="button"
+                          onClick={() => setDivergenceMinDiff(tier.val)}
+                          className={`px-2 py-1.5 text-[10px] font-bold uppercase border transition cursor-pointer min-h-[34px] flex items-center justify-center gap-1 ${
+                            isActive
+                              ? tier.val >= 6
+                                ? 'bg-amber-400 text-black border-amber-300 shadow-[0_0_8px_rgba(251,191,36,0.35)]'
+                                : 'bg-cyan-500 text-black border-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.3)]'
+                              : 'bg-zinc-900/90 text-zinc-300 border-zinc-800 hover:bg-zinc-800'
+                          }`}
+                        >
+                          <span>{tier.label}</span>
+                          <span className="opacity-75">({tierCount})</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <select
+                    aria-label={isEs ? 'Filtrar divergencias por divisa' : 'Filter divergences by currency'}
+                    value={divergenceCurrencyFilter}
+                    onChange={e => setDivergenceCurrencyFilter(e.target.value)}
+                    className="flex-1 sm:flex-initial bg-[#030305] border border-zinc-800 px-2.5 py-1.5 text-[11px] text-zinc-200 focus:outline-none focus:border-cyan-400 font-mono min-h-[34px] cursor-pointer"
+                  >
+                    <option value="ALL">{isEs ? '🌐 Todas las Divisas' : '🌐 All Currencies'}</option>
+                    {CURRENCIES.map(ccy => (
+                      <option key={ccy} value={ccy}>
+                        {ccy} ({divergenceFilterStats.currencyCounts[ccy] || 0})
+                      </option>
+                    ))}
+                  </select>
+
+                  {hasActiveDivergenceFilters && (
+                    <button
+                      type="button"
+                      onClick={resetDivergenceFilters}
+                      className="px-2.5 py-1.5 text-[10px] font-bold uppercase bg-zinc-900 hover:bg-zinc-800 text-amber-300 border border-amber-500/40 transition cursor-pointer min-h-[34px] shrink-0"
+                    >
+                      {isEs ? '✕ Limpiar' : '✕ Clear'}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {divergenceFilterStats.filtered.length > 0 ? (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 text-xs items-start">
-              {(isDivergenceExpanded ? divergences : divergences.slice(0, 2)).map(d => {
+              {(isDivergenceExpanded ? divergenceFilterStats.filtered : divergenceFilterStats.filtered.slice(0, 2)).map(d => {
                 const strongData = getFullCurrencyBreakdownGrouped(d.strong);
                 const weakData = getFullCurrencyBreakdownGrouped(d.weak);
-                const isBuy = d.actionBadge.includes('COMPRA') || d.actionBadge.includes('BUY');
+                const isBuy = d.direction === 'BUY';
+                const tierBadge =
+                  d.diff >= 6
+                    ? {
+                        label: isEs ? 'EXTREMA' : 'EXTREME',
+                        classes: 'bg-amber-950/90 text-amber-300 border-amber-500/60'
+                      }
+                    : d.diff === 5
+                    ? {
+                        label: isEs ? 'ALTA' : 'HIGH',
+                        classes: 'bg-cyan-950/90 text-cyan-300 border-cyan-500/50'
+                      }
+                    : d.diff === 4
+                    ? {
+                        label: isEs ? 'FUERTE' : 'STRONG',
+                        classes: 'bg-indigo-950/90 text-indigo-300 border-indigo-500/40'
+                      }
+                    : {
+                        label: isEs ? 'BASE' : 'BASE',
+                        classes: 'bg-zinc-900 text-zinc-400 border-zinc-700/70'
+                      };
 
                 return (
                   <div key={d.pair} className="macro-card p-4 sm:p-5 space-y-3 flex flex-col justify-start h-full">
-                    <div className="flex items-center justify-between border-b border-zinc-800/80 pb-3">
+                    <div className="flex items-center justify-between border-b border-zinc-800/80 pb-3 gap-2">
                       <div>
                         <span className="text-[9px] text-zinc-500 uppercase font-mono block">
                           {isEs ? 'Oportunidad Macro' : 'Macro Opportunity'}
                         </span>
-                        <span className="font-black text-cyan-400 text-lg font-mono tracking-tight">{d.pair}</span>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-black text-cyan-400 text-lg font-mono tracking-tight">{d.pair}</span>
+                          <span className={`text-[9px] font-bold px-1.5 py-0.5 border uppercase tracking-wider ${tierBadge.classes}`}>
+                            {tierBadge.label}
+                          </span>
+                        </div>
                       </div>
-                      <div className="text-right font-mono">
+                      <div className="text-right font-mono shrink-0">
                         <span className={`${isBuy ? 'bg-emerald-950/90 text-emerald-400 border-emerald-500/50 shadow-[0_0_8px_rgba(16,185,129,0.2)]' : 'bg-rose-950/90 text-rose-400 border-rose-500/50 shadow-[0_0_8px_rgba(244,63,94,0.2)]'} border px-3 py-1 text-xs font-black block mb-1`}>
                           {d.actionBadge}
                         </span>
@@ -1648,7 +1848,7 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
                       <div className="bg-[#090b12] border border-emerald-500/30 p-3 space-y-2">
                         <div className="flex justify-between items-center border-b border-emerald-500/20 pb-1 font-mono">
                           <span className="font-bold text-emerald-400 text-xs">
-                            {d.strong} (+{d.strongScore})
+                            {d.strong} ({d.strongScore > 0 ? `+${d.strongScore}` : d.strongScore})
                           </span>
                           <span className="text-[9px] text-emerald-500 font-bold uppercase">{isEs ? 'Fuerte' : 'Strong'}</span>
                         </div>
@@ -1695,7 +1895,7 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
                       <div className="bg-[#090b12] border border-rose-500/30 p-3 space-y-2">
                         <div className="flex justify-between items-center border-b border-rose-500/20 pb-1 font-mono">
                           <span className="font-bold text-rose-400 text-xs">
-                            {d.weak} ({d.weakScore})
+                            {d.weak} ({d.weakScore > 0 ? `+${d.weakScore}` : d.weakScore})
                           </span>
                           <span className="text-[9px] text-rose-500 font-bold uppercase">{isEs ? 'Débil' : 'Weak'}</span>
                         </div>
@@ -1741,6 +1941,21 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
                   </div>
                 );
               })}
+            </div>
+          ) : divergences.length > 0 ? (
+            <div className="p-6 text-center text-zinc-400 bg-[#05060a] border border-zinc-800 space-y-2.5">
+              <p className="text-xs font-semibold text-zinc-200">
+                {isEs
+                  ? 'Ninguna oportunidad coincide con los filtros seleccionados.'
+                  : 'No opportunities match the selected filters.'}
+              </p>
+              <button
+                type="button"
+                onClick={resetDivergenceFilters}
+                className="px-3.5 py-1.5 text-[11px] font-bold uppercase bg-cyan-950/70 hover:bg-cyan-900 text-cyan-300 border border-cyan-500/40 transition cursor-pointer"
+              >
+                {isEs ? 'Restablecer Filtros del Escáner' : 'Reset Scanner Filters'}
+              </button>
             </div>
           ) : (
             <div className="p-6 text-center text-zinc-500 bg-[#05060a] border border-zinc-800 space-y-1">
