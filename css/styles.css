@@ -1,15 +1,165 @@
-/* Modern Minimalist Navigation Token Resets */
-body { background-color: #020203; color: #d4d4d8; font-family: 'Inter', system-ui, sans-serif; }
-::-webkit-scrollbar { width: 5px; height: 5px; }
-::-webkit-scrollbar-track { background: #020203; }
-::-webkit-scrollbar-thumb { background: #18181b; border-radius: 2px; }
-::-webkit-scrollbar-thumb:hover { background: #27272a; }
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&family=Urbanist:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,700&display=swap');
 
-.active-tab {
-    color: #06b6d4 !important;
-    border-bottom: 2px solid #06b6d4;
+/* Hitit Design System Tokens & Base Resets */
+:root {
+  --bg-dark: #080a11;
+  --bg-card: rgba(16, 20, 31, 0.75);
+  --border-card: rgba(255, 255, 255, 0.08);
+  --border-card-hover: rgba(255, 255, 255, 0.18);
+  --primary-orange: #ff5e36;
+  --primary-emerald: #10b981;
+  --primary-cyan: #06b6d4;
+  --primary-violet: #8b5cf6;
 }
 
-.hero-gradient { 
-    background: linear-gradient(0deg, rgba(2,2,3,1) 0%, rgba(2,2,3,0.7) 50%, rgba(2,2,3,0.3) 100%); 
+body {
+  background-color: var(--bg-dark);
+  color: #94a3b8;
+  font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6, .font-display {
+  font-family: 'Urbanist', sans-serif;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.12); border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.22); }
+
+/* Hitit Aurora Glow System */
+.aurora-background {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.glow-blob {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(100px);
+  opacity: 0.28;
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+
+.orange-blob {
+  background: radial-gradient(circle, #ff5e36 0%, rgba(255, 94, 54, 0) 70%);
+  width: 500px;
+  height: 500px;
+  top: -120px;
+  right: -80px;
+}
+
+.green-blob {
+  background: radial-gradient(circle, #10b981 0%, rgba(16, 185, 129, 0) 70%);
+  width: 480px;
+  height: 480px;
+  bottom: 0;
+  left: -80px;
+}
+
+.cyan-blob {
+  background: radial-gradient(circle, #06b6d4 0%, rgba(6, 182, 212, 0) 70%);
+  width: 380px;
+  height: 380px;
+  top: 35%;
+  left: 45%;
+}
+
+/* Hitit Gradient Typography */
+.gradient-text {
+  background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 50%, #94a3b8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gradient-number {
+  background: linear-gradient(135deg, #ffffff 0%, #38bdf8 60%, #818cf8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: 'Manrope', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #38bdf8;
+}
+
+/* Hitit Pill Buttons */
+.ui-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 0.625rem 1.25rem;
+  font-family: 'Manrope', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: 9999px;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn-arrow {
+  background-color: #ffffff;
+  color: #090c15;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+}
+
+.btn-arrow:hover {
+  background-color: #f1f5f9;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(255, 255, 255, 0.12);
+}
+
+.btn-arrow .icon-arrow-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 9999px;
+  background-color: #090c15;
+  color: #ffffff;
+  transition: transform 0.25s ease;
+}
+
+.btn-arrow:hover .icon-arrow-badge {
+  transform: translateX(3px) rotate(-45deg);
+}
+
+/* Hitit Frosted Glass Cards */
+.macro-card,
+.macro-panel,
+.day-card {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-card) !important;
+  border-radius: 20px !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35) !important;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease !important;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .macro-card:hover,
+  .macro-panel:hover,
+  .day-card:hover {
+    transform: translateY(-2px) !important;
+    border-color: var(--border-card-hover) !important;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5) !important;
+  }
 }

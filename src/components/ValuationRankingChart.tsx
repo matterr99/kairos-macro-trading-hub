@@ -19,25 +19,25 @@ export const ValuationRankingChart: React.FC<ValuationRankingChartProps> = ({
   const maxScore = Math.max(3.0, parseFloat((maxAbs * 1.25).toFixed(1)));
 
   return (
-    <div className="macro-panel p-5 font-mono">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 pb-3 border-b border-zinc-800/60 gap-2">
-        <div className="flex items-center gap-2">
-          <span className="text-cyan-400 font-bold text-sm">📊</span>
-          <h3 className="text-xs font-bold text-zinc-200 uppercase tracking-wider">
+    <div className="bg-[var(--surface)] border border-[var(--line)] rounded-[2px] p-5 font-mono">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 pb-3 border-b border-[var(--line)] gap-2">
+        <div className="flex items-center gap-2.5">
+          <span className="h-1.5 w-1.5 bg-[var(--accent)] shrink-0" aria-hidden="true" />
+          <h3 className="text-[11px] font-semibold text-[var(--ink)] uppercase tracking-[0.08em]">
             Valuation Ranking Matrix
           </h3>
-          <span className="text-[11px] text-zinc-500 uppercase hidden sm:inline">
+          <span className="text-[10px] text-[var(--ink-muted)] uppercase hidden sm:inline tracking-[0.08em]">
             // G8 Currencies
           </span>
         </div>
-        <div className="flex items-center gap-4 text-xs">
+        <div className="flex items-center gap-4 text-[11px]">
           <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 bg-cyan-500 shadow-[0_0_6px_rgba(6,182,212,0.6)]"></span>
-            <span className="text-zinc-400">Bullish</span>
+            <span className="w-2 h-2 bg-[#10B981]" />
+            <span className="text-[var(--ink-muted)]">Bullish</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.6)]"></span>
-            <span className="text-zinc-400">Bearish</span>
+            <span className="w-2 h-2 bg-[#EF4444]" />
+            <span className="text-[var(--ink-muted)]">Bearish</span>
           </div>
         </div>
       </div>
@@ -45,16 +45,16 @@ export const ValuationRankingChart: React.FC<ValuationRankingChartProps> = ({
       {/* SVG / CSS Interactive Bar Chart Area */}
       <div className="relative w-full h-52 select-none">
         {/* Background Grid Lines */}
-        <div className="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-20">
-          <div className="border-b border-dashed border-zinc-700 w-full" />
-          <div className="border-b border-dashed border-zinc-700 w-full" />
-          <div className="border-b border-dashed border-zinc-700 w-full" />
-          <div className="border-b border-dashed border-zinc-700 w-full" />
-          <div className="border-b border-dashed border-zinc-700 w-full" />
+        <div className="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-40">
+          <div className="border-b border-dashed border-[var(--line)] w-full" />
+          <div className="border-b border-dashed border-[var(--line)] w-full" />
+          <div className="border-b border-dashed border-[var(--line)] w-full" />
+          <div className="border-b border-dashed border-[var(--line)] w-full" />
+          <div className="border-b border-dashed border-[var(--line)] w-full" />
         </div>
 
         {/* Center Zero Baseline */}
-        <div className="absolute left-0 right-0 top-1/2 border-b border-zinc-600/70 pointer-events-none z-10" />
+        <div className="absolute left-0 right-0 top-1/2 border-b border-[var(--line-strong)] pointer-events-none z-10" />
 
         {/* Bars Columns Grid */}
         <div className="absolute inset-0 grid grid-cols-8 gap-2 sm:gap-4 px-2 sm:px-6">
@@ -64,30 +64,27 @@ export const ValuationRankingChart: React.FC<ValuationRankingChartProps> = ({
             const isPositive = score > 0;
             const isNegative = score < 0;
 
-            // Height % from 0 (middle) to score (top or bottom)
             const heightPct = Math.min(100, Math.max(6, (Math.abs(score) / maxScore) * 100));
 
             return (
               <div
                 key={curr}
                 onClick={() => onSelectCurrency && onSelectCurrency(curr)}
-                className={`relative h-full flex flex-col items-center cursor-pointer group transition-all ${
-                  isSelected ? 'scale-105' : 'hover:opacity-100 opacity-90'
+                className={`relative h-full flex flex-col items-center cursor-pointer group transition-opacity ${
+                  isSelected ? 'opacity-100' : 'opacity-85 hover:opacity-100'
                 }`}
               >
                 {/* Top Half (Positive / Bullish) */}
                 <div className="w-full h-1/2 flex flex-col items-center justify-end relative pb-0.5">
                   {isPositive && (
-                    <div 
+                    <div
                       className="w-full flex flex-col items-center justify-end transition-all duration-300"
                       style={{ height: `${heightPct}%` }}
                     >
-                      <span className="text-[10px] sm:text-[11px] font-bold text-cyan-400 tabular-nums leading-none mb-1 shrink-0 drop-shadow-sm">
+                      <span className="text-[10px] sm:text-[11px] font-semibold text-[#10B981] tabular-nums leading-none mb-1 shrink-0">
                         +{score}
                       </span>
-                      <div
-                        className="w-4/5 max-w-[28px] flex-1 bg-gradient-to-t from-cyan-600 to-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.6)] group-hover:brightness-125 transition-all min-h-[4px]"
-                      />
+                      <div className="w-4/5 max-w-[26px] flex-1 bg-[#10B981] group-hover:brightness-110 transition-all min-h-[4px]" />
                     </div>
                   )}
                 </div>
@@ -95,20 +92,18 @@ export const ValuationRankingChart: React.FC<ValuationRankingChartProps> = ({
                 {/* Bottom Half (Negative / Bearish) */}
                 <div className="w-full h-1/2 flex flex-col items-center justify-start relative pt-0.5">
                   {isNegative && (
-                    <div 
+                    <div
                       className="w-full flex flex-col items-center justify-start transition-all duration-300"
                       style={{ height: `${heightPct}%` }}
                     >
-                      <div
-                        className="w-4/5 max-w-[28px] flex-1 bg-gradient-to-b from-rose-600 to-rose-400 shadow-[0_0_12px_rgba(244,63,94,0.6)] group-hover:brightness-125 transition-all min-h-[4px]"
-                      />
-                      <span className="text-[10px] sm:text-[11px] font-bold text-rose-400 tabular-nums leading-none mt-1 shrink-0 drop-shadow-sm">
+                      <div className="w-4/5 max-w-[26px] flex-1 bg-[#EF4444] group-hover:brightness-110 transition-all min-h-[4px]" />
+                      <span className="text-[10px] sm:text-[11px] font-semibold text-[#EF4444] tabular-nums leading-none mt-1 shrink-0">
                         {score}
                       </span>
                     </div>
                   )}
                   {score === 0 && (
-                    <span className="text-[10px] font-bold text-zinc-500 leading-none mt-1">0</span>
+                    <span className="text-[10px] font-semibold text-[var(--ink-muted)] leading-none mt-1 tabular-nums">0</span>
                   )}
                 </div>
               </div>
@@ -118,17 +113,17 @@ export const ValuationRankingChart: React.FC<ValuationRankingChartProps> = ({
       </div>
 
       {/* Bottom Currency Letters Axis */}
-      <div className="grid grid-cols-8 gap-2 sm:gap-4 px-2 sm:px-6 pt-3 mt-1 border-t border-zinc-800/80">
+      <div className="grid grid-cols-8 gap-2 sm:gap-4 px-2 sm:px-6 pt-3 mt-1 border-t border-[var(--line)]">
         {currencies.map(curr => {
           const isSelected = selectedCurrency === curr;
           return (
             <button
               key={curr}
               onClick={() => onSelectCurrency && onSelectCurrency(curr)}
-              className={`w-full py-1.5 min-h-[38px] flex items-center justify-center text-center text-[10px] sm:text-xs font-mono font-bold border transition-colors cursor-pointer ${
+              className={`w-full h-9 rounded-[2px] flex items-center justify-center text-center text-[10px] sm:text-xs font-mono font-semibold border transition-colors cursor-pointer ${
                 isSelected
-                  ? 'bg-cyan-500 text-black border-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.4)]'
-                  : 'bg-[#090b12] text-zinc-300 border-zinc-800 hover:border-cyan-500/50 hover:text-white'
+                  ? 'bg-[var(--ink)] text-[var(--bg)] border-[var(--ink)]'
+                  : 'bg-[var(--surface-2)] text-[var(--ink-muted)] border-[var(--line)] hover:border-[var(--line-strong)] hover:text-[var(--ink)]'
               }`}
             >
               {curr}
@@ -137,9 +132,9 @@ export const ValuationRankingChart: React.FC<ValuationRankingChartProps> = ({
         })}
       </div>
 
-      <div className="mt-4 pt-3 border-t border-zinc-900 flex justify-between items-center text-[10px] text-zinc-500 font-sans">
-        <span>Click any currency letter or bar to filter breakdown tables below</span>
-        <span className="font-mono text-cyan-500 uppercase">Normalized Dynamic Scale: &plusmn;{maxScore}</span>
+      <div className="mt-4 pt-3 border-t border-[var(--line)] flex justify-between items-center text-[10px] text-[var(--ink-muted)] font-sans">
+        <span>Click any currency bar or code to inspect its indicator breakdown below</span>
+        <span className="font-mono text-[var(--accent)] uppercase tabular-nums">Scale: &plusmn;{maxScore}</span>
       </div>
     </div>
   );

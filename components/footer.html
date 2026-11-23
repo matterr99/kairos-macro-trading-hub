@@ -1,57 +1,84 @@
-<footer class="w-full bg-[#010101] border-t border-zinc-900 py-12 sm:py-16 shrink-0 mt-auto">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<!-- HITIT-INSPIRED FOOTER -->
+<footer class="w-full bg-[#05070d] border-t border-white/10 py-14 sm:py-20 shrink-0 mt-auto text-zinc-400">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
         
-        <!-- Top Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-12 mb-12 text-left">
+        <!-- Hitit-style Top Banner -->
+        <div class="relative rounded-3xl p-8 sm:p-12 overflow-hidden border border-white/10 bg-gradient-to-r from-white/[0.04] to-cyan-500/[0.04] backdrop-blur-xl">
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+                <div class="space-y-3 max-w-2xl">
+                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.06] border border-white/10 text-xs font-semibold text-cyan-300">
+                        <span>Institutional Access</span>
+                    </div>
+                    <h2 class="font-display font-black text-2xl sm:text-3xl lg:text-4xl text-white tracking-tight">
+                        Custom Macro Feeds & Institutional Solutions
+                    </h2>
+                    <p class="text-sm sm:text-base text-zinc-400 leading-relaxed font-normal">
+                        Connect with our quantitative research team for specialized capital flow models, yield curve feeds, and custom terminal deployments.
+                    </p>
+                </div>
+                
+                <a href="tools.html" class="ui-button btn-arrow self-start lg:self-center shrink-0 shadow-lg">
+                    <span>Launch Terminal</span>
+                    <span class="icon-arrow-badge">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    </span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Columns Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-10 sm:gap-12 text-sm">
             
             <!-- Brand Column -->
-            <div class="space-y-4">
-                <div class="flex items-center gap-2">
-                    <span class="w-2 h-2 bg-cyan-500 rounded-sm"></span>
-                    <p class="text-white font-mono text-[11px] font-bold tracking-[0.2em] uppercase">Kairos Global Research</p>
+            <div class="md:col-span-2 space-y-4">
+                <div class="flex items-center gap-3">
+                    <div class="h-9 w-9 rounded-xl bg-gradient-to-br from-cyan-400 to-sky-600 flex items-center justify-center text-slate-950 font-display font-black text-xl">
+                        K
+                    </div>
+                    <span class="font-display font-extrabold text-white text-xl tracking-tight">
+                        KAIROS GLOBAL
+                    </span>
                 </div>
-                <p class="text-zinc-500 font-sans text-sm leading-relaxed max-w-sm">
-                    An independent institutional research cockpit engineered to track global macroeconomic cycles, inter-market yield alignments, and structural trend asymmetries.
+                <p class="text-sm leading-relaxed text-zinc-400 max-w-md font-normal">
+                    Independent macro research and trading tools for following economic cycles, yields and capital flows.
                 </p>
             </div>
-            
-            <!-- Navigation Column -->
+
+            <!-- Navigation Column 1 -->
             <div class="space-y-4">
-                <p class="text-zinc-600 font-mono text-[10px] font-bold uppercase tracking-widest">// Portal Core Navigation</p>
-                <ul class="space-y-3 font-mono text-xs tracking-wider uppercase">
-                    <li><a href="index.html" data-page="index.html" class="text-zinc-400 hover:text-cyan-400 transition-colors flex items-center gap-2"><span class="text-zinc-700">&rarr;</span> Live Analytics Console</a></li>
-                    <li><a href="research.html" data-page="research.html" class="text-zinc-400 hover:text-cyan-400 transition-colors flex items-center gap-2"><span class="text-zinc-700">&rarr;</span> Macro Intelligence Logs</a></li>
-                    <li><a href="academy.html" data-page="academy.html" class="text-zinc-400 hover:text-cyan-400 transition-colors flex items-center gap-2"><span class="text-zinc-700">&rarr;</span> Systematic Workspace</a></li>
-                    <li><a href="tools.html" data-page="tools.html" class="text-zinc-400 hover:text-cyan-400 transition-colors flex items-center gap-2"><span class="text-zinc-700">&rarr;</span> Quantitative Trading Tools</a></li>
+                <h3 class="font-display font-bold text-white uppercase tracking-wider text-xs">
+                    Solutions & Tools
+                </h3>
+                <ul class="space-y-2.5 text-sm">
+                    <li><a href="tools/calendar.html" data-page="calendar.html" class="hover:text-white transition-colors">Economic Calendar</a></li>
+                    <li><a href="tools/currency-strength-engine.html" data-page="currency-strength-engine.html" class="hover:text-white transition-colors">Currency Strength</a></li>
+                    <li><a href="tools/quant-desk.html" data-page="quant-desk.html" class="hover:text-white transition-colors">Quant Desk</a></li>
+                    <li><a href="tools/risk-calculator.html" data-page="risk-calculator.html" class="hover:text-white transition-colors">Risk & Position Sizing</a></li>
                 </ul>
             </div>
-            
-            <!-- Telemetry Column -->
+
+            <!-- Navigation Column 2 -->
             <div class="space-y-4">
-                <p class="text-zinc-600 font-mono text-[10px] font-bold uppercase tracking-widest">// System Telemetry</p>
-                <div class="font-mono text-[10px] space-y-2.5 tracking-widest uppercase">
-                    <div class="flex justify-between border-b border-zinc-900 pb-2">
-                        <span class="text-zinc-500">Interface Protocol:</span> 
-                        <span class="text-cyan-500">HTTPS / EDGE ENCRYPTED</span>
-                    </div>
-                    <div class="flex justify-between border-b border-zinc-900 pb-2">
-                        <span class="text-zinc-500">Data Status:</span> 
-                        <span class="text-emerald-500 font-bold animate-pulse">NOMINAL / STABLE</span>
-                    </div>
-                    <div class="flex justify-between border-b border-zinc-900 pb-2">
-                        <span class="text-zinc-500">Deployment Grid:</span> 
-                        <span class="text-zinc-300">Kairos Risk Engine v2.6</span>
-                    </div>
-                </div>
+                <h3 class="font-display font-bold text-white uppercase tracking-wider text-xs">
+                    Intelligence
+                </h3>
+                <ul class="space-y-2.5 text-sm">
+                    <li><a href="research.html" data-page="research.html" class="hover:text-white transition-colors">Macro Dossiers</a></li>
+                    <li><a href="academy.html" data-page="academy.html" class="hover:text-white transition-colors">Kairos Academy</a></li>
+                    <li><a href="index.html" data-page="index.html" class="hover:text-white transition-colors">Console</a></li>
+                </ul>
             </div>
-            
+
         </div>
-        
-        <!-- Bottom Bar -->
-        <div class="pt-8 border-t border-zinc-900 flex flex-col md:flex-row justify-between items-center gap-4 font-mono text-[10px] tracking-widest text-zinc-600 uppercase text-center md:text-left">
-            <p>&copy; 2026 KAIROS GLOBAL RESEARCH. ALL QUANTITATIVE RIGHTS RESERVED.</p>
-            <p class="text-zinc-500 hidden sm:block">Built with clean code & strategic purpose.</p>
+
+        <!-- Bottom Legal & Telemetry -->
+        <div class="pt-8 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-zinc-500">
+            <p>&copy; 2026 Kairos Global Research. All rights reserved.</p>
+            <div class="flex items-center gap-2">
+                <span class="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span class="text-zinc-400">All systems operational</span>
+            </div>
         </div>
-        
+
     </div>
 </footer>

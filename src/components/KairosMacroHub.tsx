@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import * as XLSX from 'xlsx';
 import Papa from 'papaparse';
-import { Printer, Download, Copy, Check, X, AlertTriangle, AlertCircle, CheckCircle2, Info, FileText } from 'lucide-react';
+import { Printer, Download, Upload, RotateCcw, Pin, Copy, Check, X, AlertTriangle, AlertCircle, CheckCircle2, Info, FileText } from 'lucide-react';
 import { Language } from '../types';
 import { normalizeCurrencyCode, isG10Currency } from '../utils/currencyUtils';
+import { ToolHeader } from './ToolHeader';
+import { SpreadsheetDropZone } from './SpreadsheetDropZone';
 
 interface MacroEvent {
   time: string;
@@ -1500,62 +1502,48 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
   ];
 
   return (
-    <div className="w-full bg-[#020203] text-zinc-300 font-sans antialiased min-h-screen space-y-6 pb-16 selection:bg-cyan-900 selection:text-cyan-100">
+    <div className="w-full bg-[var(--bg)] text-[var(--ink)] font-sans antialiased min-h-screen space-y-6 pb-16 selection:bg-[#3B82F6]/30">
       
-      {/* 1. TOP HERO / HEADER SECTION */}
-      <section className="relative w-full py-10 sm:py-12 border-b border-zinc-900 bg-[#020203]">
-        <div className="max-w-7xl 2xl:max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 flex flex-col md:flex-row md:items-end justify-between gap-6 font-mono">
-          <div className="space-y-3">
-            {onReturnToHub && (
-              <button 
-                type="button"
-                onClick={onReturnToHub} 
-                className="inline-flex items-center gap-2 text-xs text-zinc-500 hover:text-cyan-400 transition-colors uppercase cursor-pointer"
-              >
-                &larr; {isEs ? 'Volver al Centro de Herramientas' : 'Return to Tools Hub'}
-              </button>
-            )}
-            <div className="flex items-center gap-3">
-              <span className="text-cyan-500 font-bold text-[10px] tracking-widest uppercase">// CALENDAR FILTER_V2</span>
-              <span className="text-zinc-700">|</span>
-              <span className="text-emerald-400 font-bold text-[10px] tracking-wider uppercase">11 ECONOMIES</span>
-              <span className="text-zinc-700">|</span>
-              <span className="text-cyan-400 font-bold text-[10px] tracking-wider uppercase">TIER-1 MACRO</span>
-            </div>
-            <h1 className="text-2xl sm:text-4xl font-black text-white uppercase tracking-tight">
-              {isEs ? 'Herramienta de Filtrado de Calendario' : 'Calendar Filtering Tool'}
-            </h1>
-            <p className="text-xs text-zinc-400 font-sans max-w-2xl font-light leading-relaxed">
-              {isEs 
-                ? 'Filtro programático de canales por país a través de 11 economías principales. Filtra dinámicamente eventos Tier-1, periodos de silencio y desviaciones del consenso.'
-                : 'Programmatic country channel filter across 11 major global economies. Dynamically filters high-impact tier-1 releases, blackout windows, and consensus deviations.'}
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2 flex-wrap font-mono text-xs w-full md:w-auto">
+      {/* 1. UNIFIED TOOL HEADER */}
+      <ToolHeader
+        onReturnToHub={onReturnToHub}
+        language={language}
+        eyebrow="CALENDAR FILTER"
+        tags={['11 ECONOMIES', 'TIER-1 MACRO']}
+        title={isEs ? 'Herramienta de Filtrado de Calendario' : 'Calendar Filtering Tool'}
+        subtitle={
+          isEs
+            ? 'Filtro programático de canales por país a través de 11 economías principales. Filtra dinámicamente eventos Tier-1, periodos de silencio y desviaciones del consenso.'
+            : 'Programmatic country channel filter across 11 major global economies. Dynamically filters high-impact tier-1 releases, blackout windows, and consensus deviations.'
+        }
+        actions={
+          <>
             <button
               type="button"
               onClick={lockCurrentAsPreviousWeek}
-              className="flex-1 sm:flex-initial px-3.5 py-2 text-[10px] sm:text-xs uppercase tracking-wider bg-amber-950/40 hover:bg-amber-900/60 text-amber-300 rounded-sm border border-amber-600/60 transition font-bold cursor-pointer min-h-[40px] sm:min-h-[36px] flex items-center justify-center gap-1.5 shadow-sm"
+              className="flex-1 sm:flex-initial h-9 px-3.5 rounded-[2px] text-[11px] uppercase tracking-[0.08em] bg-[var(--surface)] hover:bg-[var(--surface-2)] text-amber-400 border border-[var(--line)] hover:border-amber-400/40 transition font-semibold cursor-pointer inline-flex items-center justify-center gap-1.5"
               title={isEs ? 'Congelar semana actual como base previa' : 'Lock current week as baseline factors'}
             >
-              <span>📌</span> {isEs ? 'Fijar como Semana Previa' : 'Lock as Prior Week'}
+              <Pin size={13} />
+              <span>{isEs ? 'Fijar Semana Previa' : 'Lock Prior Week'}</span>
             </button>
-            
+
             <button
               type="button"
               onClick={exportStateJSON}
-              className="flex-1 sm:flex-initial px-3.5 py-2 text-[10px] sm:text-xs uppercase tracking-wider bg-cyan-950/40 hover:bg-cyan-900/60 text-cyan-400 rounded-sm border border-cyan-800/80 transition cursor-pointer min-h-[40px] sm:min-h-[36px] flex items-center justify-center gap-1.5 font-bold shadow-sm"
+              className="flex-1 sm:flex-initial h-9 px-3.5 rounded-[2px] text-[11px] uppercase tracking-[0.08em] bg-[var(--surface)] hover:bg-[var(--surface-2)] text-[var(--ink)] border border-[var(--line)] hover:border-[var(--line-strong)] transition cursor-pointer inline-flex items-center justify-center gap-1.5"
             >
-              <span>📥</span> {isEs ? 'Exportar Backup' : 'Export JSON'}
+              <Download size={13} />
+              <span>{isEs ? 'Exportar JSON' : 'Export JSON'}</span>
             </button>
-            
+
             <button
               type="button"
               onClick={() => jsonInputRef.current?.click()}
-              className="flex-1 sm:flex-initial px-3.5 py-2 text-[10px] sm:text-xs uppercase tracking-wider bg-[#0c0c12] hover:bg-zinc-900 text-zinc-300 rounded-sm border border-zinc-800 transition cursor-pointer min-h-[40px] sm:min-h-[36px] flex items-center justify-center gap-1.5"
+              className="flex-1 sm:flex-initial h-9 px-3.5 rounded-[2px] text-[11px] uppercase tracking-[0.08em] bg-[var(--surface)] hover:bg-[var(--surface-2)] text-[var(--ink)] border border-[var(--line)] hover:border-[var(--line-strong)] transition cursor-pointer inline-flex items-center justify-center gap-1.5"
             >
-              <span>📤</span> {isEs ? 'Cargar Backup' : 'Load JSON'}
+              <Upload size={13} />
+              <span>{isEs ? 'Cargar JSON' : 'Load JSON'}</span>
             </button>
             <input
               type="file"
@@ -1568,100 +1556,64 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
             <button
               type="button"
               onClick={resetAllScores}
-              className="flex-1 sm:flex-initial px-3.5 py-2 text-[10px] sm:text-xs uppercase tracking-wider bg-[#0c0c12] hover:bg-zinc-900 text-rose-400 rounded-sm border border-zinc-800 transition cursor-pointer min-h-[40px] sm:min-h-[36px] flex items-center justify-center gap-1.5"
+              className="flex-1 sm:flex-initial h-9 px-3.5 rounded-[2px] text-[11px] uppercase tracking-[0.08em] bg-[var(--surface)] hover:bg-rose-500/10 text-[#EF4444] border border-[var(--line)] hover:border-[#EF4444]/40 transition cursor-pointer inline-flex items-center justify-center gap-1.5"
             >
-              <span>🗑️</span> {isEs ? 'Reiniciar' : 'Reset'}
+              <RotateCcw size={13} />
+              <span>{isEs ? 'Reiniciar' : 'Reset'}</span>
             </button>
 
             <button
               type="button"
               onClick={() => setIsReportModalOpen(true)}
-              className="flex-1 sm:flex-initial px-4 py-2 text-[10px] sm:text-xs uppercase tracking-wider bg-cyan-500 hover:bg-cyan-400 text-black rounded-sm font-black transition cursor-pointer min-h-[40px] sm:min-h-[36px] flex items-center justify-center gap-1.5 shadow-[0_0_12px_rgba(6,182,212,0.3)]"
+              className="flex-1 sm:flex-initial h-9 px-3.5 rounded-[2px] text-[11px] uppercase tracking-[0.08em] bg-[var(--ink)] text-[var(--bg)] hover:opacity-90 font-semibold transition cursor-pointer inline-flex items-center justify-center gap-1.5"
             >
-              <span>📄</span> {isEs ? 'Exportar PDF →' : 'Export PDF →'}
+              <FileText size={13} />
+              <span>{isEs ? 'Exportar PDF' : 'Export PDF'}</span>
             </button>
-          </div>
-        </div>
-      </section>
+          </>
+        }
+      />
 
-      <div className="max-w-7xl 2xl:max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 space-y-6">
+      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
 
-        {/* 2. DROP ZONE FOR EXCEL & CSV UPLOAD */}
-        <div
-          onClick={() => fileInputRef.current?.click()}
-          onDragEnter={e => {
-            e.preventDefault();
-            e.stopPropagation();
-            setIsDragOver(true);
-          }}
-          onDragOver={e => {
-            e.preventDefault();
-            e.stopPropagation();
-            setIsDragOver(true);
-          }}
-          onDragLeave={e => {
-            e.preventDefault();
-            e.stopPropagation();
-            setIsDragOver(false);
-          }}
-          onDrop={e => {
-            e.preventDefault();
-            e.stopPropagation();
-            setIsDragOver(false);
-            if (e.dataTransfer?.files?.length) {
-              processUploadedFile(e.dataTransfer.files[0]);
+        {/* 2. UNIFIED DROP ZONE FOR EXCEL & CSV UPLOAD */}
+        <input
+          type="file"
+          ref={fileInputRef}
+          accept=".csv, .xlsx, .xls, .tsv, text/csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
+          className="hidden"
+          onChange={e => {
+            if (e.target.files?.length) {
+              processUploadedFile(e.target.files[0]);
+              e.target.value = '';
             }
           }}
-          className={`macro-panel border-2 border-dashed p-6 sm:p-8 text-center transition cursor-pointer group ${
-            isDragOver ? 'border-cyan-400 bg-cyan-950/30 shadow-[0_0_25px_rgba(6,182,212,0.3)]' : 'border-zinc-800 hover:border-cyan-500/60'
-          }`}
-        >
-          <input
-            type="file"
-            ref={fileInputRef}
-            accept=".csv, .xlsx, .xls, .tsv, text/csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
-            className="hidden"
-            onChange={e => {
-              if (e.target.files?.length) {
-                processUploadedFile(e.target.files[0]);
-                e.target.value = '';
-              }
-            }}
-          />
-          <div className="space-y-2">
-            <div className="w-12 h-12 mx-auto bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition-transform">
-              <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-            </div>
-            <div className="text-xs sm:text-sm font-medium text-zinc-200">
-              {isEs ? (
-                <>Arrastra tu archivo <span className="text-cyan-400 font-bold">Excel o CSV de Investing.com (.xlsx, .xls, .csv) aquí</span> o haz clic para explorar</>
-              ) : (
-                <>Drop your <span className="text-cyan-400 font-bold">Investing.com Excel or CSV (.xlsx, .xls, .csv) file here</span> or click to browse</>
-              )}
-            </div>
-            <p className="text-[11px] text-zinc-500 font-mono">
-              {isEs 
-                ? 'Filtrado cuantitativo automático de eventos Tier-1 para USD, EUR, GBP, JPY, CAD, AUD, NZD, CHF, CNH'
-                : 'Automated quantitative Tier-1 event parsing for USD, EUR, GBP, JPY, CAD, AUD, NZD, CHF, CNH'}
-            </p>
-          </div>
-        </div>
+        />
+        <SpreadsheetDropZone
+          title={isEs ? 'Cargar Calendario Económico Investing.com' : 'Load Investing.com Economic Calendar'}
+          badge={isEs ? 'Filtro Tier-1' : 'Tier-1 Filter'}
+          description={
+            isEs
+              ? 'Arrastra tu archivo Excel o CSV de Investing.com aquí o haz clic para explorar. Filtrado cuantitativo automático para USD, EUR, GBP, JPY, CAD, AUD, NZD, CHF, CNH.'
+              : 'Drop your Investing.com Excel or CSV file here or click to browse. Automated quantitative Tier-1 event parsing for USD, EUR, GBP, JPY, CAD, AUD, NZD, CHF, CNH.'
+          }
+          onFileSelected={processUploadedFile}
+          externalInputRef={fileInputRef}
+        />
 
         {/* 3. DIVERGENCE SCANNER */}
         <div className="macro-panel p-4 sm:p-5 font-mono space-y-4">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-zinc-800 pb-3 gap-2">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-[var(--line)] pb-3 gap-2">
             <div>
-              <span className="text-cyan-400 font-bold text-xs uppercase tracking-wider flex items-center gap-2">
+              <span className="text-[var(--accent)] font-bold text-xs uppercase tracking-wider flex items-center gap-2">
                 <span>⚡</span> {isEs ? 'Escáner de Divergencias Macro Detectadas' : 'Macro Divergence Opportunities Scanner'}
               </span>
-              <p className="text-[10px] text-zinc-500 font-sans mt-0.5">
+              <p className="text-[10px] text-[var(--ink-muted)] font-sans mt-0.5">
                 {isEs ? 'Pares de divisas con asimetría direccional ≥ 3 puntos (ordenados de mayor a menor)' : 'Currency crosses with directional score differential ≥ 3 pts (ranked highest first)'}
               </p>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-[10px] bg-cyan-950/70 text-cyan-300 border border-cyan-500/40 px-2.5 py-1 font-bold">
+              <span className="text-[10px] bg-[var(--accent)]/15 text-[var(--accent)] border border-[var(--accent)]/40 px-2.5 py-1 font-bold">
                 {hasActiveDivergenceFilters
                   ? `${divergenceFilterStats.filtered.length} / ${divergences.length} ${isEs ? 'Filtrados' : 'Filtered'}`
                   : `${divergences.length} ${isEs ? 'Pares Aprobados' : 'Approved Pairs'}`}
@@ -1670,7 +1622,7 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsDivergenceExpanded(!isDivergenceExpanded)}
-                  className="bg-cyan-950/80 hover:bg-cyan-900 text-cyan-300 border border-cyan-500/40 text-[11px] px-3 py-1 font-bold transition flex items-center gap-1 shadow-sm cursor-pointer min-h-[32px]"
+                  className="bg-[var(--accent)]/15 hover:bg-[var(--accent)]/15 text-[var(--accent)] border border-[var(--accent)]/40 text-[11px] px-3 py-1 font-bold transition flex items-center gap-1 shadow-sm cursor-pointer min-h-[32px]"
                 >
                   {isDivergenceExpanded 
                     ? (isEs ? '↑ Mostrar Menos (Top 2)' : '↑ Show Less (Top 2)') 
@@ -1681,10 +1633,10 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
           </div>
 
           {divergences.length > 0 && (
-            <div className="bg-[#05060a] border border-zinc-800/90 p-3 flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+            <div className="bg-[#05060a] border border-[var(--line)] p-3 flex flex-col xl:flex-row xl:items-center justify-between gap-3">
               {/* Direction Filter: ALL / BUY / SELL */}
               <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                <span className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold shrink-0">
+                <span className="text-[10px] text-[var(--ink-muted)] uppercase tracking-wider font-bold shrink-0">
                   {isEs ? 'Dirección:' : 'Direction:'}
                 </span>
                 <div className="grid grid-cols-3 sm:flex items-center gap-1.5 w-full sm:w-auto">
@@ -1693,8 +1645,8 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
                     onClick={() => setDivergenceDirectionFilter('ALL')}
                     className={`px-2.5 py-1.5 text-[10px] sm:text-[11px] font-bold uppercase border transition cursor-pointer min-h-[34px] flex items-center justify-center gap-1 ${
                       divergenceDirectionFilter === 'ALL'
-                        ? 'bg-cyan-500 text-black border-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.3)]'
-                        : 'bg-zinc-900/90 text-zinc-300 border-zinc-800 hover:bg-zinc-800'
+                        ? 'bg-[var(--ink)] text-[var(--bg)] border-[var(--accent)]'
+                        : 'bg-[var(--surface-2)] text-[var(--ink)] border-[var(--line)] hover:bg-[var(--surface-2)]'
                     }`}
                   >
                     <span>{isEs ? 'TODAS' : 'ALL'}</span>
@@ -1705,7 +1657,7 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
                     onClick={() => setDivergenceDirectionFilter('BUY')}
                     className={`px-2.5 py-1.5 text-[10px] sm:text-[11px] font-bold uppercase border transition cursor-pointer min-h-[34px] flex items-center justify-center gap-1 ${
                       divergenceDirectionFilter === 'BUY'
-                        ? 'bg-emerald-500 text-black border-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.35)]'
+                        ? 'bg-emerald-500 text-black border-emerald-400'
                         : 'bg-emerald-950/30 text-emerald-400 border-emerald-500/30 hover:bg-emerald-950/60'
                     }`}
                   >
@@ -1717,7 +1669,7 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
                     onClick={() => setDivergenceDirectionFilter('SELL')}
                     className={`px-2.5 py-1.5 text-[10px] sm:text-[11px] font-bold uppercase border transition cursor-pointer min-h-[34px] flex items-center justify-center gap-1 ${
                       divergenceDirectionFilter === 'SELL'
-                        ? 'bg-rose-500 text-black border-rose-400 shadow-[0_0_8px_rgba(244,63,94,0.35)]'
+                        ? 'bg-rose-500 text-black border-rose-400'
                         : 'bg-rose-950/30 text-rose-400 border-rose-500/30 hover:bg-rose-950/60'
                     }`}
                   >
@@ -1730,7 +1682,7 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
               {/* Priority / Spread Threshold + Currency Filter */}
               <div className="flex flex-col md:flex-row md:items-center gap-2.5 flex-wrap">
                 <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                  <span className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold shrink-0">
+                  <span className="text-[10px] text-[var(--ink-muted)] uppercase tracking-wider font-bold shrink-0">
                     {isEs ? 'Divergencia Mín:' : 'Min Spread:'}
                   </span>
                   <div className="grid grid-cols-4 sm:flex items-center gap-1 w-full sm:w-auto">
@@ -1750,9 +1702,9 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
                           className={`px-2 py-1.5 text-[10px] font-bold uppercase border transition cursor-pointer min-h-[34px] flex items-center justify-center gap-1 ${
                             isActive
                               ? tier.val >= 6
-                                ? 'bg-amber-400 text-black border-amber-300 shadow-[0_0_8px_rgba(251,191,36,0.35)]'
-                                : 'bg-cyan-500 text-black border-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.3)]'
-                              : 'bg-zinc-900/90 text-zinc-300 border-zinc-800 hover:bg-zinc-800'
+                                ? 'bg-amber-400 text-black border-amber-300'
+                                : 'bg-[var(--ink)] text-[var(--bg)] border-[var(--accent)]'
+                              : 'bg-[var(--surface-2)] text-[var(--ink)] border-[var(--line)] hover:bg-[var(--surface-2)]'
                           }`}
                         >
                           <span>{tier.label}</span>
@@ -1768,7 +1720,7 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
                     aria-label={isEs ? 'Filtrar divergencias por divisa' : 'Filter divergences by currency'}
                     value={divergenceCurrencyFilter}
                     onChange={e => setDivergenceCurrencyFilter(e.target.value)}
-                    className="flex-1 sm:flex-initial bg-[#030305] border border-zinc-800 px-2.5 py-1.5 text-[11px] text-zinc-200 focus:outline-none focus:border-cyan-400 font-mono min-h-[34px] cursor-pointer"
+                    className="flex-1 sm:flex-initial bg-[#030305] border border-[var(--line)] px-2.5 py-1.5 text-[11px] text-[var(--ink)] focus:outline-none focus:border-[var(--accent)] font-mono min-h-[34px] cursor-pointer"
                   >
                     <option value="ALL">{isEs ? '🌐 Todas las Divisas' : '🌐 All Currencies'}</option>
                     {CURRENCIES.map(ccy => (
@@ -1782,7 +1734,7 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
                     <button
                       type="button"
                       onClick={resetDivergenceFilters}
-                      className="px-2.5 py-1.5 text-[10px] font-bold uppercase bg-zinc-900 hover:bg-zinc-800 text-amber-300 border border-amber-500/40 transition cursor-pointer min-h-[34px] shrink-0"
+                      className="px-2.5 py-1.5 text-[10px] font-bold uppercase bg-[var(--surface-2)] hover:bg-[var(--surface-2)] text-amber-300 border border-amber-500/40 transition cursor-pointer min-h-[34px] shrink-0"
                     >
                       {isEs ? '✕ Limpiar' : '✕ Clear'}
                     </button>
@@ -1807,7 +1759,7 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
                     : d.diff === 5
                     ? {
                         label: isEs ? 'ALTA' : 'HIGH',
-                        classes: 'bg-cyan-950/90 text-cyan-300 border-cyan-500/50'
+                        classes: 'bg-[var(--accent)]/15 text-[var(--accent)] border-[var(--accent)]/50'
                       }
                     : d.diff === 4
                     ? {
@@ -1816,36 +1768,36 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
                       }
                     : {
                         label: isEs ? 'BASE' : 'BASE',
-                        classes: 'bg-zinc-900 text-zinc-400 border-zinc-700/70'
+                        classes: 'bg-[var(--surface-2)] text-[var(--ink-muted)] border-[var(--line-strong)]'
                       };
 
                 return (
                   <div key={d.pair} className="macro-card p-4 sm:p-5 space-y-3 flex flex-col justify-start h-full">
-                    <div className="flex items-center justify-between border-b border-zinc-800/80 pb-3 gap-2">
+                    <div className="flex items-center justify-between border-b border-[var(--line)] pb-3 gap-2">
                       <div>
-                        <span className="text-[9px] text-zinc-500 uppercase font-mono block">
+                        <span className="text-[9px] text-[var(--ink-muted)] uppercase font-mono block">
                           {isEs ? 'Oportunidad Macro' : 'Macro Opportunity'}
                         </span>
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-black text-cyan-400 text-lg font-mono tracking-tight">{d.pair}</span>
+                          <span className="font-black text-[var(--accent)] text-lg font-mono tracking-tight">{d.pair}</span>
                           <span className={`text-[9px] font-bold px-1.5 py-0.5 border uppercase tracking-wider ${tierBadge.classes}`}>
                             {tierBadge.label}
                           </span>
                         </div>
                       </div>
                       <div className="text-right font-mono shrink-0">
-                        <span className={`${isBuy ? 'bg-emerald-950/90 text-emerald-400 border-emerald-500/50 shadow-[0_0_8px_rgba(16,185,129,0.2)]' : 'bg-rose-950/90 text-rose-400 border-rose-500/50 shadow-[0_0_8px_rgba(244,63,94,0.2)]'} border px-3 py-1 text-xs font-black block mb-1`}>
+                        <span className={`${isBuy ? 'bg-emerald-950/90 text-emerald-400 border-emerald-500/50' : 'bg-rose-950/90 text-rose-400 border-rose-500/50'} border px-3 py-1 text-xs font-black block mb-1`}>
                           {d.actionBadge}
                         </span>
-                        <span className="text-[10px] text-zinc-400">
-                          {isEs ? 'Diferencial:' : 'Spread:'} <strong className="text-white">{d.diff} pts</strong>
+                        <span className="text-[10px] text-[var(--ink-muted)]">
+                          {isEs ? 'Diferencial:' : 'Spread:'} <strong className="text-[var(--ink)]">{d.diff} pts</strong>
                         </span>
                       </div>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-sans">
                       {/* STRONG CURRENCY CARD */}
-                      <div className="bg-[#090b12] border border-emerald-500/30 p-3 space-y-2">
+                      <div className="bg-[var(--surface)] border border-emerald-500/30 p-3 space-y-2">
                         <div className="flex justify-between items-center border-b border-emerald-500/20 pb-1 font-mono">
                           <span className="font-bold text-emerald-400 text-xs">
                             {d.strong} ({d.strongScore > 0 ? `+${d.strongScore}` : d.strongScore})
@@ -1859,7 +1811,7 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
                             </span>
                             {strongData.prevList.length > 0 ? (
                               strongData.prevList.map((b, idx) => (
-                                <div key={idx} className="flex items-center justify-between text-[10px] text-zinc-300 bg-zinc-900/60 px-2 py-0.5 border border-zinc-800/60">
+                                <div key={idx} className="flex items-center justify-between text-[10px] text-[var(--ink)] bg-[var(--surface-2)]/60 px-2 py-0.5 border border-[var(--line)]">
                                   <span className="pr-1 truncate">{b.label}</span>
                                   <span className={`font-mono font-bold ${b.score > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                                     {b.score > 0 ? '+' : ''}{b.score}
@@ -1867,17 +1819,17 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
                                 </div>
                               ))
                             ) : (
-                              <span className="text-[9px] text-zinc-600 italic block pl-1">{isEs ? 'Sin eventos previos' : 'No prior events'}</span>
+                              <span className="text-[9px] text-[var(--ink-muted)] italic block pl-1">{isEs ? 'Sin eventos previos' : 'No prior events'}</span>
                             )}
                           </div>
 
-                          <div className="space-y-1 pt-1 border-t border-zinc-800/60">
-                            <span className="text-[9px] text-cyan-300 font-mono font-bold uppercase tracking-wider block">
+                          <div className="space-y-1 pt-1 border-t border-[var(--line)]">
+                            <span className="text-[9px] text-[var(--accent)] font-mono font-bold uppercase tracking-wider block">
                               ⚡ {isEs ? 'Esta Semana:' : 'This Week:'}
                             </span>
                             {strongData.currList.length > 0 ? (
                               strongData.currList.map((b, idx) => (
-                                <div key={idx} className="flex items-center justify-between text-[10px] text-zinc-100 bg-zinc-900/90 px-2 py-0.5 border border-zinc-700/60">
+                                <div key={idx} className="flex items-center justify-between text-[10px] text-[var(--ink)] bg-[var(--surface-2)] px-2 py-0.5 border border-[var(--line-strong)]">
                                   <span className="pr-1 truncate">{b.label}</span>
                                   <span className={`font-mono font-bold ${b.score > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                                     {b.score > 0 ? '+' : ''}{b.score}
@@ -1885,14 +1837,14 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
                                 </div>
                               ))
                             ) : (
-                              <span className="text-[9px] text-zinc-600 italic block pl-1">{isEs ? 'Pendiente evaluar' : 'Pending evaluation'}</span>
+                              <span className="text-[9px] text-[var(--ink-muted)] italic block pl-1">{isEs ? 'Pendiente evaluar' : 'Pending evaluation'}</span>
                             )}
                           </div>
                         </div>
                       </div>
 
                       {/* WEAK CURRENCY CARD */}
-                      <div className="bg-[#090b12] border border-rose-500/30 p-3 space-y-2">
+                      <div className="bg-[var(--surface)] border border-rose-500/30 p-3 space-y-2">
                         <div className="flex justify-between items-center border-b border-rose-500/20 pb-1 font-mono">
                           <span className="font-bold text-rose-400 text-xs">
                             {d.weak} ({d.weakScore > 0 ? `+${d.weakScore}` : d.weakScore})
@@ -1906,7 +1858,7 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
                             </span>
                             {weakData.prevList.length > 0 ? (
                               weakData.prevList.map((b, idx) => (
-                                <div key={idx} className="flex items-center justify-between text-[10px] text-zinc-300 bg-zinc-900/60 px-2 py-0.5 border border-zinc-800/60">
+                                <div key={idx} className="flex items-center justify-between text-[10px] text-[var(--ink)] bg-[var(--surface-2)]/60 px-2 py-0.5 border border-[var(--line)]">
                                   <span className="pr-1 truncate">{b.label}</span>
                                   <span className={`font-mono font-bold ${b.score > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                                     {b.score > 0 ? '+' : ''}{b.score}
@@ -1914,17 +1866,17 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
                                 </div>
                               ))
                             ) : (
-                              <span className="text-[9px] text-zinc-600 italic block pl-1">{isEs ? 'Sin eventos previos' : 'No prior events'}</span>
+                              <span className="text-[9px] text-[var(--ink-muted)] italic block pl-1">{isEs ? 'Sin eventos previos' : 'No prior events'}</span>
                             )}
                           </div>
 
-                          <div className="space-y-1 pt-1 border-t border-zinc-800/60">
-                            <span className="text-[9px] text-cyan-300 font-mono font-bold uppercase tracking-wider block">
+                          <div className="space-y-1 pt-1 border-t border-[var(--line)]">
+                            <span className="text-[9px] text-[var(--accent)] font-mono font-bold uppercase tracking-wider block">
                               ⚡ {isEs ? 'Esta Semana:' : 'This Week:'}
                             </span>
                             {weakData.currList.length > 0 ? (
                               weakData.currList.map((b, idx) => (
-                                <div key={idx} className="flex items-center justify-between text-[10px] text-zinc-100 bg-zinc-900/90 px-2 py-0.5 border border-zinc-700/60">
+                                <div key={idx} className="flex items-center justify-between text-[10px] text-[var(--ink)] bg-[var(--surface-2)] px-2 py-0.5 border border-[var(--line-strong)]">
                                   <span className="pr-1 truncate">{b.label}</span>
                                   <span className={`font-mono font-bold ${b.score > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                                     {b.score > 0 ? '+' : ''}{b.score}
@@ -1932,7 +1884,7 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
                                 </div>
                               ))
                             ) : (
-                              <span className="text-[9px] text-zinc-600 italic block pl-1">{isEs ? 'Pendiente evaluar' : 'Pending evaluation'}</span>
+                              <span className="text-[9px] text-[var(--ink-muted)] italic block pl-1">{isEs ? 'Pendiente evaluar' : 'Pending evaluation'}</span>
                             )}
                           </div>
                         </div>
@@ -1943,8 +1895,8 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
               })}
             </div>
           ) : divergences.length > 0 ? (
-            <div className="p-6 text-center text-zinc-400 bg-[#05060a] border border-zinc-800 space-y-2.5">
-              <p className="text-xs font-semibold text-zinc-200">
+            <div className="p-6 text-center text-[var(--ink-muted)] bg-[#05060a] border border-[var(--line)] space-y-2.5">
+              <p className="text-xs font-semibold text-[var(--ink)]">
                 {isEs
                   ? 'Ninguna oportunidad coincide con los filtros seleccionados.'
                   : 'No opportunities match the selected filters.'}
@@ -1952,20 +1904,20 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
               <button
                 type="button"
                 onClick={resetDivergenceFilters}
-                className="px-3.5 py-1.5 text-[11px] font-bold uppercase bg-cyan-950/70 hover:bg-cyan-900 text-cyan-300 border border-cyan-500/40 transition cursor-pointer"
+                className="px-3.5 py-1.5 text-[11px] font-bold uppercase bg-[var(--accent)]/15 hover:bg-[var(--accent)]/15 text-[var(--accent)] border border-[var(--accent)]/40 transition cursor-pointer"
               >
                 {isEs ? 'Restablecer Filtros del Escáner' : 'Reset Scanner Filters'}
               </button>
             </div>
           ) : (
-            <div className="p-6 text-center text-zinc-500 bg-[#05060a] border border-zinc-800 space-y-1">
+            <div className="p-6 text-center text-[var(--ink-muted)] bg-[#05060a] border border-[var(--line)] space-y-1">
               <span className="text-xl block mb-1">⚖️</span>
-              <p className="text-xs font-semibold text-zinc-300">
+              <p className="text-xs font-semibold text-[var(--ink)]">
                 {isEs 
                   ? 'No hay divergencias macro ≥ 3 puntos detectadas actualmente'
                   : 'No macro divergences ≥ 3 points currently detected'}
               </p>
-              <p className="text-[11px] text-zinc-500">
+              <p className="text-[11px] text-[var(--ink-muted)]">
                 {isEs
                   ? 'Evalúa los eventos económicos en las secciones inferiores para alimentar las puntuaciones en vivo.'
                   : 'Evaluate economic releases in the sessions below to feed live scoring parameters.'}
@@ -1976,12 +1928,12 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
 
         {/* 4. CONSOLIDATED QUANTITATIVE MATRIX */}
         <div className="macro-panel p-4 sm:p-5 space-y-5">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-zinc-800 pb-3 gap-2">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-[var(--line)] pb-3 gap-2">
             <div>
-              <span className="text-cyan-400 font-bold text-xs uppercase tracking-wider block font-mono">
+              <span className="text-[var(--accent)] font-bold text-xs uppercase tracking-wider block font-mono">
                 {isEs ? 'Matriz Cuantitativa Consolidada' : 'Consolidated Quantitative Score Matrix'}
               </span>
-              <p className="text-[10px] text-zinc-500 font-sans mt-0.5">
+              <p className="text-[10px] text-[var(--ink-muted)] font-sans mt-0.5">
                 {isEs 
                   ? 'Base histórica fija combinada con catalizadores evaluados de la semana'
                   : 'Fixed prior baseline combined with live evaluated event catalysts'}
@@ -1992,7 +1944,7 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
             <div className="flex items-center gap-1.5 text-[9px] font-mono flex-wrap">
               <span className="px-2 py-0.5 bg-emerald-950/80 text-emerald-300 border border-emerald-500/50 font-bold">+4 a +10</span>
               <span className="px-2 py-0.5 bg-yellow-950/70 text-yellow-300 border border-yellow-500/50 font-bold">+1 a +3</span>
-              <span className="px-2 py-0.5 bg-zinc-800/80 text-zinc-300 border border-zinc-700/50 font-bold">0</span>
+              <span className="px-2 py-0.5 bg-[var(--surface-2)] text-[var(--ink)] border border-[var(--line-strong)] font-bold">0</span>
               <span className="px-2 py-0.5 bg-orange-950/70 text-orange-300 border border-orange-500/50 font-bold">-1 a -3</span>
               <span className="px-2 py-0.5 bg-rose-950/80 text-rose-300 border border-rose-500/50 font-bold">-4 a -10</span>
             </div>
@@ -2000,13 +1952,13 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
 
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 2xl:gap-8">
             {/* Section A: Forex Core */}
-            <div className="table-touch-wrapper overflow-x-auto touch-scroll bg-[#05060a] p-3.5 sm:p-4 border border-zinc-800/80">
-              <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-wider block mb-2.5 font-mono">
+            <div className="table-touch-wrapper overflow-x-auto touch-scroll bg-[#05060a] p-3.5 sm:p-4 border border-[var(--line)]">
+              <span className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-wider block mb-2.5 font-mono">
                 {isEs ? '// SECCIÓN A: DIVISAS FOREX CORE' : '// SECTION A: G10 CORE FOREX'}
               </span>
               <table className="w-full text-xs text-left min-w-[320px]">
                 <thead>
-                  <tr className="text-zinc-500 text-[10px] border-b border-zinc-800 font-mono uppercase">
+                  <tr className="text-[var(--ink-muted)] text-[10px] border-b border-[var(--line)] font-mono uppercase">
                     <th className="p-2">{isEs ? 'Divisa' : 'Currency'}</th>
                     <th className="p-2 text-center">{isEs ? 'Previo (Fijo)' : 'Prior (Fixed)'}</th>
                     <th className="p-2 text-center">{isEs ? 'Eventos (Auto)' : 'Events (Auto)'}</th>
@@ -2019,21 +1971,21 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
                     const ev = computedMatrix.events[asset] || 0;
                     const tot = computedMatrix.totals[asset] || 0;
                     return (
-                      <tr key={asset} className="border-b border-zinc-800/40 hover:bg-[#0a0a0f] transition">
-                        <td className="p-2 font-bold text-white flex items-center gap-2">
+                      <tr key={asset} className="border-b border-[var(--line)] hover:bg-[#0a0a0f] transition">
+                        <td className="p-2 font-bold text-[var(--ink)] flex items-center gap-2">
                           <span className={`${getCurrencyBadgeClass(asset)} text-[10px] px-2.5 py-0.5 font-mono font-bold`}>
                             {asset}
                           </span>
                         </td>
-                        <td className="p-2 text-center text-zinc-400 font-mono">
+                        <td className="p-2 text-center text-[var(--ink-muted)] font-mono">
                           <input
                             type="number"
                             value={prev}
                             onChange={e => updatePrevMatrix(asset, e.target.value)}
-                            className="w-14 bg-[#020203] border border-zinc-700/80 px-1.5 py-1 text-center text-xs text-white focus:outline-none focus:border-cyan-400 font-mono font-bold"
+                            className="w-14 bg-[var(--bg)] border border-[var(--line-strong)] px-1.5 py-1 text-center text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--accent)] font-mono font-bold"
                           />
                         </td>
-                        <td className="p-2 text-center font-mono text-xs text-zinc-300 font-bold">
+                        <td className="p-2 text-center font-mono text-xs text-[var(--ink)] font-bold">
                           {ev > 0 ? `+${ev}` : ev}
                         </td>
                         <td className="p-2 text-center font-mono text-xs">
@@ -2049,13 +2001,13 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
             </div>
 
             {/* Section B: Commodities & Cross-Asset Risk */}
-            <div className="table-touch-wrapper overflow-x-auto touch-scroll bg-[#05060a] p-3.5 sm:p-4 border border-zinc-800/80">
-              <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-wider block mb-2.5 font-mono">
+            <div className="table-touch-wrapper overflow-x-auto touch-scroll bg-[#05060a] p-3.5 sm:p-4 border border-[var(--line)]">
+              <span className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-wider block mb-2.5 font-mono">
                 {isEs ? '// SECCIÓN B: MATERIAS PRIMAS Y RIESGO' : '// SECTION B: COMMODITIES & CROSS-ASSET RISK'}
               </span>
               <table className="w-full text-xs text-left min-w-[340px]">
                 <thead>
-                  <tr className="text-zinc-500 text-[10px] border-b border-zinc-800 font-mono uppercase">
+                  <tr className="text-[var(--ink-muted)] text-[10px] border-b border-[var(--line)] font-mono uppercase">
                     <th className="p-2">{isEs ? 'Activo' : 'Asset'}</th>
                     <th className="p-2 text-center">{isEs ? 'Previo (Fijo)' : 'Prior (Fixed)'}</th>
                     <th className="p-2 text-center">{isEs ? 'Evaluación' : 'Rating'}</th>
@@ -2069,14 +2021,14 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
                     const tot = computedMatrix.totals[item.id] || 0;
 
                     return (
-                      <tr key={item.id} className="border-b border-zinc-800/40 hover:bg-[#0a0a0f] transition">
-                        <td className="p-2 font-bold text-white text-xs">{item.name}</td>
-                        <td className="p-2 text-center text-zinc-400 font-mono">
+                      <tr key={item.id} className="border-b border-[var(--line)] hover:bg-[#0a0a0f] transition">
+                        <td className="p-2 font-bold text-[var(--ink)] text-xs">{item.name}</td>
+                        <td className="p-2 text-center text-[var(--ink-muted)] font-mono">
                           <input
                             type="number"
                             value={prev}
                             onChange={e => updatePrevMatrix(item.id, e.target.value)}
-                            className="w-14 bg-[#020203] border border-zinc-700/80 px-1.5 py-1 text-center text-xs text-white focus:outline-none focus:border-cyan-400 font-mono font-bold"
+                            className="w-14 bg-[var(--bg)] border border-[var(--line-strong)] px-1.5 py-1 text-center text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--accent)] font-mono font-bold"
                           />
                         </td>
                         <td className="p-2 text-center font-mono">
@@ -2089,7 +2041,7 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
                                   : scoreOption === 1
                                   ? 'bg-emerald-500 text-white border-emerald-400 shadow-sm'
                                   : scoreOption === 0
-                                  ? 'bg-zinc-700 text-white border-zinc-500 shadow-sm'
+                                  ? 'bg-[var(--surface-2)] text-white border-[var(--line-strong)] shadow-sm'
                                   : scoreOption === -1
                                   ? 'bg-rose-500 text-white border-rose-400 shadow-sm'
                                   : 'bg-rose-700 text-white border-rose-500 shadow-sm';
@@ -2102,7 +2054,7 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
                                   className={`w-7 h-7 sm:w-8 sm:h-7 inline-flex items-center justify-center text-[10px] font-bold border transition cursor-pointer ${
                                     isActive
                                       ? activeClass
-                                      : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700'
+                                      : 'bg-[var(--surface-2)] border-[var(--line)] text-[var(--ink-muted)] hover:border-[var(--line-strong)]'
                                   }`}
                                 >
                                   {scoreOption > 0 ? `+${scoreOption}` : scoreOption}
@@ -2128,7 +2080,7 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
         {/* 5. CALENDAR FILTER BAR */}
         <div className="macro-panel p-3.5 flex flex-col md:flex-row gap-3 justify-between items-center text-xs font-mono">
           <div className="flex items-center gap-1.5 flex-wrap w-full md:w-auto">
-            <span className="text-zinc-500 text-[10px] font-bold uppercase mr-1">
+            <span className="text-[var(--ink-muted)] text-[10px] font-bold uppercase mr-1">
               {isEs ? 'Filtrar:' : 'Filter:'}
             </span>
             {['ALL', 'USD', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD', 'NZD', 'CHF', 'CNH'].map(c => {
@@ -2140,8 +2092,8 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
                   onClick={() => setActiveCurrencyFilter(c)}
                   className={`px-3 py-1.5 font-bold cursor-pointer transition text-[11px] sm:text-xs min-h-[38px] flex items-center justify-center ${
                     isSelected
-                      ? 'bg-cyan-500 text-black shadow-[0_0_10px_rgba(6,182,212,0.4)]'
-                      : 'bg-zinc-900 border border-zinc-800 text-zinc-300 hover:bg-zinc-800 hover:border-zinc-700'
+                      ? 'bg-[var(--ink)] text-[var(--bg)]'
+                      : 'bg-[var(--surface-2)] border border-[var(--line)] text-[var(--ink)] hover:bg-[var(--surface-2)] hover:border-[var(--line-strong)]'
                   }`}
                 >
                   {c === 'ALL' ? (isEs ? 'TODAS' : 'ALL') : c}
@@ -2157,7 +2109,7 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder={isEs ? '🔍 Buscar evento...' : '🔍 Search event...'}
-              className="w-full md:w-56 bg-[#030305] border border-zinc-800 px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-400 font-mono min-h-[36px]"
+              className="w-full md:w-56 bg-[#030305] border border-[var(--line)] px-3 py-2 text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--accent)] font-mono min-h-[36px]"
             />
           </div>
         </div>
@@ -2208,13 +2160,13 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
                 className="day-card space-y-4 overflow-hidden"
               >
                 {/* Day Header */}
-                <div className="bg-[#0b0f19] border-b border-zinc-800/80 px-4 sm:px-5 py-3.5 flex justify-between items-center">
-                  <div className="flex items-center gap-2 bg-cyan-950/60 border border-cyan-500/40 px-3 py-1.5 text-cyan-300 font-bold font-mono text-xs shadow-sm">
+                <div className="bg-[#0b0f19] border-b border-[var(--line)] px-4 sm:px-5 py-3.5 flex justify-between items-center">
+                  <div className="flex items-center gap-2 bg-[var(--accent)]/10 border border-[var(--accent)]/40 px-3 py-1.5 text-[var(--accent)] font-bold font-mono text-xs shadow-sm">
                     <span>📅</span>
                     <span className="tracking-wider">{formattedDayTitle}</span>
                   </div>
                   <div className="flex items-center gap-2 font-mono text-[10px]">
-                    <span className="text-cyan-200/80 bg-zinc-900/80 px-2.5 py-0.5 border border-zinc-700/60 font-bold">
+                    <span className="text-[var(--ink-muted)] bg-[var(--surface-2)] px-2.5 py-0.5 border border-[var(--line-strong)] font-bold">
                       {events.length} {isEs ? 'Eventos' : 'Events'}
                     </span>
                   </div>
@@ -2224,7 +2176,7 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
                 <div className="table-touch-wrapper px-3 sm:px-4 overflow-x-auto touch-scroll">
                   <table className="w-full text-left text-xs font-mono border-collapse table-fixed min-w-[620px]">
                     <thead>
-                      <tr className="text-zinc-500 text-[10px] border-b border-zinc-800 uppercase tracking-wider">
+                      <tr className="text-[var(--ink-muted)] text-[10px] border-b border-[var(--line)] uppercase tracking-wider">
                         <th className="p-2.5 w-[10%]">{isEs ? 'Hora' : 'Time (UTC)'}</th>
                         <th className="p-2.5 w-[10%]">{isEs ? 'Divisa' : 'Currency'}</th>
                         <th className="p-2.5 w-[44%]">{isEs ? 'Evento Económico' : 'Economic Indicator'}</th>
@@ -2243,25 +2195,25 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
                           <React.Fragment key={block.categoryId}>
                             {block.events.map((item, itemIdx) => {
                               const rowClass = itemIdx % 2 === 0
-                                ? 'bg-transparent border-b border-zinc-800/30'
-                                : 'bg-zinc-900/20 border-b border-zinc-800/30';
+                                ? 'bg-transparent border-b border-[var(--line)]'
+                                : 'bg-[var(--surface-2)]/40 border-b border-[var(--line)]';
 
                               return (
-                                <tr key={`${item.event}-${itemIdx}`} className={`${rowClass} hover:bg-zinc-800/40 transition`}>
-                                  <td className="p-2.5 text-zinc-400 font-mono text-[11px] font-bold">{item.time || '—'}</td>
+                                <tr key={`${item.event}-${itemIdx}`} className={`${rowClass} hover:bg-[var(--surface-2)]/40 transition`}>
+                                  <td className="p-2.5 text-[var(--ink-muted)] font-mono text-[11px] font-bold">{item.time || '—'}</td>
                                   <td className="p-2.5">
                                     <span className={`${getCurrencyBadgeClass(item.ccy)} px-2 py-0.5 font-bold text-[9px] tracking-wide`}>
                                       {item.ccy}
                                     </span>
                                   </td>
                                   <td className="p-2.5 font-sans text-xs font-medium truncate pr-2">
-                                    <span className="text-zinc-200 truncate">
+                                    <span className="text-[var(--ink)] truncate">
                                       {item.event}
                                     </span>
                                   </td>
-                                  <td className="p-2.5 font-bold text-white font-mono truncate">{item.actual || '—'}</td>
-                                  <td className="p-2.5 text-zinc-400 font-mono truncate">{item.forecast || '—'}</td>
-                                  <td className="p-2.5 text-zinc-500 font-mono truncate">{item.previous || '—'}</td>
+                                  <td className="p-2.5 font-bold text-[var(--ink)] font-mono truncate">{item.actual || '—'}</td>
+                                  <td className="p-2.5 text-[var(--ink-muted)] font-mono truncate">{item.forecast || '—'}</td>
+                                  <td className="p-2.5 text-[var(--ink-muted)] font-mono truncate">{item.previous || '—'}</td>
                                 </tr>
                               );
                             })}
@@ -2278,7 +2230,7 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
                                   </div>
 
                                   <div className="flex items-center gap-1.5 font-mono shrink-0 self-end sm:self-auto">
-                                    <span className="text-[10px] text-zinc-400 mr-1 uppercase">
+                                    <span className="text-[10px] text-[var(--ink-muted)] mr-1 uppercase">
                                       {isEs ? 'Puntuación:' : 'Score:'}
                                     </span>
                                     {[2, 1, 0, -1, -2].map(scoreVal => {
@@ -2289,7 +2241,7 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
                                           : scoreVal === 1
                                           ? 'bg-emerald-500 text-white border-emerald-300 shadow-sm'
                                           : scoreVal === 0
-                                          ? 'bg-zinc-700 text-white border-zinc-500 shadow-sm'
+                                          ? 'bg-[var(--surface-2)] text-white border-[var(--line-strong)] shadow-sm'
                                           : scoreVal === -1
                                           ? 'bg-rose-500 text-white border-rose-400 shadow-sm'
                                           : 'bg-rose-700 text-white border-rose-500 shadow-sm';
@@ -2302,7 +2254,7 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
                                           className={`w-8 h-7 sm:w-8 sm:h-6 inline-flex items-center justify-center text-[10px] font-bold border transition cursor-pointer ${
                                             isScoreActive
                                               ? activeColor
-                                              : 'bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-zinc-600'
+                                              : 'bg-[var(--surface-2)] border-[var(--line)] text-[var(--ink)] hover:border-[var(--line-strong)]'
                                           }`}
                                         >
                                           {scoreVal > 0 ? `+${scoreVal}` : scoreVal}
@@ -2329,7 +2281,7 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
                     placeholder={isEs
                       ? `Notas de la jornada para ${formattedDayTitle} (noticias inesperadas, eventos geopolíticos)...`
                       : `Session notes for ${formattedDayTitle} (unscheduled speeches, geopolitical breaking events)...`}
-                    className="w-full bg-[#030305] border border-zinc-800 p-2.5 text-xs text-zinc-300 focus:outline-none focus:border-cyan-500/60 font-mono transition placeholder-zinc-600"
+                    className="w-full bg-[#030305] border border-[var(--line)] p-2.5 text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--accent)]/50 font-mono transition placeholder-zinc-600"
                   />
                 </div>
               </div>
@@ -2342,23 +2294,23 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
       {/* IN-APP CONFIRMATION MODAL (Reliable inside iframes & mobile) */}
       {confirmModal?.isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-[#0b0c10] border border-zinc-800 rounded-xl max-w-md w-full p-5 sm:p-6 shadow-2xl space-y-4 font-sans text-left">
+          <div className="bg-[#0b0c10] border border-[var(--line)] rounded-[2px] max-w-md w-full p-5 sm:p-6 shadow-2xl space-y-4 font-sans text-left">
             <div className="flex items-center gap-3">
               <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${confirmModal.confirmStyle === 'danger' ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'}`}>
                 <AlertTriangle className="w-5 h-5" />
               </div>
-              <h3 className="text-sm font-bold text-white tracking-wide">
+              <h3 className="text-sm font-bold text-[var(--ink)] tracking-wide">
                 {confirmModal.title}
               </h3>
             </div>
-            <p className="text-xs text-zinc-300 leading-relaxed whitespace-pre-line font-mono bg-[#050608] border border-zinc-800 p-3.5 rounded-lg">
+            <p className="text-xs text-[var(--ink)] leading-relaxed whitespace-pre-line font-mono bg-[#050608] border border-[var(--line)] p-3.5 rounded-[2px]">
               {confirmModal.message}
             </p>
             <div className="flex items-center justify-end gap-2.5 pt-2">
               <button
                 type="button"
                 onClick={() => setConfirmModal(null)}
-                className="px-3.5 py-2 text-xs text-zinc-400 hover:text-white bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded transition cursor-pointer min-h-[36px]"
+                className="px-3.5 py-2 text-xs text-[var(--ink-muted)] hover:text-[var(--ink)] bg-[var(--surface-2)] hover:bg-[var(--surface-2)] border border-[var(--line)] rounded transition cursor-pointer min-h-[36px]"
               >
                 {confirmModal.cancelText}
               </button>
@@ -2380,15 +2332,15 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
 
       {/* IN-APP NOTIFICATION TOAST */}
       {toast && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-lg shadow-2xl text-xs font-mono border backdrop-blur-md animate-in slide-in-from-bottom duration-300 bg-[#0c0d12]/95 border-cyan-500/50 text-cyan-200">
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-[2px] shadow-2xl text-xs font-mono border backdrop-blur-md animate-in slide-in-from-bottom duration-300 bg-[#0c0d12]/95 border-[var(--accent)]/50 text-[var(--accent)]">
           {toast.type === 'success' && <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />}
           {toast.type === 'error' && <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />}
-          {toast.type === 'info' && <Info className="w-4 h-4 text-cyan-400 shrink-0" />}
+          {toast.type === 'info' && <Info className="w-4 h-4 text-[var(--accent)] shrink-0" />}
           <span className="leading-tight">{toast.message}</span>
           <button
             type="button"
             onClick={() => setToast(null)}
-            className="ml-2 text-zinc-400 hover:text-white cursor-pointer"
+            className="ml-2 text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer"
           >
             <X className="w-3.5 h-3.5" />
           </button>
@@ -2398,12 +2350,12 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
       {/* WEEKLY MACRO RISK REPORT MODAL */}
       {isReportModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-6 bg-black/90 backdrop-blur-md overflow-y-auto">
-          <div className="bg-[#0b0c10] border border-zinc-800 rounded-xl max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+          <div className="bg-[#0b0c10] border border-[var(--line)] rounded-[2px] max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
             {/* Modal Header */}
-            <div className="p-4 border-b border-zinc-800 bg-[#07080c] flex flex-wrap items-center justify-between gap-3">
+            <div className="p-4 border-b border-[var(--line)] bg-[var(--surface)] flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2.5">
-                <FileText className="w-4 h-4 text-cyan-400" />
-                <span className="text-xs font-bold text-white uppercase tracking-wider font-mono">
+                <FileText className="w-4 h-4 text-[var(--accent)]" />
+                <span className="text-xs font-bold text-[var(--ink)] uppercase tracking-wider font-mono">
                   {isEs ? 'Exportación de Reporte Semanal Macro (PDF / Impresión)' : 'Weekly Macro Risk Report Export (PDF / Print)'}
                 </span>
               </div>
@@ -2411,7 +2363,7 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
                 <button
                   type="button"
                   onClick={handlePrintReport}
-                  className="px-3.5 py-1.5 bg-cyan-500 hover:bg-cyan-400 text-black text-xs font-bold rounded flex items-center gap-1.5 transition cursor-pointer shadow-sm min-h-[34px]"
+                  className="px-3.5 py-1.5 bg-[var(--accent)] hover:bg-[var(--ink)] text-[var(--bg)] text-xs font-bold rounded flex items-center gap-1.5 transition cursor-pointer shadow-sm min-h-[34px]"
                 >
                   <Printer className="w-3.5 h-3.5" />
                   {isEs ? 'Imprimir / Guardar PDF' : 'Print / Save PDF'}
@@ -2419,7 +2371,7 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
                 <button
                   type="button"
                   onClick={handleDownloadHTMLReport}
-                  className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-xs rounded flex items-center gap-1.5 transition cursor-pointer min-h-[34px]"
+                  className="px-3 py-1.5 bg-[var(--surface-2)] hover:bg-[var(--surface-2)] text-[var(--ink)] border border-[var(--line-strong)] text-xs rounded flex items-center gap-1.5 transition cursor-pointer min-h-[34px]"
                 >
                   <Download className="w-3.5 h-3.5" />
                   {isEs ? 'Descargar HTML' : 'Download HTML'}
@@ -2427,7 +2379,7 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
                 <button
                   type="button"
                   onClick={handleCopyReportText}
-                  className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-xs rounded flex items-center gap-1.5 transition cursor-pointer min-h-[34px]"
+                  className="px-3 py-1.5 bg-[var(--surface-2)] hover:bg-[var(--surface-2)] text-[var(--ink)] border border-[var(--line-strong)] text-xs rounded flex items-center gap-1.5 transition cursor-pointer min-h-[34px]"
                 >
                   {copiedReportText ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                   {isEs ? (copiedReportText ? 'Copiado' : 'Copiar Texto') : (copiedReportText ? 'Copied' : 'Copy Text')}
@@ -2435,7 +2387,7 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsReportModalOpen(false)}
-                  className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded transition cursor-pointer ml-1"
+                  className="p-1.5 text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface-2)] rounded transition cursor-pointer ml-1"
                 >
                   <X className="w-4 h-4" />
                 </button>

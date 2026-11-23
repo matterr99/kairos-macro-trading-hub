@@ -401,33 +401,8 @@
       renderTerminal();
     }
 
-    // Silent background fetch from backend proxy
-    async function syncFredRates() {
-      try {
-        const codes = Object.keys(bankData);
-        await Promise.all(codes.map(async (code) => {
-          const b = bankData[code];
-          try {
-            const isDaily = b.seriesId === 'DFF';
-            const limit = isDaily ? 35 : 10;
-            const res = await fetch(`/api/fred?series_id=${encodeURIComponent(b.seriesId)}&limit=${limit}`);
-            if (!res.ok) return;
-            const json = await res.json();
-            if (json && Array.isArray(json.observations)) {
-              const valid = json.observations.filter(o => o.value && o.value !== '.' && !isNaN(parseFloat(o.value)));
-              if (valid.length > 0) {
-                b.rate = parseFloat(valid[0].value);
-                renderTerminal();
-              }
-            }
-          } catch {}
-        }));
-      } catch {}
-    }
-
     document.addEventListener('DOMContentLoaded', () => {
       renderTerminal();
-      syncFredRates();
     });
   </script>
 </body>

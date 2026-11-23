@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { FileText, Download, Upload, RotateCcw } from 'lucide-react';
 import { Language } from '../types';
+import { ToolHeader } from './ToolHeader';
 
 interface QuantDeskProps {
   onReturnToHub: () => void;
@@ -322,96 +324,87 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
       {/* ========================================== */}
       <div className="space-y-0 print:hidden">
         
-        {/* 1. HERO / HEADER SECTION */}
-        <section className="relative w-full py-10 sm:py-12 border-b border-zinc-900 bg-[#020203]">
-          <div className="max-w-7xl 2xl:max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 flex flex-col md:flex-row md:items-end justify-between gap-6 font-mono">
-            <div className="space-y-3">
-              <button 
-                onClick={onReturnToHub} 
-                className="inline-flex items-center gap-2 text-xs text-zinc-500 hover:text-cyan-400 transition-colors uppercase cursor-pointer"
-              >
-                &larr; {isEs ? 'Volver al Centro de Herramientas' : 'Return to Tools Hub'}
-              </button>
-              <div className="flex items-center gap-3">
-                <span className="text-cyan-500 font-bold text-[10px] tracking-widest uppercase">// QUANT DESK_V2</span>
-                <span className="text-zinc-700">|</span>
-                <span className="text-emerald-400 font-bold text-[10px] tracking-wider uppercase">
-                  {isEs ? 'MODELO 5 PILARES' : '5-PILLAR MODEL'}
-                </span>
-                <span className="text-zinc-700">|</span>
-                <span className="text-cyan-400 font-bold text-[10px] tracking-wider uppercase">
-                  {isEs ? 'DEFINIDOR DE SENTIMIENTO' : 'SENTIMENT DEFINER'}
-                </span>
-              </div>
-              <h1 className="text-2xl sm:text-4xl font-black text-white uppercase tracking-tight">
-                {isEs ? 'Definidor Cuantitativo de Sentimiento' : 'Currency Sentiment Definer'}
-              </h1>
-              <p className="text-xs text-zinc-400 font-sans max-w-2xl font-light leading-relaxed">
-                {isEs 
-                  ? 'Mesa cuantitativa de verificación de sentimiento. Evalúa catalizadores de noticias, filtro minorista contrario (SSI), ponderaciones macroeconómicas, sentimiento de riesgo y trayectoria de bancos centrales.'
-                  : 'Quantitative sentiment verification desk. Evaluates Tier-1 news catalysts, retail crowd positioning (SSI), macro multi-factor weights, risk appetite, and central bank trajectory into high-probability directional verdicts.'}
-              </p>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex items-center gap-2 flex-wrap font-mono text-xs w-full md:w-auto">
-              <button 
+        {/* 1. UNIFIED TOOL HEADER */}
+        <ToolHeader
+          onReturnToHub={onReturnToHub}
+          language={language}
+          eyebrow="QUANT DESK"
+          tags={[
+            isEs ? 'MODELO 5 PILARES' : '5-PILLAR MODEL',
+            isEs ? 'SENTIMIENTO G10' : 'G10 SENTIMENT',
+          ]}
+          title={isEs ? 'Definidor Cuantitativo de Sentimiento' : 'Currency Sentiment Definer'}
+          subtitle={
+            isEs
+              ? 'Mesa cuantitativa de verificación de sentimiento. Evalúa catalizadores de noticias, filtro minorista contrario (SSI), ponderaciones macroeconómicas, sentimiento de riesgo y trayectoria de bancos centrales.'
+              : 'Quantitative sentiment verification desk. Evaluates Tier-1 news catalysts, retail crowd positioning (SSI), macro multi-factor weights, risk appetite, and central bank trajectory into directional verdicts.'
+          }
+          actions={
+            <>
+              <button
+                type="button"
                 onClick={handlePrint}
-                className="flex-1 sm:flex-initial px-3.5 py-2 text-[11px] sm:text-xs uppercase tracking-wider bg-cyan-950/40 hover:bg-cyan-900/60 text-cyan-400 rounded-sm border border-cyan-800/80 transition cursor-pointer flex items-center justify-center gap-1.5 font-bold shadow-sm min-h-[40px] sm:min-h-[36px]"
+                className="flex-1 sm:flex-initial h-9 px-3.5 rounded-[2px] text-[11px] uppercase tracking-[0.08em] bg-[var(--ink)] text-[var(--bg)] hover:opacity-90 transition cursor-pointer inline-flex items-center justify-center gap-1.5 font-semibold"
               >
-                <span>📄</span> {isEs ? 'Generar PDF' : 'Generate PDF'}
+                <FileText size={13} />
+                <span>{isEs ? 'Generar PDF' : 'Generate PDF'}</span>
               </button>
-              <button 
+              <button
+                type="button"
                 onClick={handleExportBackup}
-                className="flex-1 sm:flex-initial px-3.5 py-2 text-[11px] sm:text-xs uppercase tracking-wider bg-[#0c0c12] hover:bg-zinc-900 text-zinc-300 rounded-sm border border-zinc-800 transition cursor-pointer flex items-center justify-center gap-1.5 min-h-[40px] sm:min-h-[36px]"
+                className="flex-1 sm:flex-initial h-9 px-3.5 rounded-[2px] text-[11px] uppercase tracking-[0.08em] bg-[var(--surface)] hover:bg-[var(--surface-2)] text-[var(--ink)] border border-[var(--line)] hover:border-[var(--line-strong)] transition cursor-pointer inline-flex items-center justify-center gap-1.5"
               >
-                <span>📥</span> {isEs ? 'Exportar Backup' : 'Export Backup'}
+                <Download size={13} />
+                <span>{isEs ? 'Exportar Backup' : 'Export Backup'}</span>
               </button>
-              <label className="flex-1 sm:flex-initial px-3.5 py-2 text-[11px] sm:text-xs uppercase tracking-wider bg-[#0c0c12] hover:bg-zinc-900 text-zinc-300 rounded-sm border border-zinc-800 transition cursor-pointer flex items-center justify-center gap-1.5 min-h-[40px] sm:min-h-[36px]">
-                <span>📤</span> {isEs ? 'Cargar Backup' : 'Import Backup'}
+              <label className="flex-1 sm:flex-initial h-9 px-3.5 rounded-[2px] text-[11px] uppercase tracking-[0.08em] bg-[var(--surface)] hover:bg-[var(--surface-2)] text-[var(--ink)] border border-[var(--line)] hover:border-[var(--line-strong)] transition cursor-pointer inline-flex items-center justify-center gap-1.5">
+                <Upload size={13} />
+                <span>{isEs ? 'Cargar Backup' : 'Import Backup'}</span>
                 <input type="file" accept=".json,application/json" className="hidden" onChange={handleImportBackup} />
               </label>
-              <button 
+              <button
+                type="button"
                 onClick={handleReset}
-                className="flex-1 sm:flex-initial px-3.5 py-2 text-[11px] sm:text-xs uppercase tracking-wider bg-[#0c0c12] hover:bg-zinc-900 text-rose-400 rounded-sm border border-zinc-800 transition cursor-pointer flex items-center justify-center gap-1.5 min-h-[40px] sm:min-h-[36px]"
+                className="flex-1 sm:flex-initial h-9 px-3.5 rounded-[2px] text-[11px] uppercase tracking-[0.08em] bg-[var(--surface)] hover:bg-rose-500/10 text-[#EF4444] border border-[var(--line)] hover:border-[#EF4444]/40 transition cursor-pointer inline-flex items-center justify-center gap-1.5"
               >
-                <span>🔄</span> {isEs ? 'Reiniciar' : 'Reset'}
+                <RotateCcw size={13} />
+                <span>{isEs ? 'Reiniciar' : 'Reset'}</span>
               </button>
-            </div>
-          </div>
-        </section>
+            </>
+          }
+        />
 
         {/* 2. MAIN WORKSPACE VIEW */}
-        <main className="w-full max-w-7xl 2xl:max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-8 sm:py-10 space-y-8">
+        <main className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-8">
           
           {/* TOP CONTROL PANEL: ASSET PAIR SELECTOR + VERDICT + NET WEIGHT */}
-          <div className="bg-[#040406] rounded-sm border border-zinc-900 p-5 sm:p-6 shadow-2xl">
+          <div className="bg-[var(--surface)] rounded-sm border border-[var(--line)] p-5 sm:p-6 shadow-2xl">
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
               
               {/* Left: Asset Selection */}
               <div className="space-y-2 font-mono">
                 <div className="flex items-center gap-2">
-                  <span className="text-cyan-400 font-bold text-[10px] tracking-widest uppercase">
+                  <span className="text-[var(--accent)] font-bold text-[10px] tracking-widest uppercase">
                     // {isEs ? 'PAR ACTIVO SELECCIONADO' : 'ACTIVE CURRENCY PAIR'}
                   </span>
-                  <span className="text-zinc-600">|</span>
-                  <span className="text-[10px] text-zinc-500 uppercase">
+                  <span className="text-[var(--ink-muted)]">|</span>
+                  <span className="text-[10px] text-[var(--ink-muted)] uppercase">
                     {isEs ? 'CRUCE G10' : 'G10 CROSS'}
                   </span>
                 </div>
                 
-                <div className="flex items-center gap-3 bg-[#020203] border border-zinc-800 rounded-sm px-4 py-2 w-fit">
+                <div className="flex items-center gap-3 bg-[var(--bg)] border border-[var(--line)] rounded-sm px-4 py-2 w-fit">
                   {/* Base Selector */}
                   <div className="flex flex-col">
-                    <span className="text-[8px] text-zinc-500 font-bold uppercase tracking-wider">
+                    <span className="text-[8px] text-[var(--ink-muted)] font-bold uppercase tracking-wider">
                       {isEs ? 'DIVISA BASE' : 'BASE LEG'}
                     </span>
                     <select 
                       value={baseCurrency} 
                       onChange={(e) => setBaseCurrency(e.target.value)} 
-                      className="bg-transparent text-xl font-black text-white hover:text-cyan-400 transition font-mono focus:outline-none cursor-pointer"
+                      className="bg-transparent text-xl font-black text-[var(--ink)] hover:text-[var(--accent)] transition font-mono focus:outline-none cursor-pointer"
                     >
-                      {G10_CURRENCIES.map(c => <option key={c} value={c} className="bg-[#040406]">{c}</option>)}
+                      {G10_CURRENCIES.map(c => <option key={c} value={c} className="bg-[var(--surface)]">{c}</option>)}
                     </select>
                   </div>
 
@@ -419,22 +412,22 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                   <button
                     onClick={handleSwapCurrencies}
                     title={isEs ? 'Invertir Par' : 'Invert Currency Pair'}
-                    className="w-10 h-10 min-w-[40px] min-h-[40px] bg-zinc-900 hover:bg-cyan-950/60 text-zinc-400 hover:text-cyan-400 border border-zinc-800 rounded-sm text-sm transition cursor-pointer flex items-center justify-center self-center mt-2 shadow-sm"
+                    className="w-10 h-10 min-w-[40px] min-h-[40px] bg-[var(--surface-2)] hover:bg-[var(--accent)]/15 text-[var(--ink-muted)] hover:text-[var(--accent)] border border-[var(--line)] rounded-sm text-sm transition cursor-pointer flex items-center justify-center self-center mt-2 shadow-sm"
                   >
                     ⇄
                   </button>
 
                   {/* Quote Selector */}
                   <div className="flex flex-col">
-                    <span className="text-[8px] text-zinc-500 font-bold uppercase tracking-wider">
+                    <span className="text-[8px] text-[var(--ink-muted)] font-bold uppercase tracking-wider">
                       {isEs ? 'DIVISA COTIZADA' : 'QUOTE LEG'}
                     </span>
                     <select 
                       value={quoteCurrency} 
                       onChange={(e) => setQuoteCurrency(e.target.value)} 
-                      className="bg-transparent text-xl font-black text-white hover:text-cyan-400 transition font-mono focus:outline-none cursor-pointer"
+                      className="bg-transparent text-xl font-black text-[var(--ink)] hover:text-[var(--accent)] transition font-mono focus:outline-none cursor-pointer"
                     >
-                      {G10_CURRENCIES.map(c => <option key={c} value={c} className="bg-[#040406]">{c}</option>)}
+                      {G10_CURRENCIES.map(c => <option key={c} value={c} className="bg-[var(--surface)]">{c}</option>)}
                     </select>
                   </div>
                 </div>
@@ -442,22 +435,22 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
 
               {/* Middle: Score Balance & Regime Badge */}
               <div className="flex flex-wrap items-center gap-4 font-mono">
-                <div className="bg-[#020203] border border-zinc-800 rounded-sm p-3 min-w-[150px]">
-                  <span className="text-[9px] text-zinc-500 uppercase tracking-widest block font-bold">
+                <div className="bg-[var(--bg)] border border-[var(--line)] rounded-sm p-3 min-w-[150px]">
+                  <span className="text-[9px] text-[var(--ink-muted)] uppercase tracking-widest block font-bold">
                     {isEs ? 'PESO NETO CALENDARIO' : 'CALENDAR NET WEIGHT'}
                   </span>
                   <div className="flex items-center gap-2 mt-1">
-                    <span className={`text-2xl font-black ${netWeight > 0 ? 'text-cyan-400' : netWeight < 0 ? 'text-rose-400' : 'text-white'}`}>
+                    <span className={`text-2xl font-black ${netWeight > 0 ? 'text-[var(--accent)]' : netWeight < 0 ? 'text-rose-400' : 'text-[var(--ink)]'}`}>
                       {netWeight > 0 ? `+${netWeight}` : netWeight}
                     </span>
-                    <span className="text-[10px] text-zinc-500 font-sans">
+                    <span className="text-[10px] text-[var(--ink-muted)] font-sans">
                       {isEs ? 'balance pts' : 'pts balance'}
                     </span>
                   </div>
                 </div>
 
-                <div className="bg-[#020203] border border-zinc-800 rounded-sm p-3 min-w-[180px]">
-                  <span className="text-[9px] text-zinc-500 uppercase tracking-widest block font-bold">
+                <div className="bg-[var(--bg)] border border-[var(--line)] rounded-sm p-3 min-w-[180px]">
+                  <span className="text-[9px] text-[var(--ink-muted)] uppercase tracking-widest block font-bold">
                     {isEs ? 'RÉGIMEN DE MERCADO' : 'REGIME CLASSIFICATION'}
                   </span>
                   <div className="mt-1">
@@ -466,7 +459,7 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                         ⚠️ {isEs ? 'Alto Riesgo Geopolítico' : 'High Geopolitical Hazard'}
                       </span>
                     ) : (
-                      <span className="text-[10px] font-mono bg-zinc-900 border border-zinc-800 text-zinc-400 px-2 py-0.5 rounded-sm inline-block">
+                      <span className="text-[10px] font-mono bg-[var(--surface-2)] border border-[var(--line)] text-[var(--ink-muted)] px-2 py-0.5 rounded-sm inline-block">
                         {isEs ? 'Perfil de Volatilidad Normal' : 'Normal Volatility Profile'}
                       </span>
                     )}
@@ -477,21 +470,21 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
               {/* Right: Glowing Tactical Decision Panel */}
               <div className={`p-4 rounded-sm border flex flex-col items-center justify-center w-full lg:w-72 transition font-mono text-center ${
                 isApproved 
-                  ? 'bg-cyan-950/20 border-cyan-500/60 shadow-[0_0_16px_rgba(6,182,212,0.25)]' 
+                  ? 'bg-[var(--accent)]/10 border-[var(--accent)]/50' 
                   : isNoTrade 
-                  ? 'bg-rose-950/20 border-rose-500/60 shadow-[0_0_16px_rgba(244,63,94,0.2)]' 
-                  : 'bg-[#020203] border-zinc-800'
+                  ? 'bg-rose-950/20 border-rose-500/60' 
+                  : 'bg-[var(--bg)] border-[var(--line)]'
               }`}>
-                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
+                <span className="text-[10px] font-bold text-[var(--ink-muted)] uppercase tracking-widest">
                   // {isEs ? 'VEREDICTO TÁCTICO DEL SISTEMA' : 'SYSTEM TACTICAL VERDICT'}
                 </span>
                 
                 {isApproved && (
                   <>
-                    <span className="text-base font-black mt-1 text-cyan-400 tracking-wider">
+                    <span className="text-base font-black mt-1 text-[var(--accent)] tracking-wider">
                       {isEs ? `APROBADO (${step1Direction === 'buy' ? 'COMPRA' : 'VENTA'})` : `APPROVED (${step1Direction.toUpperCase()})`}
                     </span>
-                    <span className="text-[10px] text-zinc-400 mt-1 font-sans">
+                    <span className="text-[10px] text-[var(--ink-muted)] mt-1 font-sans">
                       {isEs 
                         ? `Factores: ${matchCount}/4 confirman el sesgo para ${baseCurrency}/${quoteCurrency}.` 
                         : `Factors: ${matchCount}/4 agree with fundamental ${step1Direction.toUpperCase()} for ${baseCurrency}/${quoteCurrency}.`}
@@ -504,7 +497,7 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                     <span className="text-base font-black mt-1 text-rose-400 tracking-wider">
                       {isEs ? 'SIN OPERACIÓN' : 'NO TRADE'}
                     </span>
-                    <span className="text-[10px] text-zinc-400 mt-1 font-sans">
+                    <span className="text-[10px] text-[var(--ink-muted)] mt-1 font-sans">
                       {isEs 
                         ? `Alineación insuficiente (${matchCount}/4 coincidieron).` 
                         : `Insufficient factor agreement (${matchCount}/4 agreed).`}
@@ -514,10 +507,10 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
 
                 {!isApproved && !isNoTrade && (
                   <>
-                    <span className="text-base font-black mt-1 text-zinc-500 tracking-wider">
+                    <span className="text-base font-black mt-1 text-[var(--ink-muted)] tracking-wider">
                       {isEs ? 'SIN SESGO' : 'NO BIAS'}
                     </span>
-                    <span className="text-[10px] text-zinc-500 mt-1 font-sans">
+                    <span className="text-[10px] text-[var(--ink-muted)] mt-1 font-sans">
                       {isEs ? 'Añade un evento económico debajo para evaluar sesgo.' : 'Add an economic event below to evaluate direction.'}
                     </span>
                   </>
@@ -533,18 +526,18 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
             {/* LEFT 7 COLS: POINT 1 ECONOMIC NEWS CATALYST GRID */}
             <div className="lg:col-span-7 space-y-6">
               
-              <div className="bg-[#040406] rounded-sm border border-zinc-900 p-5 sm:p-6 shadow-2xl space-y-5">
+              <div className="bg-[var(--surface)] rounded-sm border border-[var(--line)] p-5 sm:p-6 shadow-2xl space-y-5">
                 
-                <div className="flex justify-between items-center border-b border-zinc-800/80 pb-3 font-mono">
+                <div className="flex justify-between items-center border-b border-[var(--line)] pb-3 font-mono">
                   <div>
-                    <span className="text-cyan-400 font-bold text-[10px] tracking-widest uppercase block">
+                    <span className="text-[var(--accent)] font-bold text-[10px] tracking-widest uppercase block">
                       // {isEs ? 'PUNTO 1: CATALIZADORES FUNDAMENTALES' : 'POINT 1: FUNDAMENTAL CATALYSTS'}
                     </span>
-                    <h3 className="text-sm font-bold text-white uppercase tracking-wider mt-0.5">
+                    <h3 className="text-sm font-bold text-[var(--ink)] uppercase tracking-wider mt-0.5">
                       {isEs ? 'Calendario Económico y Noticias Clave' : 'Economic Calendar & News Feed'}
                     </h3>
                   </div>
-                  <span className="text-[10px] text-zinc-500 bg-[#020203] border border-zinc-800 px-2 py-1 rounded-sm">
+                  <span className="text-[10px] text-[var(--ink-muted)] bg-[var(--bg)] border border-[var(--line)] px-2 py-1 rounded-sm">
                     {isEs ? 'Regla: Eventos Tier-1' : 'Rule Base: Tier-1 Events'}
                   </span>
                 </div>
@@ -552,15 +545,15 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   
                   {/* BASE CURRENCY EVENTS PANEL */}
-                  <div className="bg-[#020203] p-4 rounded-sm border border-zinc-800/90 space-y-3 font-mono">
-                    <div className="flex justify-between items-center border-b border-zinc-800/80 pb-2">
-                      <span className="text-xs font-bold text-cyan-400 uppercase">
+                  <div className="bg-[var(--bg)] p-4 rounded-sm border border-[var(--line)] space-y-3 font-mono">
+                    <div className="flex justify-between items-center border-b border-[var(--line)] pb-2">
+                      <span className="text-xs font-bold text-[var(--accent)] uppercase">
                         {isEs ? `Eventos ${baseCurrency} (Base)` : `${baseCurrency} Events (Base)`}
                       </span>
                       <button 
                         type="button" 
                         onClick={addBaseEvent} 
-                        className="bg-zinc-900 hover:bg-cyan-950/60 text-zinc-300 hover:text-cyan-400 border border-zinc-800 hover:border-cyan-500/50 text-[10px] font-bold px-2.5 py-1 rounded-sm transition cursor-pointer flex items-center gap-1"
+                        className="bg-[var(--surface-2)] hover:bg-[var(--accent)]/15 text-[var(--ink)] hover:text-[var(--accent)] border border-[var(--line)] hover:border-[var(--accent)]/50 text-[10px] font-bold px-2.5 py-1 rounded-sm transition cursor-pointer flex items-center gap-1"
                       >
                         <span>+</span> {isEs ? 'AÑADIR' : 'ADD'}
                       </button>
@@ -568,19 +561,19 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                     
                     <div className="space-y-3">
                       {baseEvents.map((evt) => (
-                        <div key={evt.id} className="bg-[#040406] border border-zinc-800 rounded-sm p-3 space-y-2 relative">
+                        <div key={evt.id} className="bg-[var(--surface)] border border-[var(--line)] rounded-sm p-3 space-y-2 relative">
                           <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                             <select 
                               value={evt.type} 
                               onChange={(e) => updateBaseEvent(evt.id, { type: e.target.value })}
-                              className="w-full sm:flex-grow bg-[#020203] border border-zinc-800 text-[10px] sm:text-xs p-2 sm:p-1.5 rounded-sm text-zinc-300 focus:outline-none focus:border-cyan-500/50 cursor-pointer min-w-0 font-mono min-h-[38px] sm:min-h-[34px]"
+                              className="w-full sm:flex-grow bg-[var(--bg)] border border-[var(--line)] text-[10px] sm:text-xs p-2 sm:p-1.5 rounded-sm text-[var(--ink)] focus:outline-none focus:border-[var(--accent)]/50 cursor-pointer min-w-0 font-mono min-h-[38px] sm:min-h-[34px]"
                             >
                               <option value="none">-- {isEs ? 'SELECCIONAR EVENTO' : 'SELECT EVENT'} --</option>
-                              <optgroup label={isEs ? "Bancos Centrales" : "Central Banks"} className="bg-[#020203]">
+                              <optgroup label={isEs ? "Bancos Centrales" : "Central Banks"} className="bg-[var(--bg)]">
                                 <option value="CB Press">{isEs ? 'Decisión / Conferencia B.C.' : 'C.B. Decisions / Press Conf'}</option>
                                 <option value="Central Bank">{isEs ? 'Minutas de Banco Central' : 'Central Bank Minutes'}</option>
                               </optgroup>
-                              <optgroup label={isEs ? "Actividad Económica" : "Economic Activity & Growth"} className="bg-[#020203]">
+                              <optgroup label={isEs ? "Actividad Económica" : "Economic Activity & Growth"} className="bg-[var(--bg)]">
                                 <option value="GDP">{isEs ? 'PIB (Crecimiento)' : 'GDP (Growth Rate)'}</option>
                                 <option value="PMIs">{isEs ? 'PMIs (Mfg/Servicios)' : 'PMIs (Mfg/Services)'}</option>
                                 <option value="Retail Sales">{isEs ? 'Ventas Minoristas' : 'Retail Sales'}</option>
@@ -588,16 +581,16 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                                 <option value="Industrial Production">{isEs ? 'Producción Industrial' : 'Industrial Prod.'}</option>
                                 <option value="Trade Balance">{isEs ? 'Balanza Comercial' : 'Trade Balance'}</option>
                               </optgroup>
-                              <optgroup label={isEs ? "Inflación y Precios" : "Inflation & Prices"} className="bg-[#020203]">
+                              <optgroup label={isEs ? "Inflación y Precios" : "Inflation & Prices"} className="bg-[var(--bg)]">
                                 <option value="Inflation">{isEs ? 'Inflación (IPC/PCE)' : 'Inflation (CPI/PCE)'}</option>
                                 <option value="PPI">{isEs ? 'IPP (Inflación Mayorista)' : 'PPI (Producer Inflation)'}</option>
                               </optgroup>
-                              <optgroup label={isEs ? "Empleo y Salarios" : "Labor Market & Earnings"} className="bg-[#020203]">
+                              <optgroup label={isEs ? "Empleo y Salarios" : "Labor Market & Earnings"} className="bg-[var(--bg)]">
                                 <option value="Employment">{isEs ? 'NFP / Desempleo' : 'Employment (NFP/UR)'}</option>
                                 <option value="Jobless Claims">{isEs ? 'Peticiones Desempleo' : 'Jobless Claims'}</option>
                                 <option value="Average Earnings">{isEs ? 'Salarios / Ingresos' : 'Average Earnings / Wages'}</option>
                               </optgroup>
-                              <optgroup label={isEs ? "Geopolítica" : "Risk & Geopolitics"} className="bg-[#020203]">
+                              <optgroup label={isEs ? "Geopolítica" : "Risk & Geopolitics"} className="bg-[var(--bg)]">
                                 <option value="Geopolitics">{isEs ? 'Geopolítica / Guerra / Aranceles' : 'Geopolitics / War Risk'}</option>
                               </optgroup>
                             </select>
@@ -606,7 +599,7 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                               <select 
                                 value={evt.bias} 
                                 onChange={(e) => updateBaseEvent(evt.id, { bias: e.target.value as any })}
-                                className="flex-1 sm:w-36 bg-[#020203] border border-zinc-800 text-[10px] sm:text-xs p-2 sm:p-1.5 rounded-sm text-zinc-300 focus:outline-none focus:border-cyan-500/50 font-bold cursor-pointer font-mono min-h-[38px] sm:min-h-[34px]"
+                                className="flex-1 sm:w-36 bg-[var(--bg)] border border-[var(--line)] text-[10px] sm:text-xs p-2 sm:p-1.5 rounded-sm text-[var(--ink)] focus:outline-none focus:border-[var(--accent)]/50 font-bold cursor-pointer font-mono min-h-[38px] sm:min-h-[34px]"
                               >
                                 <option value="none">-- {isEs ? 'SESGO' : 'BIAS'} --</option>
                                 <option value="very_bullish" className="text-emerald-400">🟢 {isEs ? 'MUY ALCISTA (+2)' : 'VERY BULLISH (+2)'}</option>
@@ -618,7 +611,7 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                               <button 
                                 type="button" 
                                 onClick={() => removeBaseEvent(evt.id)} 
-                                className="text-zinc-500 hover:text-rose-400 text-sm w-9 h-9 sm:w-8 sm:h-8 flex items-center justify-center font-bold shrink-0 transition cursor-pointer border border-zinc-800 hover:border-rose-900/50"
+                                className="text-[var(--ink-muted)] hover:text-rose-400 text-sm w-9 h-9 sm:w-8 sm:h-8 flex items-center justify-center font-bold shrink-0 transition cursor-pointer border border-[var(--line)] hover:border-rose-900/50"
                                 title="Delete"
                               >
                                 ✕
@@ -634,7 +627,7 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                             className={`w-full text-[10px] sm:text-xs p-2 sm:p-1.5 rounded-sm font-mono focus:outline-none min-h-[36px] sm:min-h-[32px] ${
                               evt.type === 'Geopolitics' 
                                 ? 'bg-rose-950/20 border border-rose-900/60 text-rose-300 placeholder-rose-700/60 focus:border-rose-400' 
-                                : 'bg-[#020203] border border-zinc-800 text-zinc-300 focus:border-cyan-500/50'
+                                : 'bg-[var(--bg)] border border-[var(--line)] text-[var(--ink)] focus:border-[var(--accent)]/50'
                             }`}
                           />
                         </div>
@@ -643,15 +636,15 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                   </div>
 
                   {/* QUOTE CURRENCY EVENTS PANEL */}
-                  <div className="bg-[#020203] p-4 rounded-sm border border-zinc-800/90 space-y-3 font-mono">
-                    <div className="flex justify-between items-center border-b border-zinc-800/80 pb-2">
-                      <span className="text-xs font-bold text-cyan-400 uppercase">
+                  <div className="bg-[var(--bg)] p-4 rounded-sm border border-[var(--line)] space-y-3 font-mono">
+                    <div className="flex justify-between items-center border-b border-[var(--line)] pb-2">
+                      <span className="text-xs font-bold text-[var(--accent)] uppercase">
                         {isEs ? `Eventos ${quoteCurrency} (Cotizada)` : `${quoteCurrency} Events (Quote)`}
                       </span>
                       <button 
                         type="button" 
                         onClick={addQuoteEvent} 
-                        className="bg-zinc-900 hover:bg-cyan-950/60 text-zinc-300 hover:text-cyan-400 border border-zinc-800 hover:border-cyan-500/50 text-[10px] font-bold px-2.5 py-1 rounded-sm transition cursor-pointer flex items-center gap-1"
+                        className="bg-[var(--surface-2)] hover:bg-[var(--accent)]/15 text-[var(--ink)] hover:text-[var(--accent)] border border-[var(--line)] hover:border-[var(--accent)]/50 text-[10px] font-bold px-2.5 py-1 rounded-sm transition cursor-pointer flex items-center gap-1"
                       >
                         <span>+</span> {isEs ? 'AÑADIR' : 'ADD'}
                       </button>
@@ -659,19 +652,19 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                     
                     <div className="space-y-3">
                       {quoteEvents.map((evt) => (
-                        <div key={evt.id} className="bg-[#040406] border border-zinc-800 rounded-sm p-3 space-y-2 relative">
+                        <div key={evt.id} className="bg-[var(--surface)] border border-[var(--line)] rounded-sm p-3 space-y-2 relative">
                           <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                             <select 
                               value={evt.type} 
                               onChange={(e) => updateQuoteEvent(evt.id, { type: e.target.value })}
-                              className="w-full sm:flex-grow bg-[#020203] border border-zinc-800 text-[10px] sm:text-xs p-2 sm:p-1.5 rounded-sm text-zinc-300 focus:outline-none focus:border-cyan-500/50 cursor-pointer min-w-0 font-mono min-h-[38px] sm:min-h-[34px]"
+                              className="w-full sm:flex-grow bg-[var(--bg)] border border-[var(--line)] text-[10px] sm:text-xs p-2 sm:p-1.5 rounded-sm text-[var(--ink)] focus:outline-none focus:border-[var(--accent)]/50 cursor-pointer min-w-0 font-mono min-h-[38px] sm:min-h-[34px]"
                             >
                               <option value="none">-- {isEs ? 'SELECCIONAR EVENTO' : 'SELECT EVENT'} --</option>
-                              <optgroup label={isEs ? "Bancos Centrales" : "Central Banks"} className="bg-[#020203]">
+                              <optgroup label={isEs ? "Bancos Centrales" : "Central Banks"} className="bg-[var(--bg)]">
                                 <option value="CB Press">{isEs ? 'Decisión / Conferencia B.C.' : 'C.B. Decisions / Press Conf'}</option>
                                 <option value="Central Bank">{isEs ? 'Minutas de Banco Central' : 'Central Bank Minutes'}</option>
                               </optgroup>
-                              <optgroup label={isEs ? "Actividad Económica" : "Economic Activity & Growth"} className="bg-[#020203]">
+                              <optgroup label={isEs ? "Actividad Económica" : "Economic Activity & Growth"} className="bg-[var(--bg)]">
                                 <option value="GDP">{isEs ? 'PIB (Crecimiento)' : 'GDP (Growth Rate)'}</option>
                                 <option value="PMIs">{isEs ? 'PMIs (Mfg/Servicios)' : 'PMIs (Mfg/Services)'}</option>
                                 <option value="Retail Sales">{isEs ? 'Ventas Minoristas' : 'Retail Sales'}</option>
@@ -679,16 +672,16 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                                 <option value="Industrial Production">{isEs ? 'Producción Industrial' : 'Industrial Prod.'}</option>
                                 <option value="Trade Balance">{isEs ? 'Balanza Comercial' : 'Trade Balance'}</option>
                               </optgroup>
-                              <optgroup label={isEs ? "Inflación y Precios" : "Inflation & Prices"} className="bg-[#020203]">
+                              <optgroup label={isEs ? "Inflación y Precios" : "Inflation & Prices"} className="bg-[var(--bg)]">
                                 <option value="Inflation">{isEs ? 'Inflación (IPC/PCE)' : 'Inflation (CPI/PCE)'}</option>
                                 <option value="PPI">{isEs ? 'IPP (Inflación Mayorista)' : 'PPI (Producer Inflation)'}</option>
                               </optgroup>
-                              <optgroup label={isEs ? "Empleo y Salarios" : "Labor Market & Earnings"} className="bg-[#020203]">
+                              <optgroup label={isEs ? "Empleo y Salarios" : "Labor Market & Earnings"} className="bg-[var(--bg)]">
                                 <option value="Employment">{isEs ? 'NFP / Desempleo' : 'Employment (NFP/UR)'}</option>
                                 <option value="Jobless Claims">{isEs ? 'Peticiones Desempleo' : 'Jobless Claims'}</option>
                                 <option value="Average Earnings">{isEs ? 'Salarios / Ingresos' : 'Average Earnings / Wages'}</option>
                               </optgroup>
-                              <optgroup label={isEs ? "Geopolítica" : "Risk & Geopolitics"} className="bg-[#020203]">
+                              <optgroup label={isEs ? "Geopolítica" : "Risk & Geopolitics"} className="bg-[var(--bg)]">
                                 <option value="Geopolitics">{isEs ? 'Geopolítica / Guerra / Aranceles' : 'Geopolitics / War Risk'}</option>
                               </optgroup>
                             </select>
@@ -697,7 +690,7 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                               <select 
                                 value={evt.bias} 
                                 onChange={(e) => updateQuoteEvent(evt.id, { bias: e.target.value as any })}
-                                className="flex-1 sm:w-36 bg-[#020203] border border-zinc-800 text-[10px] sm:text-xs p-2 sm:p-1.5 rounded-sm text-zinc-300 focus:outline-none focus:border-cyan-500/50 font-bold cursor-pointer font-mono min-h-[38px] sm:min-h-[34px]"
+                                className="flex-1 sm:w-36 bg-[var(--bg)] border border-[var(--line)] text-[10px] sm:text-xs p-2 sm:p-1.5 rounded-sm text-[var(--ink)] focus:outline-none focus:border-[var(--accent)]/50 font-bold cursor-pointer font-mono min-h-[38px] sm:min-h-[34px]"
                               >
                                 <option value="none">-- {isEs ? 'SESGO' : 'BIAS'} --</option>
                                 <option value="very_bullish" className="text-emerald-400">🟢 {isEs ? 'MUY ALCISTA (+2)' : 'VERY BULLISH (+2)'}</option>
@@ -709,7 +702,7 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                               <button 
                                 type="button" 
                                 onClick={() => removeQuoteEvent(evt.id)} 
-                                className="text-zinc-500 hover:text-rose-400 text-sm w-9 h-9 sm:w-8 sm:h-8 flex items-center justify-center font-bold shrink-0 transition cursor-pointer border border-zinc-800 hover:border-rose-900/50"
+                                className="text-[var(--ink-muted)] hover:text-rose-400 text-sm w-9 h-9 sm:w-8 sm:h-8 flex items-center justify-center font-bold shrink-0 transition cursor-pointer border border-[var(--line)] hover:border-rose-900/50"
                                 title="Delete"
                               >
                                 ✕
@@ -725,7 +718,7 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                             className={`w-full text-[10px] sm:text-xs p-2 sm:p-1.5 rounded-sm font-mono focus:outline-none min-h-[36px] sm:min-h-[32px] ${
                               evt.type === 'Geopolitics' 
                                 ? 'bg-rose-950/20 border border-rose-900/60 text-rose-300 placeholder-rose-700/60 focus:border-rose-400' 
-                                : 'bg-[#020203] border border-zinc-800 text-zinc-300 focus:border-cyan-500/50'
+                                : 'bg-[var(--bg)] border border-[var(--line)] text-[var(--ink)] focus:border-[var(--accent)]/50'
                             }`}
                           />
                         </div>
@@ -735,7 +728,7 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
 
                 </div>
 
-                <p className="text-[11px] text-zinc-500 font-sans italic border-t border-zinc-900 pt-3">
+                <p className="text-[11px] text-[var(--ink-muted)] font-sans italic border-t border-[var(--line)] pt-3">
                   {isEs 
                     ? '* Nota: Datos alcistas en la divisa Base suman (+), mientras que en la Cotizada restan (-). La selección de Geopolítica activa el régimen de riesgo de cola.'
                     : '* Note: Base currency positive events add positive bias (+), while Quote currency positive events subtract from the pair ratio (-). Geopolitics flags high-volatility tail-risk regimes.'}
@@ -743,38 +736,38 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
               </div>
 
               {/* MACRO INTELLIGENCE DOSSIER (WEEKLY NOTES) */}
-              <div className="bg-[#040406] rounded-sm border border-zinc-900 p-5 sm:p-6 shadow-2xl space-y-4 font-mono">
-                <div className="flex items-center justify-between border-b border-zinc-800/80 pb-3">
-                  <span className="text-cyan-400 font-bold text-[10px] tracking-widest uppercase">
+              <div className="bg-[var(--surface)] rounded-sm border border-[var(--line)] p-5 sm:p-6 shadow-2xl space-y-4 font-mono">
+                <div className="flex items-center justify-between border-b border-[var(--line)] pb-3">
+                  <span className="text-[var(--accent)] font-bold text-[10px] tracking-widest uppercase">
                     // {isEs ? 'DOSSIER MACRO Y REGISTRO DE RIESGOS' : 'MACRO RISK & DOSSIER LOGS'}
                   </span>
-                  <span className="text-[10px] text-zinc-500">
+                  <span className="text-[10px] text-[var(--ink-muted)]">
                     {isEs ? 'AUTO-GUARDADO ACTIVO' : 'AUTO-SAVED TO PERSISTENCE'}
                   </span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-                      <span className="text-cyan-400">🏛️</span> {isEs ? 'Política Monetaria y Bancos Centrales' : 'Central Bank Policy Trajectory'}
+                    <label className="block text-[10px] font-bold text-[var(--ink-muted)] uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                      <span className="text-[var(--accent)]">🏛️</span> {isEs ? 'Política Monetaria y Bancos Centrales' : 'Central Bank Policy Trajectory'}
                     </label>
                     <textarea 
                       value={noteCB} 
                       onChange={(e) => setNoteCB(e.target.value)} 
                       rows={4}
-                      className="w-full bg-[#020203] border border-zinc-800 rounded-sm p-3 text-xs text-zinc-300 focus:outline-none focus:border-cyan-500/60 font-mono leading-relaxed transition resize-none" 
+                      className="w-full bg-[var(--bg)] border border-[var(--line)] rounded-sm p-3 text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--accent)]/50 font-mono leading-relaxed transition resize-none" 
                       placeholder={isEs ? "Registra expectativas de tasas de interés, forward guidance, conferencias de prensa y votos de gobernadores..." : "Track interest rate expectations, forward guidance, press conferences, and dissent counts..."}
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                    <label className="block text-[10px] font-bold text-[var(--ink-muted)] uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
                       <span className="text-rose-400">🛡️</span> {isEs ? 'Riesgo Geopolítico y Sucesos Extremos' : 'Geopolitical Risk & Tail Events'}
                     </label>
                     <textarea 
                       value={noteGeo} 
                       onChange={(e) => setNoteGeo(e.target.value)} 
                       rows={4}
-                      className="w-full bg-[#020203] border border-zinc-800 rounded-sm p-3 text-xs text-zinc-300 focus:outline-none focus:border-cyan-500/60 font-mono leading-relaxed transition resize-none" 
+                      className="w-full bg-[var(--bg)] border border-[var(--line)] rounded-sm p-3 text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--accent)]/50 font-mono leading-relaxed transition resize-none" 
                       placeholder={isEs ? "Registra conflictos comerciales, aranceles, flujos a bonos refugio, escaladas y perturbaciones de suministro..." : "Track trade conflicts, tariffs, safe-haven bond flows, defense escalations, and supply chain shifts..."}
                     />
                   </div>
@@ -786,29 +779,29 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
             {/* RIGHT 5 COLS: POINTS 2-5 SUPPORTING MARKET FACTORS */}
             <div className="lg:col-span-5 space-y-6">
               
-              <div className="bg-[#040406] rounded-sm border border-zinc-900 p-5 sm:p-6 shadow-2xl space-y-4 font-mono">
+              <div className="bg-[var(--surface)] rounded-sm border border-[var(--line)] p-5 sm:p-6 shadow-2xl space-y-4 font-mono">
                 
-                <div className="flex justify-between items-center border-b border-zinc-800/80 pb-3">
+                <div className="flex justify-between items-center border-b border-[var(--line)] pb-3">
                   <div>
-                    <span className="text-cyan-400 font-bold text-[10px] tracking-widest uppercase block">
+                    <span className="text-[var(--accent)] font-bold text-[10px] tracking-widest uppercase block">
                       // {isEs ? 'PUNTOS 2–5: PILARES DE APOYO' : 'POINTS 2–5: SUPPORTING PILLARS'}
                     </span>
-                    <h4 className="text-xs font-bold text-white uppercase tracking-wider mt-0.5">
+                    <h4 className="text-xs font-bold text-[var(--ink)] uppercase tracking-wider mt-0.5">
                       {isEs ? 'Matriz de Consenso Multifactorial' : 'Multi-Factor Consensus Matrix'}
                     </h4>
                   </div>
-                  <span className="text-[9px] bg-cyan-950/80 text-cyan-400 border border-cyan-800/60 px-2 py-0.5 rounded-sm font-bold uppercase">
+                  <span className="text-[9px] bg-[var(--accent)]/15 text-[var(--accent)] border border-[var(--accent)]/40 px-2 py-0.5 rounded-sm font-bold uppercase">
                     {isEs ? 'REQUIERE ≥ 2 COINCIDENCIAS' : 'NEED ≥ 2 TO AGREE'}
                   </span>
                 </div>
 
                 {/* PILLAR 2: RETAIL SENTIMENT (SSI) */}
-                <div className="bg-[#020203] border border-zinc-800 p-4 rounded-sm space-y-3">
+                <div className="bg-[var(--bg)] border border-[var(--line)] p-4 rounded-sm space-y-3">
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                     <div>
-                      <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider block">// {isEs ? 'PILAR 2' : 'PILLAR 2'}</span>
-                      <h5 className="text-xs font-bold text-white uppercase">{isEs ? 'Sentimiento Minorista (SSI)' : 'Retail Sentiment (SSI)'}</h5>
-                      <p className="text-[11px] text-zinc-400 font-sans mt-0.5">
+                      <span className="text-[9px] text-[var(--ink-muted)] font-bold uppercase tracking-wider block">// {isEs ? 'PILAR 2' : 'PILLAR 2'}</span>
+                      <h5 className="text-xs font-bold text-[var(--ink)] uppercase">{isEs ? 'Sentimiento Minorista (SSI)' : 'Retail Sentiment (SSI)'}</h5>
+                      <p className="text-[11px] text-[var(--ink-muted)] font-sans mt-0.5">
                         {isEs ? 'Filtro contrario de posicionamiento minorista.' : 'Contrarian retail crowd positioning filter.'}
                       </p>
                     </div>
@@ -817,8 +810,8 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                         onClick={() => togglePillar('p2', 'buy')} 
                         className={`flex-1 sm:flex-initial text-center sm:min-w-[76px] border text-[11px] sm:text-[10px] px-3 py-2 sm:py-1.5 rounded-sm font-bold transition cursor-pointer min-h-[38px] sm:min-h-[34px] flex items-center justify-center ${
                           pillars.p2 === 'buy' 
-                            ? 'bg-cyan-950/40 text-cyan-300 border-cyan-500 shadow-[0_0_12px_rgba(6,182,212,0.25)]' 
-                            : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-cyan-400'
+                            ? 'bg-[var(--accent)]/10 text-[var(--accent)] border-[var(--accent)]' 
+                            : 'bg-[var(--surface-2)] border-[var(--line)] text-[var(--ink-muted)] hover:text-[var(--accent)]'
                         }`}
                       >
                         {isEs ? 'COMPRA' : 'BUY'}
@@ -827,8 +820,8 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                         onClick={() => togglePillar('p2', 'sell')} 
                         className={`flex-1 sm:flex-initial text-center sm:min-w-[76px] border text-[11px] sm:text-[10px] px-3 py-2 sm:py-1.5 rounded-sm font-bold transition cursor-pointer min-h-[38px] sm:min-h-[34px] flex items-center justify-center ${
                           pillars.p2 === 'sell' 
-                            ? 'bg-rose-950/40 text-rose-300 border-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.25)]' 
-                            : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-rose-400'
+                            ? 'bg-rose-950/40 text-rose-300 border-rose-500' 
+                            : 'bg-[var(--surface-2)] border-[var(--line)] text-[var(--ink-muted)] hover:text-rose-400'
                         }`}
                       >
                         {isEs ? 'VENTA' : 'SELL'}
@@ -837,8 +830,8 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                         onClick={() => togglePillar('p2', 'neutral')} 
                         className={`flex-1 sm:flex-initial text-center sm:min-w-[56px] border text-[11px] sm:text-[10px] px-2.5 py-2 sm:py-1.5 rounded-sm font-bold transition cursor-pointer min-h-[38px] sm:min-h-[34px] flex items-center justify-center ${
                           pillars.p2 === 'neutral' 
-                            ? 'bg-[#0c0c12] text-zinc-300 border-zinc-700' 
-                            : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300'
+                            ? 'bg-[var(--surface-2)] text-[var(--ink)] border-[var(--line-strong)]' 
+                            : 'bg-[var(--surface-2)] border-[var(--line)] text-[var(--ink-muted)] hover:text-[var(--ink)]'
                         }`}
                       >
                         NEUT
@@ -848,12 +841,12 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                 </div>
 
                 {/* PILLAR 3: CURRENCY WEIGHTING */}
-                <div className="bg-[#020203] border border-zinc-800 p-4 rounded-sm space-y-3">
+                <div className="bg-[var(--bg)] border border-[var(--line)] p-4 rounded-sm space-y-3">
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                     <div>
-                      <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider block">// {isEs ? 'PILAR 3' : 'PILLAR 3'}</span>
-                      <h5 className="text-xs font-bold text-white uppercase">{isEs ? 'Ponderación de Divisas' : 'Currency Weighting'}</h5>
-                      <p className="text-[11px] text-zinc-400 font-sans mt-0.5">
+                      <span className="text-[9px] text-[var(--ink-muted)] font-bold uppercase tracking-wider block">// {isEs ? 'PILAR 3' : 'PILLAR 3'}</span>
+                      <h5 className="text-xs font-bold text-[var(--ink)] uppercase">{isEs ? 'Ponderación de Divisas' : 'Currency Weighting'}</h5>
+                      <p className="text-[11px] text-[var(--ink-muted)] font-sans mt-0.5">
                         {isEs ? 'Puntuación macro: inflación, empleo y PIB.' : 'Macro score based on inflation, jobs & GDP.'}
                       </p>
                     </div>
@@ -862,8 +855,8 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                         onClick={() => togglePillar('p3', 'buy')} 
                         className={`flex-1 sm:flex-initial text-center sm:min-w-[76px] border text-[11px] sm:text-[10px] px-3 py-2 sm:py-1.5 rounded-sm font-bold transition cursor-pointer min-h-[38px] sm:min-h-[34px] flex items-center justify-center ${
                           pillars.p3 === 'buy' 
-                            ? 'bg-cyan-950/40 text-cyan-300 border-cyan-500 shadow-[0_0_12px_rgba(6,182,212,0.25)]' 
-                            : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-cyan-400'
+                            ? 'bg-[var(--accent)]/10 text-[var(--accent)] border-[var(--accent)]' 
+                            : 'bg-[var(--surface-2)] border-[var(--line)] text-[var(--ink-muted)] hover:text-[var(--accent)]'
                         }`}
                       >
                         {isEs ? 'COMPRA' : 'BUY'}
@@ -872,8 +865,8 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                         onClick={() => togglePillar('p3', 'sell')} 
                         className={`flex-1 sm:flex-initial text-center sm:min-w-[76px] border text-[11px] sm:text-[10px] px-3 py-2 sm:py-1.5 rounded-sm font-bold transition cursor-pointer min-h-[38px] sm:min-h-[34px] flex items-center justify-center ${
                           pillars.p3 === 'sell' 
-                            ? 'bg-rose-950/40 text-rose-300 border-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.25)]' 
-                            : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-rose-400'
+                            ? 'bg-rose-950/40 text-rose-300 border-rose-500' 
+                            : 'bg-[var(--surface-2)] border-[var(--line)] text-[var(--ink-muted)] hover:text-rose-400'
                         }`}
                       >
                         {isEs ? 'VENTA' : 'SELL'}
@@ -882,8 +875,8 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                         onClick={() => togglePillar('p3', 'neutral')} 
                         className={`flex-1 sm:flex-initial text-center sm:min-w-[56px] border text-[11px] sm:text-[10px] px-2.5 py-2 sm:py-1.5 rounded-sm font-bold transition cursor-pointer min-h-[38px] sm:min-h-[34px] flex items-center justify-center ${
                           pillars.p3 === 'neutral' 
-                            ? 'bg-[#0c0c12] text-zinc-300 border-zinc-700' 
-                            : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300'
+                            ? 'bg-[var(--surface-2)] text-[var(--ink)] border-[var(--line-strong)]' 
+                            : 'bg-[var(--surface-2)] border-[var(--line)] text-[var(--ink-muted)] hover:text-[var(--ink)]'
                         }`}
                       >
                         NEUT
@@ -893,12 +886,12 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                 </div>
 
                 {/* PILLAR 4: RISK SENTIMENT */}
-                <div className="bg-[#020203] border border-zinc-800 p-4 rounded-sm space-y-3">
+                <div className="bg-[var(--bg)] border border-[var(--line)] p-4 rounded-sm space-y-3">
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                     <div>
-                      <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider block">// {isEs ? 'PILAR 4' : 'PILLAR 4'}</span>
-                      <h5 className="text-xs font-bold text-white uppercase">{isEs ? 'Sentimiento de Riesgo (Intermercados)' : 'Risk Sentiment (Cross-Asset)'}</h5>
-                      <p className="text-[11px] text-zinc-400 font-sans mt-0.5">
+                      <span className="text-[9px] text-[var(--ink-muted)] font-bold uppercase tracking-wider block">// {isEs ? 'PILAR 4' : 'PILLAR 4'}</span>
+                      <h5 className="text-xs font-bold text-[var(--ink)] uppercase">{isEs ? 'Sentimiento de Riesgo (Intermercados)' : 'Risk Sentiment (Cross-Asset)'}</h5>
+                      <p className="text-[11px] text-[var(--ink-muted)] font-sans mt-0.5">
                         {isEs ? 'Régimen general: bolsas, oro y materias primas.' : 'Market regime across equities, gold & commodities.'}
                       </p>
                     </div>
@@ -907,8 +900,8 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                         onClick={() => togglePillar('p4', 'buy')} 
                         className={`flex-1 sm:flex-initial text-center sm:min-w-[76px] border text-[11px] sm:text-[10px] px-3 py-2 sm:py-1.5 rounded-sm font-bold transition cursor-pointer min-h-[38px] sm:min-h-[34px] flex items-center justify-center ${
                           pillars.p4 === 'buy' 
-                            ? 'bg-cyan-950/40 text-cyan-300 border-cyan-500 shadow-[0_0_12px_rgba(6,182,212,0.25)]' 
-                            : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-cyan-400'
+                            ? 'bg-[var(--accent)]/10 text-[var(--accent)] border-[var(--accent)]' 
+                            : 'bg-[var(--surface-2)] border-[var(--line)] text-[var(--ink-muted)] hover:text-[var(--accent)]'
                         }`}
                       >
                         {isEs ? 'COMPRA' : 'BUY'}
@@ -917,8 +910,8 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                         onClick={() => togglePillar('p4', 'sell')} 
                         className={`flex-1 sm:flex-initial text-center sm:min-w-[76px] border text-[11px] sm:text-[10px] px-3 py-2 sm:py-1.5 rounded-sm font-bold transition cursor-pointer min-h-[38px] sm:min-h-[34px] flex items-center justify-center ${
                           pillars.p4 === 'sell' 
-                            ? 'bg-rose-950/40 text-rose-300 border-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.25)]' 
-                            : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-rose-400'
+                            ? 'bg-rose-950/40 text-rose-300 border-rose-500' 
+                            : 'bg-[var(--surface-2)] border-[var(--line)] text-[var(--ink-muted)] hover:text-rose-400'
                         }`}
                       >
                         {isEs ? 'VENTA' : 'SELL'}
@@ -927,8 +920,8 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                         onClick={() => togglePillar('p4', 'neutral')} 
                         className={`flex-1 sm:flex-initial text-center sm:min-w-[56px] border text-[11px] sm:text-[10px] px-2.5 py-2 sm:py-1.5 rounded-sm font-bold transition cursor-pointer min-h-[38px] sm:min-h-[34px] flex items-center justify-center ${
                           pillars.p4 === 'neutral' 
-                            ? 'bg-[#0c0c12] text-zinc-300 border-zinc-700' 
-                            : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300'
+                            ? 'bg-[var(--surface-2)] text-[var(--ink)] border-[var(--line-strong)]' 
+                            : 'bg-[var(--surface-2)] border-[var(--line)] text-[var(--ink-muted)] hover:text-[var(--ink)]'
                         }`}
                       >
                         NEUT
@@ -937,9 +930,9 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                   </div>
 
                   {/* Commodity & Risk Inputs */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-zinc-800/80">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-[var(--line)]">
                     <div>
-                      <label className="block text-[8px] font-bold text-zinc-500 uppercase mb-1">
+                      <label className="block text-[8px] font-bold text-[var(--ink-muted)] uppercase mb-1">
                         {isEs ? 'Petróleo Crudo (WTI)' : 'Crude Oil (WTI)'}
                       </label>
                       <input 
@@ -947,11 +940,11 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                         value={p4Oil} 
                         onChange={(e) => setP4Oil(e.target.value)} 
                         placeholder={isEs ? "ej. Rally $82/barril" : "e.g. Rallying $82/bbl"}
-                        className="w-full bg-[#040406] border border-zinc-800 rounded-sm p-2 sm:p-1.5 text-xs focus:outline-none focus:border-cyan-500/60 text-white font-mono min-h-[36px] sm:min-h-[32px]"
+                        className="w-full bg-[var(--surface)] border border-[var(--line)] rounded-sm p-2 sm:p-1.5 text-xs focus:outline-none focus:border-[var(--accent)]/50 text-[var(--ink)] font-mono min-h-[36px] sm:min-h-[32px]"
                       />
                     </div>
                     <div>
-                      <label className="block text-[8px] font-bold text-zinc-500 uppercase mb-1">
+                      <label className="block text-[8px] font-bold text-[var(--ink-muted)] uppercase mb-1">
                         {isEs ? 'Oro (XAU/USD)' : 'Gold (XAU/USD)'}
                       </label>
                       <input 
@@ -959,11 +952,11 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                         value={p4Gold} 
                         onChange={(e) => setP4Gold(e.target.value)} 
                         placeholder={isEs ? "ej. Flujo refugio $2,680" : "e.g. Safe-haven bid $2,680"}
-                        className="w-full bg-[#040406] border border-zinc-800 rounded-sm p-2 sm:p-1.5 text-xs focus:outline-none focus:border-cyan-500/60 text-white font-mono min-h-[36px] sm:min-h-[32px]"
+                        className="w-full bg-[var(--surface)] border border-[var(--line)] rounded-sm p-2 sm:p-1.5 text-xs focus:outline-none focus:border-[var(--accent)]/50 text-[var(--ink)] font-mono min-h-[36px] sm:min-h-[32px]"
                       />
                     </div>
                     <div className="sm:col-span-2">
-                      <label className="block text-[8px] font-bold text-zinc-500 uppercase mb-1">
+                      <label className="block text-[8px] font-bold text-[var(--ink-muted)] uppercase mb-1">
                         {isEs ? 'Impulsores de Apetito por Riesgo' : 'Risk Appetite Drivers'}
                       </label>
                       <input 
@@ -971,19 +964,19 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                         value={p4Notes} 
                         onChange={(e) => setP4Notes(e.target.value)} 
                         placeholder={isEs ? "ej. Rally en bolsas = Risk-ON que favorece divisas de alto beta..." : "e.g. Equity rally = Risk-ON environment favoring high-beta..."}
-                        className="w-full bg-[#040406] border border-zinc-800 rounded-sm p-2 sm:p-1.5 text-xs focus:outline-none focus:border-cyan-500/60 text-white font-mono min-h-[36px] sm:min-h-[32px]"
+                        className="w-full bg-[var(--surface)] border border-[var(--line)] rounded-sm p-2 sm:p-1.5 text-xs focus:outline-none focus:border-[var(--accent)]/50 text-[var(--ink)] font-mono min-h-[36px] sm:min-h-[32px]"
                       />
                     </div>
                   </div>
                 </div>
 
                 {/* PILLAR 5: CENTRAL BANKS & INTEREST RATES */}
-                <div className="bg-[#020203] border border-zinc-800 p-4 rounded-sm space-y-3">
+                <div className="bg-[var(--bg)] border border-[var(--line)] p-4 rounded-sm space-y-3">
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                     <div>
-                      <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider block">// {isEs ? 'PILAR 5' : 'PILLAR 5'}</span>
-                      <h5 className="text-xs font-bold text-white uppercase">{isEs ? 'Tasas de Interés y Bancos Centrales' : 'Interest Rates & Policy'}</h5>
-                      <p className="text-[11px] text-zinc-400 font-sans mt-0.5">
+                      <span className="text-[9px] text-[var(--ink-muted)] font-bold uppercase tracking-wider block">// {isEs ? 'PILAR 5' : 'PILLAR 5'}</span>
+                      <h5 className="text-xs font-bold text-[var(--ink)] uppercase">{isEs ? 'Tasas de Interés y Bancos Centrales' : 'Interest Rates & Policy'}</h5>
+                      <p className="text-[11px] text-[var(--ink-muted)] font-sans mt-0.5">
                         {isEs ? 'Divergencia Hawkish vs Dovish y diferenciales.' : 'Hawkish vs Dovish divergence & yield spreads.'}
                       </p>
                     </div>
@@ -992,8 +985,8 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                         onClick={() => togglePillar('p5', 'buy')} 
                         className={`flex-1 sm:flex-initial text-center sm:min-w-[76px] border text-[11px] sm:text-[10px] px-3 py-2 sm:py-1.5 rounded-sm font-bold transition cursor-pointer min-h-[38px] sm:min-h-[34px] flex items-center justify-center ${
                           pillars.p5 === 'buy' 
-                            ? 'bg-cyan-950/40 text-cyan-300 border-cyan-500 shadow-[0_0_12px_rgba(6,182,212,0.25)]' 
-                            : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-cyan-400'
+                            ? 'bg-[var(--accent)]/10 text-[var(--accent)] border-[var(--accent)]' 
+                            : 'bg-[var(--surface-2)] border-[var(--line)] text-[var(--ink-muted)] hover:text-[var(--accent)]'
                         }`}
                       >
                         {isEs ? 'COMPRA' : 'BUY'}
@@ -1002,8 +995,8 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                         onClick={() => togglePillar('p5', 'sell')} 
                         className={`flex-1 sm:flex-initial text-center sm:min-w-[76px] border text-[11px] sm:text-[10px] px-3 py-2 sm:py-1.5 rounded-sm font-bold transition cursor-pointer min-h-[38px] sm:min-h-[34px] flex items-center justify-center ${
                           pillars.p5 === 'sell' 
-                            ? 'bg-rose-950/40 text-rose-300 border-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.25)]' 
-                            : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-rose-400'
+                            ? 'bg-rose-950/40 text-rose-300 border-rose-500' 
+                            : 'bg-[var(--surface-2)] border-[var(--line)] text-[var(--ink-muted)] hover:text-rose-400'
                         }`}
                       >
                         {isEs ? 'VENTA' : 'SELL'}
@@ -1012,16 +1005,16 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                         onClick={() => togglePillar('p5', 'neutral')} 
                         className={`flex-1 sm:flex-initial text-center sm:min-w-[56px] border text-[11px] sm:text-[10px] px-2.5 py-2 sm:py-1.5 rounded-sm font-bold transition cursor-pointer min-h-[38px] sm:min-h-[34px] flex items-center justify-center ${
                           pillars.p5 === 'neutral' 
-                            ? 'bg-[#0c0c12] text-zinc-300 border-zinc-700' 
-                            : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300'
+                            ? 'bg-[var(--surface-2)] text-[var(--ink)] border-[var(--line-strong)]' 
+                            : 'bg-[var(--surface-2)] border-[var(--line)] text-[var(--ink-muted)] hover:text-[var(--ink)]'
                         }`}
                       >
                         NEUT
                       </button>
                     </div>
                   </div>
-                  <div className="pt-2 border-t border-zinc-800/80">
-                    <label className="block text-[8px] font-bold text-zinc-500 uppercase mb-1">
+                  <div className="pt-2 border-t border-[var(--line)]">
+                    <label className="block text-[8px] font-bold text-[var(--ink-muted)] uppercase mb-1">
                       {isEs ? 'Notas de Política Monetaria' : 'Central Bank Divergence Note'}
                     </label>
                     <input 
@@ -1029,7 +1022,7 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                       value={p5Notes} 
                       onChange={(e) => setP5Notes(e.target.value)} 
                       placeholder={isEs ? "ej. Pausa del BoE vs recorte de 25pb descontado por el BCE..." : "e.g. BoE pause vs ECB 25bp rate cut pricing..."}
-                      className="w-full bg-[#040406] border border-zinc-800 rounded-sm p-1.5 text-xs focus:outline-none focus:border-cyan-500/60 text-white font-mono"
+                      className="w-full bg-[var(--surface)] border border-[var(--line)] rounded-sm p-1.5 text-xs focus:outline-none focus:border-[var(--accent)]/50 text-[var(--ink)] font-mono"
                     />
                   </div>
                 </div>
@@ -1041,12 +1034,12 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
           </div>
 
           {/* BOTTOM ACTION SECTION: GENERATE STRATEGY REPORT */}
-          <div className="bg-[#040406] rounded-sm border border-zinc-900 p-6 font-mono flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-2xl">
+          <div className="bg-[var(--surface)] rounded-sm border border-[var(--line)] p-6 font-mono flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-2xl">
             <div className="space-y-1">
-              <div className="text-xs font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-2">
+              <div className="text-xs font-bold text-[var(--accent)] uppercase tracking-wider flex items-center gap-2">
                 <span>📑</span> {isEs ? 'BRIEFING ESTRATÉGICO INSTITUCIONAL' : 'INSTITUTIONAL STRATEGY BRIEFING'}
               </div>
-              <p className="text-zinc-400 text-xs font-sans">
+              <p className="text-[var(--ink-muted)] text-xs font-sans">
                 {isEs 
                   ? 'Consolida los vectores de sentimiento, catalizadores de noticias y notas de dossier en un reporte ejecutivo profesional listo para imprimir en PDF.' 
                   : 'Compile active currency sentiment vectors, event catalysts, and dossier notes into an audit-ready print/PDF briefing report.'}
@@ -1054,7 +1047,7 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
             </div>
             <button 
               onClick={handlePrint}
-              className="bg-cyan-500 hover:bg-cyan-400 text-black px-6 py-2.5 rounded-sm text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 shadow-[0_0_12px_rgba(6,182,212,0.3)] shrink-0 cursor-pointer"
+              className="bg-[var(--accent)] hover:bg-[var(--ink)] text-[var(--bg)] px-6 py-2.5 rounded-sm text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 shrink-0 cursor-pointer"
             >
               <span>🖨️</span> {isEs ? 'GENERAR REPORTE.PDF →' : 'GENERATE REPORT.PDF →'}
             </button>

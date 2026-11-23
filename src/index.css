@@ -1,53 +1,418 @@
 @import "tailwindcss";
 
-@theme {
-  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
-  --color-kairos-bg: #020203;
-  --color-kairos-alt: #07080d;
-  --color-kairos-panel: #040406;
-  --color-kairos-input: #0c0c12;
-  --color-kairos-border: #18181b;
+/* ========================================================================= */
+/* KAIROS GLOBAL RESEARCH: INSTITUTIONAL QUANT DESIGN SYSTEM                 */
+/* Dark slate palette, sharp 2px geometry, 1px hairline borders,             */
+/* Inter UI grotesque + JetBrains Mono tabular numerals.                     */
+/* ========================================================================= */
+
+:root {
+  color-scheme: dark;
+
+  --bg: #0B0E11;
+  --bg-subtle: #0E1217;
+  --bg-alt: #11151B;
+  --surface: #11151B;
+  --surface-solid: #11151B;
+  --surface-2: #161B22;
+  --surface-hover: #181E27;
+
+  --line: rgba(255, 255, 255, 0.08);
+  --line-strong: rgba(255, 255, 255, 0.16);
+  --line-glow: rgba(59, 130, 246, 0.25);
+
+  --ink: #F0F3F6;
+  --ink-secondary: #C5CDD8;
+  --ink-muted: #8A94A6;
+  --ink-faint: #5B6577;
+
+  --accent: #3B82F6;
+  --accent-glow: rgba(59, 130, 246, 0.2);
+  --accent-subtle: rgba(59, 130, 246, 0.1);
+
+  --shadow: none;
+  --shadow-hover: none;
+
+  --z-50: #F0F3F6;
+  --z-100: #E2E6EC;
+  --z-200: #C5CDD8;
+  --z-300: #A9B2C0;
+  --z-400: #8A94A6;
+  --z-500: #5B6577;
+  --z-600: #3E4654;
+  --z-700: #29303B;
+  --z-800: #1B2028;
+  --z-900: #11151B;
+  --z-950: #0B0E11;
+
+  --ac-300: #93C5FD;
+  --ac-400: #60A5FA;
+  --ac-500: #3B82F6;
+  --ac-600: #2563EB;
+
+  --em-300: #6EE7B7;
+  --em-400: #10B981;
+  --em-500: #10B981;
+
+  --ro-300: #FCA5A5;
+  --ro-400: #EF4444;
+  --ro-500: #EF4444;
+
+  --am-300: #FCD34D;
+  --am-400: #F59E0B;
 }
 
-/* Global reset for squared edges */
-*, ::before, ::after {
-  border-radius: 0px !important;
+.light-theme {
+  color-scheme: light;
+
+  --bg: #ECEFF4;
+  --bg-subtle: #E2E6EE;
+  --bg-alt: #D8DEE9;
+  --surface: #FFFFFF;
+  --surface-solid: #FFFFFF;
+  --surface-2: #E4E8F0;
+  --surface-hover: #F5F7FA;
+
+  --line: rgba(15, 23, 42, 0.16);
+  --line-strong: rgba(15, 23, 42, 0.28);
+  --line-glow: rgba(37, 99, 235, 0.22);
+
+  --ink: #0B0E11;
+  --ink-secondary: #1E293B;
+  --ink-muted: #4B5565;
+  --ink-faint: #7A8599;
+
+  --accent: #2563EB;
+  --accent-glow: rgba(37, 99, 235, 0.16);
+  --accent-subtle: rgba(37, 99, 235, 0.10);
+
+  --shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-hover: 0 2px 6px rgba(15, 23, 42, 0.09);
+
+  --z-50: #0B0E11;
+  --z-100: #1B2028;
+  --z-200: #29303B;
+  --z-300: #3E4654;
+  --z-400: #5B6577;
+  --z-500: #8A94A6;
+  --z-600: #C5CDD8;
+  --z-700: #E2E6EC;
+  --z-800: #E5E8EE;
+  --z-900: #F1F3F6;
+  --z-950: #F6F7F9;
+
+  --ac-300: #1D4ED8;
+  --ac-400: #2563EB;
+  --ac-500: #3B82F6;
+  --ac-600: #60A5FA;
+
+  --em-300: #047857;
+  --em-400: #059669;
+  --em-500: #10B981;
+
+  --ro-300: #B91C1C;
+  --ro-400: #DC2626;
+  --ro-500: #EF4444;
+
+  --am-300: #B45309;
+  --am-400: #D97706;
 }
+
+@theme inline {
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  --color-zinc-50: var(--z-50);
+  --color-zinc-100: var(--z-100);
+  --color-zinc-200: var(--z-200);
+  --color-zinc-300: var(--z-300);
+  --color-zinc-400: var(--z-400);
+  --color-zinc-500: var(--z-500);
+  --color-zinc-600: var(--z-600);
+  --color-zinc-700: var(--z-700);
+  --color-zinc-800: var(--z-800);
+  --color-zinc-900: var(--z-900);
+  --color-zinc-950: var(--z-950);
+
+  --color-cyan-300: var(--ac-300);
+  --color-cyan-400: var(--ac-400);
+  --color-cyan-500: var(--ac-500);
+  --color-cyan-600: var(--ac-600);
+
+  --color-emerald-300: var(--em-300);
+  --color-emerald-400: var(--em-400);
+  --color-emerald-500: var(--em-500);
+
+  --color-rose-300: var(--ro-300);
+  --color-rose-400: var(--ro-400);
+  --color-rose-500: var(--ro-500);
+
+  --color-amber-300: var(--am-300);
+  --color-amber-400: var(--am-400);
+}
+
+/* ========================================================================= */
+/* BASE STYLES                                                               */
+/* ========================================================================= */
 
 html {
   -webkit-text-size-adjust: 100%;
   touch-action: manipulation;
+  background-color: var(--bg);
+  scroll-behavior: smooth;
 }
 
 body {
-  background-color: #020203;
-  color: #d4d4d8;
+  background-color: var(--bg);
+  color: var(--ink);
   font-family: var(--font-sans);
-  overflow-x: hidden;
-  transition: background-color 0.25s ease, color 0.25s ease;
+  overflow-x: clip;
+  transition: background-color 0.15s ease, color 0.15s ease;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom scrollbars */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: #020203;
-}
-::-webkit-scrollbar-thumb {
-  background: #18181b;
-  border-radius: 0px !important;
-  border: 1px solid #020203;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #27272a;
+::selection {
+  background: rgba(59, 130, 246, 0.3);
+  color: #FFFFFF;
 }
 
-/* 2. Safe Horizontal Scrolling for Tables & Toolbars across all screen sizes */
+:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.tabular-nums,
+.font-mono {
+  font-variant-numeric: tabular-nums;
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+/* ========================================================================= */
+/* DISABLE GLOWING AMBIENT BLOBS (ANTI-AI INSTITUTIONAL RULE)               */
+/* ========================================================================= */
+
+.aurora-background,
+.glow-blob {
+  display: none !important;
+}
+
+/* ========================================================================= */
+/* TYPOGRAPHY & DIVIDERS                                                     */
+/* ========================================================================= */
+
+.gradient-text {
+  color: var(--ink);
+  background: none;
+  -webkit-text-fill-color: currentColor;
+}
+
+.gradient-divider {
+  width: 100%;
+  height: 1px;
+  background: var(--line);
+}
+
+/* ========================================================================= */
+/* ARCHITECTURAL BUTTONS (.ui-button.btn-arrow)                              */
+/* ========================================================================= */
+
+.ui-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 20px;
+  border-radius: 2px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
+}
+
+.ui-button.btn-arrow {
+  background: #FFFFFF;
+  color: #0B0E11;
+  border: 1px solid #FFFFFF;
+  box-shadow: none;
+}
+
+.ui-button.btn-arrow:hover {
+  background: #E5E7EB;
+  border-color: #E5E7EB;
+}
+
+.ui-button.btn-arrow.inverted {
+  background: transparent;
+  color: #F0F3F6;
+  border: 1px solid var(--line-strong);
+  backdrop-filter: none;
+}
+
+.ui-button.btn-arrow.inverted:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
+.light-theme .ui-button.btn-arrow {
+  background: #0B0E11;
+  color: #FFFFFF !important;
+  border: 1px solid #0B0E11;
+  box-shadow: none;
+}
+
+.light-theme .ui-button.btn-arrow:hover {
+  background: #1E293B;
+  border-color: #1E293B;
+}
+
+.light-theme .ui-button.btn-arrow.inverted {
+  background: #FFFFFF;
+  color: #0B0E11 !important;
+  border: 1px solid var(--line-strong);
+  box-shadow: none;
+}
+
+.light-theme .ui-button.btn-arrow.inverted:hover {
+  background: #F1F3F6;
+  border-color: rgba(15, 23, 42, 0.3);
+}
+
+.icon-arrow-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 2px;
+  background: transparent;
+  color: inherit;
+  transition: transform 0.15s ease;
+}
+
+.ui-button:hover .icon-arrow-badge {
+  transform: translateX(2px);
+}
+
+/* ========================================================================= */
+/* SHARP INSTITUTIONAL PANELS & CARDS                                        */
+/* ========================================================================= */
+
+.macro-card,
+.macro-panel,
+.day-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .macro-card:hover {
+    border-color: var(--line-strong);
+    background: var(--surface-hover);
+  }
+}
+
+.light-theme .macro-card,
+.light-theme .macro-panel,
+.light-theme .day-card {
+  background: #FFFFFF;
+  border: 1px solid var(--line);
+  backdrop-filter: none;
+}
+
+/* Institutional Grid Containers */
+.container-institutional,
+.container-hitit {
+  width: 100%;
+  max-width: 1440px;
+  margin-inline: auto;
+  padding-inline: 16px;
+}
+@media (min-width: 640px) {
+  .container-institutional,
+  .container-hitit {
+    padding-inline: 24px;
+  }
+}
+@media (min-width: 1024px) {
+  .container-institutional,
+  .container-hitit {
+    padding-inline: 32px;
+  }
+}
+
+/* Eyebrows and Chips */
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border-radius: 2px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  color: var(--ink-secondary);
+}
+
+/* ========================================================================= */
+/* NATIVE MARQUEE TICKER TAPE                                                */
+/* ========================================================================= */
+
+@keyframes marquee {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
+}
+
+.ticker-marquee {
+  display: flex;
+  width: max-content;
+  animation: marquee 50s linear infinite;
+}
+
+.ticker-marquee:hover {
+  animation-play-state: paused;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--z-700);
+  border-radius: 2px;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--z-600); }
+
+/* Table Touch Wrapper */
 .table-touch-wrapper,
 .overflow-x-auto,
 .touch-scroll {
@@ -58,268 +423,62 @@ body {
   scrollbar-width: thin;
 }
 
-/* Ensure isolated table scrolling does not trap vertical scrolling */
-.table-touch-wrapper table {
-  width: 100%;
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Safe light theme text adaptations for headings and card titles */
+.light-theme h1:not([class*="gradient"]),
+.light-theme h2:not([class*="gradient"]),
+.light-theme h3:not([class*="gradient"]),
+.light-theme h4:not([class*="gradient"]) {
+  color: var(--ink);
 }
 
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-.hero-gradient {
-  background: linear-gradient(0deg, rgba(2,2,3,1) 0%, rgba(2,2,3,0.7) 50%, rgba(2,2,3,0.3) 100%);
+/* Sharp container resets for legacy tool modules */
+div[class*="border-zinc-8"][class*="bg-"],
+div[class*="border-zinc-7"][class*="bg-"],
+div[class*="border-cyan-"][class*="bg-"],
+div[class*="border-emerald-"][class*="bg-"],
+div[class*="border-rose-"][class*="bg-"],
+div[class*="border-amber-"][class*="bg-"] {
+  border-radius: 2px;
 }
 
-.tabular-nums {
-  font-variant-numeric: tabular-nums;
+span[class*="border-"][class*="bg-"] {
+  border-radius: 2px;
 }
 
-@keyframes marquee-left {
-  0% {
-    transform: translateX(0%);
-  }
-  100% {
-    transform: translateX(-50%);
-  }
-}
+/* Dark surface classes in tools */
+.bg-\[\#020203\],
+.bg-\[\#010101\],
+.bg-\[\#030305\],
+.bg-\[\#040406\] { background-color: var(--bg) !important; }
 
-.animate-marquee-left {
-  display: flex;
-  width: max-content;
-  animation: marquee-left 40s linear infinite;
-}
+.bg-\[\#07080d\],
+.bg-\[\#07080c\],
+.bg-\[\#05060a\],
+.bg-\[\#050608\],
+.bg-\[\#121316\] { background-color: var(--bg-alt) !important; }
 
-.animate-marquee-left:hover {
-  animation-play-state: paused;
-}
+.bg-\[\#0c0c12\],
+.bg-\[\#0c0d11\],
+.bg-\[\#0d0e12\],
+.bg-\[\#0e0f14\],
+.bg-\[\#090a10\],
+.bg-\[\#0b0f19\],
+.bg-\[\#07090e\],
+.bg-\[\#08080c\],
+.bg-\[\#090b12\],
+.bg-\[\#10121a\],
+.bg-\[\#0a0b10\],
+.bg-\[\#0c0d12\] { background-color: var(--surface-solid) !important; }
 
-/* ========================================================================= */
-/* 3D ELEVATED SQUARED CONTAINERS (WITH CONTRASTING POP-OUT SHADOW)          */
-/* ========================================================================= */
-
-.macro-card,
-.macro-panel,
-.day-card {
-  background: linear-gradient(180deg, #0e111a 0%, #07080e 100%);
-  border: 1px solid rgba(82, 82, 91, 0.5);
-  border-radius: 0px !important;
-  box-shadow: 
-    0 20px 48px -4px rgba(0, 0, 0, 0.95),
-    0 0 32px 1px rgba(6, 182, 212, 0.18),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.15);
-  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), 
-              box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1), 
-              border-color 0.22s ease;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .macro-card:hover {
-    transform: translateY(-4px);
-    border-color: rgba(6, 182, 212, 0.85);
-    box-shadow: 
-      0 28px 56px -8px rgba(0, 0, 0, 0.98),
-      0 0 40px 4px rgba(6, 182, 212, 0.35),
-      inset 0 1px 0 0 rgba(255, 255, 255, 0.24);
-  }
-}
-
-/* Static elevated panel without hover translation */
-.macro-panel,
-.day-card {
-  box-shadow: 
-    0 20px 48px -4px rgba(0, 0, 0, 0.95),
-    0 0 32px 1px rgba(6, 182, 212, 0.16),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.15);
-}
-
-/* ========================================================================= */
-/* LIGHT THEME COMPREHENSIVE OVERRIDES                                        */
-/* ========================================================================= */
-
-.light-theme {
-  background-color: #f8fafc !important;
-  color: #1e293b !important;
-}
-
-.light-theme body,
-.light-theme main {
-  background-color: #f8fafc !important;
-  color: #1e293b !important;
-}
-
-/* Background surfaces */
-.light-theme .bg-\[\#020203\],
-.light-theme .bg-\[\#040406\],
-.light-theme .bg-\[\#030305\],
-.light-theme .bg-\[\#010101\] {
-  background-color: #f8fafc !important;
-}
-
-.light-theme .bg-\[\#07080c\],
-.light-theme .bg-\[\#07080c\]\/95,
-.light-theme .bg-\[\#07080c\]\/90,
-.light-theme .bg-\[\#07080d\],
-.light-theme .bg-\[\#090a10\],
-.light-theme .bg-\[\#0b0f19\],
-.light-theme .bg-\[\#07090e\],
-.light-theme .bg-\[\#0c0d11\],
-.light-theme .bg-\[\#0d0e12\],
-.light-theme .bg-\[\#0e0f14\],
-.light-theme .bg-\[\#0c0c12\],
-.light-theme .bg-\[\#08080c\],
-.light-theme .bg-\[\#05060a\],
-.light-theme .bg-\[\#090b12\],
-.light-theme .bg-\[\#14151a\],
-.light-theme .bg-\[\#181920\],
-.light-theme .bg-\[\#121318\],
-.light-theme .bg-\[\#10121a\] {
-  background-color: #ffffff !important;
-}
-
-.light-theme .bg-\[\#121316\] {
-  background-color: #f1f5f9 !important;
-}
-
-.light-theme .bg-zinc-900,
-.light-theme .bg-zinc-900\/50,
-.light-theme .bg-zinc-900\/60,
-.light-theme .bg-zinc-900\/80,
-.light-theme .bg-zinc-900\/90 {
-  background-color: #e2e8f0 !important;
-}
-
-.light-theme .bg-zinc-950,
-.light-theme .bg-zinc-950\/60,
-.light-theme .bg-zinc-950\/80 {
-  background-color: #f1f5f9 !important;
-}
-
-/* Light Mode 3D Squared Cards */
-.light-theme .macro-card,
-.light-theme .macro-panel,
-.light-theme .day-card {
-  background: #ffffff !important;
-  border: 1px solid #cbd5e1 !important;
-  border-radius: 0px !important;
-  box-shadow: 
-    0 18px 40px -4px rgba(15, 23, 42, 0.16),
-    0 4px 14px -2px rgba(15, 23, 42, 0.08),
-    0 0 24px -2px rgba(8, 145, 178, 0.2),
-    inset 0 1px 0 0 #ffffff !important;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .light-theme .macro-card:hover {
-    transform: translateY(-4px);
-    border-color: #0891b2 !important;
-    box-shadow: 
-      0 26px 52px -6px rgba(15, 23, 42, 0.22),
-      0 0 28px 3px rgba(8, 145, 178, 0.3) !important;
-  }
-}
-
-/* Typography Colors */
-.light-theme .text-white {
-  color: #0f172a !important;
-}
-
-.light-theme .text-zinc-100,
-.light-theme .text-zinc-200,
-.light-theme .text-zinc-300 {
-  color: #1e293b !important;
-}
-
-.light-theme .text-zinc-400 {
-  color: #475569 !important;
-}
-
-.light-theme .text-zinc-500 {
-  color: #64748b !important;
-}
-
-.light-theme .text-zinc-600 {
-  color: #94a3b8 !important;
-}
-
-/* Borders */
-.light-theme .border-zinc-800,
-.light-theme .border-zinc-800\/30,
-.light-theme .border-zinc-800\/40,
-.light-theme .border-zinc-800\/50,
-.light-theme .border-zinc-800\/60,
-.light-theme .border-zinc-800\/70,
-.light-theme .border-zinc-800\/80,
-.light-theme .border-zinc-800\/90,
-.light-theme .border-zinc-900,
-.light-theme .border-zinc-900\/60,
-.light-theme .border-zinc-700,
-.light-theme .border-zinc-700\/50,
-.light-theme .border-zinc-700\/60 {
-  border-color: #e2e8f0 !important;
-}
-
-/* Form Controls */
-.light-theme input,
-.light-theme select,
-.light-theme textarea {
-  background-color: #ffffff !important;
-  color: #0f172a !important;
-  border-color: #cbd5e1 !important;
-}
-
-.light-theme input::placeholder,
-.light-theme textarea::placeholder {
-  color: #94a3b8 !important;
-}
-
-/* Scrollbars in Light Mode */
-.light-theme ::-webkit-scrollbar-track {
-  background: #f1f5f9;
-}
-.light-theme ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border: 1px solid #f1f5f9;
-}
-.light-theme ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
-}
-
-/* TradingView Widget Mobile & Desktop Responsive Sizing */
-.tradingview-widget-container {
-  width: 100% !important;
-  height: 46px !important;
-  position: relative !important;
-  display: flex !important;
-  align-items: center !important;
-  overflow: hidden !important;
-}
-
-.tradingview-widget-container__widget {
-  width: 100% !important;
-  height: 46px !important;
-}
-
-.tradingview-widget-container iframe {
-  width: 100% !important;
-  height: 46px !important;
-  min-height: 46px !important;
-  max-height: 46px !important;
-  border: 0 !important;
-  display: block !important;
-}
-
-.tradingview-widget-copyright {
-  display: none !important;
-}
+.bg-\[\#14151a\],
+.bg-\[\#181920\],
+.bg-\[\#121318\] { background-color: var(--surface-2) !important; }
 
 /* =========================================================
-   PRINT STYLES FOR INSTITUTIONAL RESEARCH REPORTS & DOSSIERS
-   ALWAYS PURE WHITE FORMAT INDEPENDENT OF WEBSITE THEME
+   PRINT STYLES
    ========================================================= */
 @media print {
   header,
@@ -333,7 +492,6 @@ body {
     display: none !important;
   }
 
-  /* Force pure white background on all ancestors */
   html,
   body,
   #root,
@@ -347,46 +505,10 @@ body {
     color: #0f172a !important;
     margin: 0 !important;
     padding: 0 !important;
-    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
   }
 
   @page {
     size: portrait;
     margin: 10mm 12mm;
   }
-
-  * {
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
-
-  #pdf-report-container {
-    display: block !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    margin: 0 auto !important;
-    padding: 0 !important;
-    background-color: #ffffff !important;
-    background: #ffffff !important;
-    color: #0f172a !important;
-  }
-
-  /* Ensure tables and cells inside pdf container always have crisp white/light styling */
-  #pdf-report-container table {
-    background-color: #ffffff !important;
-    border-color: #cbd5e1 !important;
-  }
-
-  #pdf-report-container th {
-    background-color: #f1f5f9 !important;
-    color: #0f172a !important;
-    border-color: #cbd5e1 !important;
-  }
-
-  #pdf-report-container td {
-    border-color: #cbd5e1 !important;
-  }
 }
-
-
-

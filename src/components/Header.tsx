@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Sun, Moon, Menu, X, ArrowRight } from 'lucide-react';
 import { NavigationTab, ToolSubTab, Language, Theme } from '../types';
 import { TRANSLATIONS } from '../locales/translations';
 
@@ -11,6 +12,22 @@ interface HeaderProps {
   onToggleTheme: () => void;
 }
 
+const CLOCK_ZONES = [
+  { key: 'tyo', label: 'TYO', locale: 'ja-JP', timeZone: 'Asia/Tokyo' },
+  { key: 'lon', label: 'LON', locale: 'en-GB', timeZone: 'Europe/London' },
+  { key: 'ny', label: 'NY', locale: 'en-US', timeZone: 'America/New_York' },
+  { key: 'utc', label: 'UTC', locale: 'en-GB', timeZone: 'UTC' }
+] as const;
+
+const PREDETERMINED_ZONES = new Set([
+  'Asia/Tokyo',
+  'Europe/London',
+  'America/New_York',
+  'UTC',
+  'Etc/UTC',
+  'GMT'
+]);
+
 export function Header({
   currentTab,
   onSelectTab,
@@ -20,31 +37,60 @@ export function Header({
   onToggleTheme
 }: HeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [clocks, setClocks] = useState({
-    ny: '--:--:--',
-    lon: '--:--:--',
-    tyo: '--:--:--',
-    utc: '--:--:--'
+  const [clocks, setClocks] = useState<{
+    tyo: string;
+    lon: string;
+    ny: string;
+    utc: string;
+    local: string | null;
+    localTz: string;
+  }>({
+    tyo: '--:--',
+    lon: '--:--',
+    ny: '--:--',
+    utc: '--:--',
+    local: null,
+    localTz: ''
   });
 
+  const isLight = theme === 'light';
   const t = TRANSLATIONS[language];
 
   useEffect(() => {
     const updateTime = () => {
       const date = new Date();
-      const timeOpts: Intl.DateTimeFormatOptions = {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false
-      };
-
       try {
+        const next: Record<string, string> = {};
+        for (const z of CLOCK_ZONES) {
+          next[z.key] = new Intl.DateTimeFormat(z.locale, {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false,
+            timeZone: z.timeZone
+          }).format(date);
+        }
+
+        const localTz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+        const localFormatted = new Intl.DateTimeFormat('en-GB', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false
+        }).format(date);
+
+        const matchesPresetZone = PREDETERMINED_ZONES.has(localTz);
+        const matchesPresetTime =
+          localFormatted === next.tyo ||
+          localFormatted === next.lon ||
+          localFormatted === next.ny ||
+          localFormatted === next.utc;
+
         setClocks({
-          ny: new Intl.DateTimeFormat('en-US', { ...timeOpts, timeZone: 'America/New_York' }).format(date),
-          lon: new Intl.DateTimeFormat('en-GB', { ...timeOpts, timeZone: 'Europe/London' }).format(date),
-          tyo: new Intl.DateTimeFormat('ja-JP', { ...timeOpts, timeZone: 'Asia/Tokyo' }).format(date),
-          utc: new Intl.DateTimeFormat('en-GB', { ...timeOpts, timeZone: 'UTC' }).format(date)
+          tyo: next.tyo,
+          lon: next.lon,
+          ny: next.ny,
+          utc: next.utc,
+          local: !matchesPresetZone && !matchesPresetTime ? localFormatted : null,
+          localTz
         });
       } catch {
         // fallback
@@ -56,201 +102,225 @@ export function Header({
     return () => clearInterval(interval);
   }, []);
 
-  const navItems: { id: NavigationTab; label: string }[] = [
+  const navItems: { id: NavigationTab; label: string; subTab?: ToolSubTab }[] = [
     { id: 'console', label: t.nav.console },
+    { id: 'tools', label: t.nav.tools },
     { id: 'research', label: t.nav.research },
-    { id: 'academy', label: t.nav.academy },
-    { id: 'tools', label: t.nav.tools }
+    { id: 'academy', label: t.nav.academy }
   ];
 
-  return (
-    <>
-      {/* Tier 1: World Clocks Bar */}
-      <div className="w-full bg-[#040406] border-b border-zinc-800/40 py-1.5 px-3 sm:px-6 lg:px-8 xl:px-12 select-none">
-        <div className="max-w-7xl 2xl:max-w-[1536px] mx-auto flex items-center justify-between sm:justify-end overflow-x-auto no-scrollbar touch-scroll font-mono text-[10px] sm:text-[11px] tracking-wider uppercase">
-          <div className="flex items-center gap-3.5 sm:gap-8 shrink-0">
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <span className="text-zinc-500 font-bold">NY</span>
-              <span className="text-zinc-300 tabular-nums">{clocks.ny}</span>
-            </div>
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <span className="text-zinc-500 font-bold">LON</span>
-              <span className="text-zinc-300 tabular-nums">{clocks.lon}</span>
-            </div>
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <span className="text-zinc-500 font-bold">TYO</span>
-              <span className="text-zinc-300 tabular-nums">{clocks.tyo}</span>
-            </div>
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <span className="text-cyan-500 font-bold">UTC</span>
-              <span className="text-cyan-400 font-bold tabular-nums">{clocks.utc}</span>
-            </div>
-          </div>
-        </div>
-      </div>
+  const dividerClass = isLight ? 'divide-slate-900/15' : 'divide-white/[0.08]';
+  const borderClass = isLight ? 'border-slate-900/15' : 'border-white/[0.08]';
 
-      {/* Tier 2: Main Sticky Navigation */}
-      <header className="w-full bg-[#07080c]/95 backdrop-blur-md border-b border-zinc-800/40 sticky top-0 z-40">
-        <div className="max-w-7xl 2xl:max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 h-16 sm:h-18 flex items-center justify-between">
-          
-          {/* Brand Logo */}
-          <button 
+  return (
+    <header
+      className={`w-full sticky top-0 z-40 border-b print:hidden transition-colors duration-150 ${
+        isLight
+          ? 'bg-[#FFFFFF] border-slate-900/15 text-[#0B0E11]'
+          : 'bg-[#0B0E11] border-white/[0.08] text-[#F0F3F6]'
+      }`}
+    >
+      <div className={`w-full h-12 flex items-stretch justify-between divide-x ${dividerClass}`}>
+        
+        {/* Left Architectural Cluster: Brand Mark + Flush Navigation */}
+        <div className={`flex items-stretch divide-x ${dividerClass}`}>
+          <button
             onClick={() => onSelectTab('console')}
-            className="flex items-center gap-2.5 sm:gap-3 group text-left cursor-pointer focus:outline-none"
+            className="px-4 sm:px-5 h-full flex items-center gap-3 text-left cursor-pointer focus:outline-none hover:bg-white/[0.02] transition-colors shrink-0"
+            aria-label="Kairos Global Research"
           >
-            <div className="w-7 h-7 sm:w-8 sm:h-8 shrink-0 border-2 border-cyan-500 flex items-center justify-center transition-transform group-hover:scale-105 shadow-sm">
-              <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-cyan-500 animate-pulse"></span>
-            </div>
-            <div className="flex flex-col">
-              <span className="font-black tracking-wider text-white uppercase leading-none text-sm sm:text-lg">
-                KAIROS GLOBAL
-              </span>
-              <span className="font-mono text-[9px] sm:text-[10px] text-cyan-400 tracking-wider uppercase mt-0.5 sm:mt-1">
-                {language === 'es' ? 'Terminal Macro' : 'Macro Terminal'}
-              </span>
-            </div>
+            <span
+              className={`h-6 w-6 shrink-0 rounded-[2px] flex items-center justify-center font-mono font-bold text-xs tracking-tighter ${
+                isLight
+                  ? 'bg-[#0B0E11] text-white'
+                  : 'bg-[#F0F3F6] text-[#0B0E11]'
+              }`}
+            >
+              K
+            </span>
+            <span className="font-sans font-semibold tracking-[0.06em] uppercase text-xs whitespace-nowrap">
+              KAIROS GLOBAL RESEARCH
+            </span>
           </button>
 
-          {/* Desktop Nav Links & Controls */}
-          <div className="hidden md:flex items-center gap-4 lg:gap-6">
-            <nav className="flex items-center gap-4 lg:gap-7 font-mono text-xs tracking-wider uppercase">
-              {navItems.map((item) => {
-                const isActive = currentTab === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => onSelectTab(item.id)}
-                    className={`transition-colors py-2 relative cursor-pointer focus:outline-none ${
-                      isActive
-                        ? 'text-white font-bold'
-                        : 'text-zinc-400 hover:text-white'
-                    }`}
-                  >
-                    {item.label}
-                    {isActive && (
-                      <span className="absolute bottom-0 left-0 w-full h-[2px] bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.8)]" />
-                    )}
-                  </button>
-                );
-              })}
-            </nav>
-
-            <div className="flex items-center gap-2 lg:gap-2.5 pl-2 lg:pl-3 border-l border-zinc-800">
-              {/* Theme Toggle Button (Dark / Light) */}
-              <button
-                onClick={onToggleTheme}
-                className="flex items-center gap-1.5 px-2.5 lg:px-3 py-1.5 font-mono text-xs font-bold uppercase tracking-wider border border-zinc-700/60 bg-[#0c0d11] text-zinc-300 hover:text-white hover:border-cyan-400 transition-all cursor-pointer shadow-sm"
-                title={theme === 'dark' ? (language === 'es' ? 'Cambiar a Modo Claro' : 'Switch to Light Mode') : (language === 'es' ? 'Cambiar a Modo Oscuro' : 'Switch to Dark Mode')}
-              >
-                <span>{theme === 'dark' ? '☀️' : '🌙'}</span>
-                <span>{theme === 'dark' ? (language === 'es' ? 'Claro' : 'Light') : (language === 'es' ? 'Oscuro' : 'Dark')}</span>
-              </button>
-
-              {/* Language Toggle Button */}
-              <button
-                onClick={onToggleLanguage}
-                className="flex items-center gap-1.5 px-2.5 lg:px-3 py-1.5 font-mono text-xs font-bold uppercase tracking-wider border border-cyan-500/40 bg-[#0c0d11] text-cyan-300 hover:bg-cyan-950/40 hover:border-cyan-400 transition-all cursor-pointer shadow-sm"
-                title={language === 'en' ? 'Cambiar a versión en Español' : 'Switch to English version'}
-              >
-                <span className="text-sm">🌐</span>
-                <span>{t.nav.langButton}</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Mobile Actions: Theme + Language + Toggle Menu (<768px) */}
-          <div className="md:hidden flex items-center gap-2">
-            {/* Mobile Theme Toggle */}
-            <button
-              onClick={onToggleTheme}
-              className="flex items-center justify-center min-w-[42px] min-h-[42px] font-mono text-xs border border-zinc-700/60 bg-[#0c0d11] text-zinc-300 hover:text-white transition cursor-pointer"
-              title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-              aria-label="Toggle theme"
-            >
-              <span>{theme === 'dark' ? '☀️' : '🌙'}</span>
-            </button>
-
-            {/* Mobile Language Toggle */}
-            <button
-              onClick={onToggleLanguage}
-              className="flex items-center gap-1 px-3 min-h-[42px] font-mono text-xs font-bold uppercase tracking-wider border border-cyan-500/40 bg-[#0c0d11] text-cyan-300 hover:bg-cyan-950/40 transition cursor-pointer"
-              aria-label="Toggle language"
-            >
-              <span>🌐</span>
-              <span>{t.nav.langCode}</span>
-            </button>
-
-            {/* Mobile Nav Hamburger */}
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="text-zinc-400 hover:text-white p-2 min-w-[42px] min-h-[42px] flex items-center justify-center hover:bg-zinc-800/60 transition-colors cursor-pointer border border-zinc-800/60"
-              aria-label="Toggle navigation menu"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                {mobileMenuOpen ? (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                ) : (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7" />
-                )}
-              </svg>
-            </button>
-          </div>
+          <nav className={`hidden lg:flex items-stretch divide-x ${dividerClass}`}>
+            {navItems.map((item) => {
+              const isActive = currentTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => onSelectTab(item.id, item.subTab)}
+                  className={`px-5 h-full flex items-center text-[11px] font-semibold uppercase tracking-[0.08em] border-b-2 transition-colors cursor-pointer whitespace-nowrap ${
+                    isActive
+                      ? isLight
+                        ? 'border-[#0B0E11] text-[#0B0E11] bg-[#F6F7F9]'
+                        : 'border-[#F0F3F6] text-[#F0F3F6] bg-[#11151B]'
+                      : isLight
+                      ? 'border-transparent text-[#5B6577] hover:text-[#0B0E11] hover:bg-slate-900/[0.03]'
+                      : 'border-transparent text-[#8A94A6] hover:text-[#F0F3F6] hover:bg-white/[0.03]'
+                  }`}
+                >
+                  {item.label}
+                </button>
+              );
+            })}
+          </nav>
         </div>
 
-        {/* Mobile Dropdown Menu */}
-        {mobileMenuOpen && (
-          <div className="md:hidden border-b border-zinc-800 bg-[#07080c] shadow-2xl font-mono text-xs tracking-wider uppercase">
-            {navItems.map((item) => (
+        {/* Right Architectural Cluster: Session Clocks + Theme + Lang + Primary CTA */}
+        <div className={`flex items-stretch divide-x ${dividerClass}`}>
+          
+          {/* Live Session Clocks: TYO / LON / NY / UTC (+ Local if distinct) */}
+          <div
+            className={`hidden xl:flex items-center gap-2.5 px-4 font-mono text-[11px] tabular-nums whitespace-nowrap ${
+              isLight ? 'text-[#5B6577]' : 'text-[#8A94A6]'
+            }`}
+          >
+            <span className="h-1.5 w-1.5 bg-[#10B981] shrink-0" aria-hidden="true" />
+            <span>
+              <span className="opacity-65">TYO</span>{' '}
+              <strong className={isLight ? 'text-[#0B0E11] font-medium' : 'text-[#F0F3F6] font-medium'}>
+                {clocks.tyo}
+              </strong>
+            </span>
+            <span className="opacity-30">/</span>
+            <span>
+              <span className="opacity-65">LON</span>{' '}
+              <strong className={isLight ? 'text-[#0B0E11] font-medium' : 'text-[#F0F3F6] font-medium'}>
+                {clocks.lon}
+              </strong>
+            </span>
+            <span className="opacity-30">/</span>
+            <span>
+              <span className="opacity-65">NY</span>{' '}
+              <strong className={isLight ? 'text-[#0B0E11] font-medium' : 'text-[#F0F3F6] font-medium'}>
+                {clocks.ny}
+              </strong>
+            </span>
+            <span className="opacity-30">/</span>
+            <span>
+              <span className="opacity-65">UTC</span>{' '}
+              <strong className="text-[#3B82F6] font-semibold">{clocks.utc}</strong>
+            </span>
+            {clocks.local && (
+              <>
+                <span className="opacity-30">/</span>
+                <span title={clocks.localTz ? `Local (${clocks.localTz})` : 'Local time'}>
+                  <span className="opacity-65">LOC</span>{' '}
+                  <strong className={isLight ? 'text-[#0B0E11] font-medium' : 'text-[#F0F3F6] font-medium'}>
+                    {clocks.local}
+                  </strong>
+                </span>
+              </>
+            )}
+          </div>
+
+          {/* Theme Toggle Cell */}
+          <button
+            onClick={onToggleTheme}
+            className={`w-12 h-full flex items-center justify-center transition-colors cursor-pointer ${
+              isLight
+                ? 'text-[#5B6577] hover:text-[#0B0E11] hover:bg-slate-900/[0.04]'
+                : 'text-[#8A94A6] hover:text-[#F0F3F6] hover:bg-white/[0.04]'
+            }`}
+            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            aria-label="Toggle theme"
+          >
+            {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
+          </button>
+
+          {/* Language Toggle Cell */}
+          <button
+            onClick={onToggleLanguage}
+            className={`px-4 h-full flex items-center justify-center font-mono text-[11px] font-semibold uppercase tracking-wider transition-colors cursor-pointer ${
+              isLight
+                ? 'text-[#5B6577] hover:text-[#0B0E11] hover:bg-slate-900/[0.04]'
+                : 'text-[#8A94A6] hover:text-[#F0F3F6] hover:bg-white/[0.04]'
+            }`}
+            title="Toggle language"
+          >
+            {language.toUpperCase()}
+          </button>
+
+          {/* Primary Flush Rectangular CTA -> Launch Tools */}
+          <button
+            onClick={() => onSelectTab('tools')}
+            className={`hidden md:flex items-center gap-2 px-5 h-full rounded-none text-xs font-semibold tracking-wide transition-colors cursor-pointer whitespace-nowrap ${
+              isLight
+                ? 'bg-[#0B0E11] text-[#FFFFFF] hover:bg-[#1E293B]'
+                : 'bg-[#FFFFFF] text-[#0B0E11] hover:bg-[#E5E7EB]'
+            }`}
+          >
+            <span>{language === 'es' ? 'Abrir Herramientas' : 'Launch Tools'}</span>
+            <ArrowRight size={13} />
+          </button>
+
+          {/* Mobile Drawer Toggle (<lg) */}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className={`lg:hidden w-12 h-full flex items-center justify-center transition-colors cursor-pointer ${
+              isLight
+                ? 'text-[#0B0E11] hover:bg-slate-900/[0.04]'
+                : 'text-[#F0F3F6] hover:bg-white/[0.04]'
+            }`}
+            aria-label="Toggle navigation menu"
+          >
+            {mobileMenuOpen ? <X size={16} /> : <Menu size={16} />}
+          </button>
+        </div>
+
+      </div>
+
+      {/* Mobile Navigation Drawer (<lg) */}
+      {mobileMenuOpen && (
+        <div
+          className={`lg:hidden border-t ${borderClass} divide-y ${dividerClass} ${
+            isLight ? 'bg-[#FFFFFF] text-[#0B0E11]' : 'bg-[#0B0E11] text-[#F0F3F6]'
+          }`}
+        >
+          {navItems.map((item) => {
+            const isActive = currentTab === item.id;
+            return (
               <button
                 key={item.id}
                 onClick={() => {
-                  onSelectTab(item.id);
+                  onSelectTab(item.id, item.subTab);
                   setMobileMenuOpen(false);
                 }}
-                className={`w-full text-left px-6 py-4 min-h-[48px] border-b border-zinc-800/60 transition-colors cursor-pointer flex items-center justify-between ${
-                  currentTab === item.id
-                    ? 'bg-zinc-900/90 text-cyan-400 font-bold border-l-4 border-l-cyan-500'
-                    : 'text-zinc-300 hover:bg-zinc-900/50 hover:text-white'
+                className={`w-full text-left px-5 h-11 rounded-none text-xs font-semibold uppercase tracking-[0.08em] transition-colors cursor-pointer flex items-center justify-between ${
+                  isActive
+                    ? isLight
+                      ? 'bg-[#F6F7F9] text-[#0B0E11]'
+                      : 'bg-[#11151B] text-[#F0F3F6]'
+                    : isLight
+                    ? 'text-[#5B6577] hover:text-[#0B0E11]'
+                    : 'text-[#8A94A6] hover:text-[#F0F3F6]'
                 }`}
               >
                 <span>{item.label}</span>
-                {currentTab === item.id && <span className="text-cyan-400 text-sm">&bull;</span>}
+                <ArrowRight size={13} />
               </button>
-            ))}
-            
-            {/* Theme & Language row inside Mobile Menu */}
-            <div className="p-4 bg-[#0a0b10] border-t border-zinc-800 flex flex-col gap-3">
-              <div className="flex items-center justify-between">
-                <span className="text-zinc-400 text-[11px]">
-                  {language === 'es' ? 'Tema / Theme:' : 'Theme / Tema:'}
-                </span>
-                <button
-                  onClick={onToggleTheme}
-                  className="px-4 py-2 min-h-[40px] border border-zinc-700 bg-zinc-800 text-white font-bold uppercase text-[11px] flex items-center gap-1.5 cursor-pointer"
-                >
-                  <span>{theme === 'dark' ? '☀️' : '🌙'}</span>
-                  <span>{theme === 'dark' ? (language === 'es' ? 'Modo Claro' : 'Light Mode') : (language === 'es' ? 'Modo Oscuro' : 'Dark Mode')}</span>
-                </button>
-              </div>
+            );
+          })}
 
-              <div className="flex items-center justify-between">
-                <span className="text-zinc-400 text-[11px]">
-                  {language === 'es' ? 'Idioma / Language:' : 'Language / Idioma:'}
-                </span>
-                <button
-                  onClick={() => {
-                    onToggleLanguage();
-                    setMobileMenuOpen(false);
-                  }}
-                  className="px-4 py-2 min-h-[40px] bg-cyan-500 text-black font-bold uppercase text-[11px] cursor-pointer"
-                >
-                  {t.nav.langButton}
-                </button>
-              </div>
-            </div>
+          <div className="p-3">
+            <button
+              onClick={() => {
+                onSelectTab('tools');
+                setMobileMenuOpen(false);
+              }}
+              className={`w-full h-10 rounded-[2px] flex items-center justify-center gap-2 text-xs font-semibold tracking-wide cursor-pointer transition-colors ${
+                isLight
+                  ? 'bg-[#0B0E11] text-[#FFFFFF] hover:bg-[#1E293B]'
+                  : 'bg-[#FFFFFF] text-[#0B0E11] hover:bg-[#E5E7EB]'
+              }`}
+            >
+              <span>{language === 'es' ? 'Abrir Herramientas' : 'Launch Tools'}</span>
+              <ArrowRight size={13} />
+            </button>
           </div>
-        )}
-      </header>
-    </>
+        </div>
+      )}
+    </header>
   );
 }

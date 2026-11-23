@@ -17,7 +17,6 @@ import {
 } from 'lucide-react';
 import { ToolSubTab, MacroIndicator, Language } from '../types';
 import {
-  VOLATILITY_DATA,
   CENTRAL_BANKS,
   INITIAL_CONSENSUS_EVENTS,
   DEFAULT_CURRENCY_INDICATORS,
@@ -29,6 +28,9 @@ import { QuantDesk } from '../components/QuantDesk';
 import { ValuationRankingChart } from '../components/ValuationRankingChart';
 import { CurrencyIndicatorChart } from '../components/CurrencyIndicatorChart';
 import { SectionDivider } from '../components/SectionDivider';
+import { ToolGrid } from '../components/ToolGrid';
+import { ToolHeader } from '../components/ToolHeader';
+import { SpreadsheetDropZone } from '../components/SpreadsheetDropZone';
 import {
   normalizeCurrencyCode,
   isG10Currency,
@@ -76,11 +78,6 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
     setActiveTab(tab);
     onSubTabChange?.(tab);
   };
-
-  // Volatility state
-  const [volatilitySort, setVolatilitySort] = useState<'symbol' | 'pips' | 'cash' | 'range'>('pips');
-  const [volatilitySortAsc, setVolatilitySortAsc] = useState<boolean>(false);
-  const [volatilitySearch, setVolatilitySearch] = useState<string>('');
 
   // Risk Calculator state
   const [calcAcctCurr, setCalcAcctCurr] = useState<string>('USD');
@@ -154,34 +151,6 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
       localStorage.setItem('forex_dashboard_data_v2', JSON.stringify(currencyIndicators));
     } catch {}
   }, [currencyIndicators]);
-
-  // --- Volatility table sorting logic ---
-  const sortedVolatility = [...VOLATILITY_DATA]
-    .filter((v) => v.symbol.toLowerCase().includes(volatilitySearch.toLowerCase()))
-    .sort((a, b) => {
-      const colMap = {
-        symbol: 'symbol',
-        pips: 'avgPips',
-        cash: 'cashValue100k',
-        range: 'rangePct',
-      } as const;
-      const key = colMap[volatilitySort];
-      const valA = a[key];
-      const valB = b[key];
-      if (typeof valA === 'string') {
-        return volatilitySortAsc ? (valA as string).localeCompare(valB as string) : (valB as string).localeCompare(valA as string);
-      }
-      return volatilitySortAsc ? (valA as number) - (valB as number) : (valB as number) - (valA as number);
-    });
-
-  const toggleVolSort = (col: 'symbol' | 'pips' | 'cash' | 'range') => {
-    if (volatilitySort === col) {
-      setVolatilitySortAsc(!volatilitySortAsc);
-    } else {
-      setVolatilitySort(col);
-      setVolatilitySortAsc(false);
-    }
-  };
 
   // --- Risk Calculator Math ---
   const calculateRiskValues = () => {
@@ -2242,347 +2211,74 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
   }, [selectedBankKey, ratesData]);
 
   return (
-    <div className="w-full bg-[#020203] text-zinc-300 font-sans antialiased min-h-screen">
+    <div className="w-full bg-[var(--bg)] text-[var(--ink)] font-sans antialiased min-h-screen transition-colors">
       
-      {/* HEADER HERO SECTION */}
-      <section className="w-full border-b border-zinc-900 bg-[#07080d] py-10 sm:py-16 print:hidden">
-        <div className="max-w-7xl 2xl:max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 space-y-4">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 bg-cyan-400"></span>
-            <span className="font-mono text-[10px] sm:text-xs text-cyan-400 font-bold uppercase tracking-widest">
-              {language === 'es' ? '// ARQUITECTURA DE TRADING INSTITUCIONAL' : '// INSTITUTIONAL TRADING ARCHITECTURE'}
+      {/* PAGE HEADER */}
+      <section className="w-full border-b border-[var(--line)] py-8 sm:py-10 print:hidden">
+        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-2xl space-y-2">
+            <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--ink-muted)]">
+              // {t.tools.badge}
             </span>
+            <h1 className="font-sans font-semibold text-2xl sm:text-3xl lg:text-4xl tracking-[-0.025em] leading-[1.1]">
+              {t.tools.title}
+            </h1>
+            <p className="text-[var(--ink-muted)] text-sm leading-relaxed">
+              {t.tools.subtitle}
+            </p>
           </div>
-          <h1 className="text-2xl sm:text-4xl lg:text-5xl 2xl:text-6xl font-black text-white tracking-tight uppercase">
-            {t.tools.title}
-          </h1>
-          <p className="text-xs sm:text-sm md:text-base text-zinc-400 max-w-3xl font-light leading-relaxed">
-            {t.tools.subtitle}
-          </p>
         </div>
       </section>
 
-      {/* SUB-NAVIGATION BAR - STICKY FULL WIDTH (Touch-scrollable on mobile & iPad) */}
-      <div className="w-full bg-[#040406] border-b border-zinc-900 py-3 sticky top-16 sm:top-18 z-30 shadow-md print:hidden">
-        <div className="max-w-7xl 2xl:max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 flex items-center gap-2 overflow-x-auto no-scrollbar touch-scroll font-mono text-xs">
-          {[
-            { id: 'all', label: t.tools.subTabs.all },
-            { id: 'quant-desk', label: t.tools.subTabs.quantDesk },
-            { id: 'calendar-filter', label: t.tools.subTabs.calendarFilter },
-            { id: 'currency-strength', label: t.tools.subTabs.currencyStrength },
-            { id: 'volatility', label: t.tools.subTabs.volatility },
-            { id: 'calculator', label: t.tools.subTabs.calculator },
-            { id: 'central-banks', label: t.tools.subTabs.centralBanks, isExternal: true, href: 'https://central-bank-tool.onrender.com/' },
-            { id: 'consensus', label: t.tools.subTabs.consensus },
-          ].map((tab) => (
-            (tab as any).isExternal ? (
-              <a
-                key={tab.id}
-                href={(tab as any).href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-4 py-2 uppercase tracking-wider text-[11px] sm:text-xs transition-all cursor-pointer whitespace-nowrap flex items-center shrink-0 min-h-[40px] bg-[#0c0c12] text-zinc-400 border border-zinc-800 hover:text-white"
-              >
-                {tab.label}
-              </a>
-            ) : (
-              <button
-                key={tab.id}
-                onClick={() => handleTabSwitch(tab.id as ToolSubTab)}
-                className={`px-4 py-2 uppercase tracking-wider text-[11px] sm:text-xs transition-all cursor-pointer whitespace-nowrap flex items-center shrink-0 min-h-[40px] ${
-                  activeTab === tab.id
-                    ? 'bg-cyan-500 text-black font-bold shadow-[0_0_12px_rgba(6,182,212,0.4)]'
-                    : 'bg-[#0c0c12] text-zinc-400 border border-zinc-800 hover:text-white'
-                }`}
-              >
-                {tab.label}
-              </button>
-            )
-          ))}
+      {/* ARCHITECTURAL STICKY TABS BAR (MATCHES HEADER) */}
+      <div className="w-full bg-[var(--bg)] border-b border-[var(--line)] sticky top-12 z-30 print:hidden transition-colors">
+        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="w-fit max-w-full h-11 flex items-stretch overflow-x-auto no-scrollbar touch-scroll divide-x divide-[var(--line)] border-x border-[var(--line)]">
+            {[
+              { id: 'all', label: t.tools.subTabs.all },
+              { id: 'quant-desk', label: t.tools.subTabs.quantDesk },
+              { id: 'calendar-filter', label: t.tools.subTabs.calendarFilter },
+              { id: 'currency-strength', label: t.tools.subTabs.currencyStrength },
+              { id: 'calculator', label: t.tools.subTabs.calculator },
+              { id: 'central-banks', label: t.tools.subTabs.centralBanks, isExternal: true, href: 'https://central-bank-tool.onrender.com/' },
+              { id: 'consensus', label: t.tools.subTabs.consensus },
+            ].map((tab) => (
+              (tab as any).isExternal ? (
+                <a
+                  key={tab.id}
+                  href={(tab as any).href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-5 h-full flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] border-b-2 border-transparent text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface)]/50 transition-colors cursor-pointer whitespace-nowrap shrink-0"
+                >
+                  {tab.label}
+                  <span aria-hidden className="text-xs">↗</span>
+                </a>
+              ) : (
+                <button
+                  key={tab.id}
+                  onClick={() => handleTabSwitch(tab.id as ToolSubTab)}
+                  className={`px-5 h-full flex items-center text-[11px] font-semibold uppercase tracking-[0.08em] border-b-2 transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
+                    activeTab === tab.id
+                      ? 'border-[var(--ink)] text-[var(--ink)] bg-[var(--surface)]'
+                      : 'border-transparent text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface)]/50'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              )
+            ))}
+          </div>
         </div>
       </div>
 
       {/* SUB-VIEW: SUITE HUB OVERVIEW */}
       {activeTab === 'all' && (
-        <>
-          <SectionDivider label="// DIVISION 01 • CALENDAR FILTERING & SENTIMENT" />
-
-          {/* SECTION 1: MACRO RISK & CALENDAR ENGINES */}
-          <section className="w-full py-12 sm:py-20 lg:py-24 border-b border-zinc-800/40 bg-[#121316]">
-            <div className="max-w-7xl 2xl:max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 space-y-6 sm:space-y-8">
-              
-              <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-zinc-800/40">
-                <div>
-                  <span className="font-mono text-xs text-cyan-400 font-bold uppercase tracking-wider block mb-1">
-                    Event Risk & Pipeline
-                  </span>
-                  <h2 className="text-xl sm:text-3xl font-black text-white uppercase tracking-tight">
-                    Macro Filter & Sentiment Engines
-                  </h2>
-                </div>
-                <p className="text-xs sm:text-sm text-zinc-400 font-sans max-w-md font-light leading-relaxed">
-                  Real-time event filtering across G10 markets, country selection, and live currency strength divergence calculations.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
-                
-                {/* 0. QUANT DESK / SENTIMENT DEFINER */}
-                <div
-                  className="group macro-card p-6 sm:p-8 flex flex-col justify-between relative overflow-hidden border border-zinc-800 hover:border-cyan-500/50"
-                >
-                  <div className="space-y-4 font-mono">
-                    <div className="flex items-center justify-between text-[10px]">
-                      <span className="text-zinc-400 uppercase tracking-widest">// QUANT_DESK_V2</span>
-                      <span className="bg-zinc-900 text-cyan-400 border border-cyan-900/50 px-2.5 py-0.5 font-bold uppercase">
-                        5-PILLAR MODEL
-                      </span>
-                    </div>
-
-                    <h3 className="text-lg sm:text-xl font-bold text-white group-hover:text-cyan-400 transition-colors uppercase tracking-wide cursor-pointer" onClick={() => handleTabSwitch('quant-desk')}>
-                      Currency Sentiment Definer
-                    </h3>
-
-                    <p className="text-xs sm:text-sm text-zinc-400 font-sans leading-relaxed font-light">
-                      {language === 'es' 
-                        ? 'Mesa de definición cuantitativa de sentimiento. Evalúa catalizadores de noticias, filtro minorista contrario (SSI), ponderación macro, apetito por riesgo y bancos centrales.'
-                        : 'Quantitative multi-factor sentiment verification desk. Evaluates Tier-1 news catalysts, retail crowd positioning (SSI), macro multi-factor weights, risk appetite, and central bank trajectory.'}
-                    </p>
-                  </div>
-
-                  <div className="mt-6 sm:mt-8 pt-4 border-t border-zinc-800 flex items-center font-mono text-xs">
-                    <button onClick={() => handleTabSwitch('quant-desk')} className="text-cyan-400 hover:text-cyan-300 font-bold uppercase tracking-wider flex items-center gap-1 cursor-pointer">
-                      <span>{language === 'es' ? 'Abrir Quant Desk' : 'Open Quant Desk'}</span>
-                      <span className="group-hover:translate-x-1 transition-transform">&rarr;</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* 1. CALENDAR FILTER TOOL */}
-                <div
-                  className="group macro-card border-2 border-cyan-500/60 hover:border-cyan-400 p-6 sm:p-8 flex flex-col justify-between relative overflow-hidden"
-                >
-                  <div className="space-y-4 font-mono relative z-10">
-                    <div className="flex items-center justify-between text-[10px]">
-                      <span className="text-cyan-400 font-bold uppercase tracking-widest">// CALENDAR_FILTER_V2</span>
-                      <span className="bg-cyan-950 text-cyan-300 border border-cyan-700/80 px-2.5 py-0.5 font-bold uppercase flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 bg-cyan-400 animate-ping"></span>
-                        PRIMARY ENGINE
-                      </span>
-                    </div>
-
-                    <h3 className="text-lg sm:text-xl font-bold text-white group-hover:text-cyan-400 transition-colors uppercase tracking-wide cursor-pointer" onClick={() => handleTabSwitch('calendar-filter')}>
-                      Kairos Macro Hub (Motor Unificado)
-                    </h3>
-
-                    <p className="text-xs sm:text-sm text-zinc-300 font-sans leading-relaxed font-light">
-                      Motor de análisis macro, calendario inteligente y escáner de divergencias. Incluye importación Excel (.xlsx) de Investing.com, reglas Core para G10, escáner de divergencias en pares aprobados, puntuación intermercado y reportes imprimibles.
-                    </p>
-                  </div>
-
-                  <div className="mt-6 sm:mt-8 pt-4 border-t border-zinc-800 flex items-center font-mono text-xs relative z-10">
-                    <button onClick={() => handleTabSwitch('calendar-filter')} className="text-cyan-400 hover:text-cyan-300 font-bold uppercase tracking-wider flex items-center gap-1 cursor-pointer">
-                      <span>{language === 'es' ? 'Abrir Motor' : 'Open Engine'}</span>
-                      <span className="group-hover:translate-x-1 transition-transform">&rarr;</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* 2. CURRENCY STRENGTH ENGINE */}
-                <div
-                  className="group macro-card p-6 sm:p-8 flex flex-col justify-between relative overflow-hidden"
-                >
-                  <div className="space-y-4 font-mono">
-                    <div className="flex items-center justify-between text-[10px]">
-                      <span className="text-zinc-400 uppercase tracking-widest">// VALUATION_INDEX_V2</span>
-                      <span className="bg-zinc-900 text-cyan-400 border border-cyan-900/50 px-2.5 py-0.5 font-bold uppercase">
-                        28 CROSS PAIRS
-                      </span>
-                    </div>
-
-                    <h3 className="text-lg sm:text-xl font-bold text-white group-hover:text-cyan-400 transition-colors uppercase tracking-wide cursor-pointer" onClick={() => handleTabSwitch('currency-strength')}>
-                      Currency Strength & Valuation Engine
-                    </h3>
-
-                    <p className="text-xs sm:text-sm text-zinc-400 font-sans leading-relaxed font-light">
-                      Fundamental valuation dashboard tracking economic indicators across 8 major currencies. Computes directional bias ratios, divergence rankings, and editable actual/forecast values.
-                    </p>
-                  </div>
-
-                  <div className="mt-6 sm:mt-8 pt-4 border-t border-zinc-800 flex items-center font-mono text-xs">
-                    <button onClick={() => handleTabSwitch('currency-strength')} className="text-cyan-400 hover:text-cyan-300 font-bold uppercase tracking-wider flex items-center gap-1 cursor-pointer">
-                      <span>{language === 'es' ? 'Abrir Consola' : 'Open Console'}</span>
-                      <span className="group-hover:translate-x-1 transition-transform">&rarr;</span>
-                    </button>
-                  </div>
-                </div>
-
-              </div>
-
-            </div>
-          </section>
-
-          <SectionDivider label="// DIVISION 02 • VOLATILITY & RISK SIZING" />
-
-          {/* SECTION 2: VOLATILITY & SIZING EXECUTION */}
-          <section className="w-full py-12 sm:py-20 lg:py-24 border-b border-zinc-800/40 bg-[#040406]">
-            <div className="max-w-7xl 2xl:max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 space-y-6 sm:space-y-8">
-              
-              <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-zinc-800/40">
-                <div>
-                  <span className="font-mono text-xs text-cyan-400 font-bold uppercase tracking-wider block mb-1">
-                    Risk Management
-                  </span>
-                  <h2 className="text-xl sm:text-3xl font-black text-white uppercase tracking-tight">
-                    Volatility & Position Sizing
-                  </h2>
-                </div>
-                <p className="text-xs sm:text-sm text-zinc-400 font-sans max-w-md font-light">
-                  Statistical range realizations and mathematical invalidation positioning for capital preservation.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
-                
-                {/* Volatility Index */}
-                <div
-                  className="group macro-card p-6 sm:p-8 flex flex-col justify-between"
-                >
-                  <div className="space-y-3 font-mono">
-                    <div className="flex items-center justify-between text-[10px]">
-                      <span className="text-zinc-400 uppercase">// MATRIX_V3</span>
-                      <span className="text-cyan-400 font-bold uppercase">70-DAY CYCLE</span>
-                    </div>
-                    <h3 className="text-base sm:text-lg font-bold text-white group-hover:text-cyan-400 transition-colors uppercase cursor-pointer" onClick={() => handleTabSwitch('volatility')}>
-                      Volatility Index
-                    </h3>
-                    <p className="text-xs text-zinc-400 font-sans leading-relaxed font-light">
-                      Realized variance matrix calculating average daily pip ranges, 100k cash equivalencies, and % realized ranges for 28 currency pairs.
-                    </p>
-                  </div>
-                  <div className="mt-6 sm:mt-8 pt-3 border-t border-zinc-800/80 flex items-center font-mono text-xs">
-                    <button onClick={() => handleTabSwitch('volatility')} className="text-cyan-500 hover:text-cyan-400 font-bold uppercase flex items-center gap-1 cursor-pointer">
-                      <span>Open Volatility Grid</span>
-                      <span className="group-hover:translate-x-1 transition-transform">&rarr;</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Risk Calculator */}
-                <div
-                  className="group macro-card p-6 sm:p-8 flex flex-col justify-between"
-                >
-                  <div className="space-y-3 font-mono">
-                    <div className="flex items-center justify-between text-[10px]">
-                      <span className="text-zinc-400 uppercase">// RISK_MODEL_V1</span>
-                      <span className="text-emerald-400 font-bold uppercase">PARITY SIZING</span>
-                    </div>
-                    <h3 className="text-base sm:text-lg font-bold text-white group-hover:text-emerald-400 transition-colors uppercase cursor-pointer" onClick={() => handleTabSwitch('calculator')}>
-                      Risk & Position Size Calculator
-                    </h3>
-                    <p className="text-xs text-zinc-400 font-sans leading-relaxed font-light">
-                      Calculate standard lot sizes and pip cash values based on invalidation points, account equity, and dynamic cross-rate parities.
-                    </p>
-                  </div>
-                  <div className="mt-6 sm:mt-8 pt-3 border-t border-zinc-800/80 flex items-center font-mono text-xs">
-                    <button onClick={() => handleTabSwitch('calculator')} className="text-emerald-400 hover:text-emerald-300 font-bold uppercase flex items-center gap-1 cursor-pointer">
-                      <span>Launch Calculator</span>
-                      <span className="group-hover:translate-x-1 transition-transform">&rarr;</span>
-                    </button>
-                  </div>
-                </div>
-
-              </div>
-
-            </div>
-          </section>
-
-          <SectionDivider label="// DIVISION 03 • POLICY & CONSENSUS RADAR" />
-
-          {/* SECTION 3: CENTRAL BANK & CONSENSUS INTELLIGENCE */}
-          <section className="w-full py-12 sm:py-20 lg:py-24 border-b border-zinc-800/40 bg-[#121316]">
-            <div className="max-w-7xl 2xl:max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 space-y-6 sm:space-y-8">
-              
-              <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-zinc-800/40">
-                <div>
-                  <span className="font-mono text-xs text-cyan-400 font-bold uppercase tracking-wider block mb-1">
-                    Central Banks & Data
-                  </span>
-                  <h2 className="text-xl sm:text-3xl font-black text-white uppercase tracking-tight">
-                    Policy Expectations & Consensus
-                  </h2>
-                </div>
-                <p className="text-xs sm:text-sm text-zinc-400 font-sans max-w-md font-light">
-                  Implied forward rates, policy classification, and economic surprise indicators.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
-                
-                {/* Central Bank Terminal */}
-                <div
-                  className="group macro-card p-6 sm:p-8 flex flex-col justify-between"
-                >
-                  <div className="space-y-3 font-mono">
-                    <div className="flex items-center justify-between text-[10px]">
-                      <span className="text-cyan-400 font-bold uppercase">// POLICY_RADAR_V2</span>
-                      <span className="bg-cyan-950/70 text-cyan-300 border border-cyan-700/60 px-2 py-0.5 text-[9px] font-bold uppercase flex items-center gap-1">
-                        <span>EXTERNAL APP</span>
-                        <span className="text-[10px]">&nearr;</span>
-                      </span>
-                    </div>
-                    <a
-                      href="https://central-bank-tool.onrender.com/"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-base font-bold text-white group-hover:text-cyan-400 transition-colors uppercase tracking-wide flex items-center gap-2 cursor-pointer block"
-                    >
-                      <span>Central Bank Rate Terminal</span>
-                      <span className="text-cyan-400 text-xs font-mono">&nearr;</span>
-                    </a>
-                    <p className="text-xs text-zinc-400 font-sans leading-relaxed font-light">
-                      Monetary policy rate expectations, automated Hawkish/Dovish classifications, and decision countdown timers.
-                    </p>
-                  </div>
-                  <div className="mt-6 pt-3 border-t border-zinc-800/80 flex items-center font-mono text-xs">
-                    <a
-                      href="https://central-bank-tool.onrender.com/"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-cyan-500 hover:text-cyan-400 font-bold uppercase flex items-center gap-1 cursor-pointer"
-                    >
-                      <span>Open Bank Terminal</span>
-                      <span className="group-hover:translate-x-1 transition-transform">&nearr;</span>
-                    </a>
-                  </div>
-                </div>
-
-                {/* Consensus Engine */}
-                <div
-                  className="group macro-card p-6 sm:p-8 flex flex-col justify-between"
-                >
-                  <div className="space-y-3 font-mono">
-                    <span className="text-cyan-400 text-[10px] font-bold uppercase">// EXPECTATIONS_V1</span>
-                    <h3 className="text-base font-bold text-white uppercase tracking-wide cursor-pointer" onClick={() => handleTabSwitch('consensus')}>
-                      Consensus Filter Hub
-                    </h3>
-                    <p className="text-xs text-zinc-400 font-sans leading-relaxed font-light">
-                      Macroeconomic expectation ranges, actual result deviations, and Beat/Miss surprise tracking.
-                    </p>
-                  </div>
-                  <div className="mt-6 pt-3 border-t border-zinc-800/80 flex items-center font-mono text-xs">
-                    <button onClick={() => handleTabSwitch('consensus')} className="text-cyan-500 hover:text-cyan-400 font-bold uppercase flex items-center gap-1 cursor-pointer">
-                      <span>Open Consensus Hub</span>
-                      <span className="group-hover:translate-x-1 transition-transform">&rarr;</span>
-                    </button>
-                  </div>
-                </div>
-
-              </div>
-
-            </div>
-          </section>
-        </>
+        <section className="w-full py-10 sm:py-12">
+          <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
+            <ToolGrid language={language} onOpen={handleTabSwitch} />
+          </div>
+        </section>
       )}
 
       {/* SUB-VIEW: QUANT DESK / CURRENCY SENTIMENT DEFINER */}
@@ -2605,163 +2301,130 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
       {activeTab === 'currency-strength' && (
         <div className="w-full space-y-0">
           
+          {/* UNIFIED TOOL HEADER */}
+          <ToolHeader
+            onReturnToHub={() => handleTabSwitch('all')}
+            language={language}
+            eyebrow="VALUATION ENGINE"
+            tags={['G10 SCOREBOARD', '28 FX CROSSES']}
+            title={language === 'es' ? 'Matriz de Fuerza de Divisas' : 'Currency Strength Matrix'}
+            subtitle={
+              language === 'es'
+                ? 'Puntuación fundamental agregada en 8 divisas G10 y 28 pares cruzados con actualizaciones incrementales semanales o línea base histórica.'
+                : 'Aggregate fundamental scoring across 8 G10 currencies and 28 cross pairs with weekly incremental updates or full historical baseline loading.'
+            }
+            actions={
+              <>
+                {/* Ingestion Mode Switcher: Incremental vs Full Baseline */}
+                <div className="flex items-center border border-[var(--line)] bg-[var(--surface)] rounded-[2px] divide-x divide-[var(--line)] h-9 w-full sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={() => setValuationUpdateMode('incremental')}
+                    className={`flex-1 sm:flex-initial px-3 h-full text-[11px] uppercase tracking-[0.08em] font-semibold transition cursor-pointer ${
+                      valuationUpdateMode === 'incremental'
+                        ? 'bg-[var(--ink)] text-[var(--bg)]'
+                        : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
+                    }`}
+                    title="Incremental Weekly Update: Ingests only current week events and updates their scores, leaving unaffected historical indicators in LocalStorage completely intact"
+                  >
+                    {language === 'es' ? 'Semanal' : 'Weekly'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setValuationUpdateMode('baseline')}
+                    className={`flex-1 sm:flex-initial px-3 h-full text-[11px] uppercase tracking-[0.08em] font-semibold transition cursor-pointer ${
+                      valuationUpdateMode === 'baseline'
+                        ? 'bg-[var(--ink)] text-[var(--bg)]'
+                        : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
+                    }`}
+                    title="Baseline Load: Ingests full 2-month history to establish baseline indicators and starting scores across all currencies"
+                  >
+                    {language === 'es' ? 'Línea Base' : 'Baseline'}
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleExportCSV}
+                  className="flex-1 sm:flex-initial h-9 px-3.5 rounded-[2px] text-[11px] uppercase tracking-[0.08em] bg-[var(--surface)] hover:bg-[var(--surface-2)] text-[var(--ink)] border border-[var(--line)] hover:border-[var(--line-strong)] transition cursor-pointer inline-flex items-center justify-center gap-1.5"
+                >
+                  <FileSpreadsheet size={13} className="shrink-0" />
+                  <span>Excel/CSV</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleExportData}
+                  className="flex-1 sm:flex-initial h-9 px-3.5 rounded-[2px] text-[11px] uppercase tracking-[0.08em] bg-[var(--surface)] hover:bg-[var(--surface-2)] text-[var(--ink)] border border-[var(--line)] hover:border-[var(--line-strong)] transition cursor-pointer inline-flex items-center justify-center gap-1.5"
+                >
+                  <Download size={13} className="shrink-0" />
+                  <span>JSON</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex-1 sm:flex-initial h-9 px-3.5 rounded-[2px] text-[11px] uppercase tracking-[0.08em] bg-[var(--surface)] hover:bg-[var(--surface-2)] text-[var(--ink)] border border-[var(--line)] hover:border-[var(--line-strong)] transition cursor-pointer inline-flex items-center justify-center gap-1.5"
+                >
+                  <Upload size={13} className="shrink-0" />
+                  <span>{language === 'es' ? 'Backup' : 'Import'}</span>
+                </button>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  accept=".json,.xlsx,.xls,.csv,.tsv,application/json"
+                  onChange={handleImportData}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => currencyInvestingFileRef.current?.click()}
+                  className="flex-1 sm:flex-initial h-9 px-3.5 rounded-[2px] text-[11px] uppercase tracking-[0.08em] bg-[var(--ink)] text-[var(--bg)] hover:opacity-90 font-semibold transition cursor-pointer inline-flex items-center justify-center gap-1.5"
+                >
+                  <FileSpreadsheet size={13} className="shrink-0" />
+                  <span>Investing.com</span>
+                </button>
+                <input
+                  type="file"
+                  ref={currencyInvestingFileRef}
+                  accept=".csv,.xlsx,.xls,.tsv,.json"
+                  onChange={handleCurrencyInvestingUpload}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={handleResetData}
+                  className="flex-1 sm:flex-initial h-9 px-3.5 rounded-[2px] text-[11px] uppercase tracking-[0.08em] bg-[var(--surface)] hover:bg-rose-500/10 text-[#EF4444] border border-[var(--line)] hover:border-[#EF4444]/40 transition cursor-pointer inline-flex items-center justify-center gap-1.5"
+                  title={language === 'es' ? "Reiniciar todos los indicadores a 0" : "Reset all indicator values to 0"}
+                >
+                  <RotateCcw size={13} className="shrink-0" />
+                  <span>{language === 'es' ? 'Reiniciar' : 'Reset'}</span>
+                </button>
+              </>
+            }
+          />
+
           {/* Section 1: Valuation Scorecards & Ranking */}
-          <section className="w-full py-10 sm:py-16 border-b border-zinc-900 bg-[#020203]">
-            <div className="max-w-7xl 2xl:max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 space-y-6 font-mono">
-              
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-zinc-900">
-                <div>
-                  <span className="text-cyan-500 text-[10px] font-bold uppercase tracking-widest block">
-                    // AGGREGATE G10 SCOREBOARD
-                  </span>
-                  <h2 className="text-xl sm:text-2xl font-bold text-white uppercase tracking-tight">
-                    Currency Strength Matrix
-                  </h2>
-                </div>
+          <section className="w-full py-8 sm:py-10 border-b border-[var(--line)] bg-[var(--bg)] transition-colors">
+            <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 space-y-6 font-mono">
 
-                <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto text-xs">
-                  {/* Ingestion Mode Switcher: Incremental vs Full Baseline */}
-                  <div className="flex items-center gap-1 bg-[#0c0c12] border border-zinc-800 p-1 text-[10px] sm:text-xs min-h-[40px] w-full sm:w-auto justify-center">
-                    <button
-                      onClick={() => setValuationUpdateMode('incremental')}
-                      className={`flex-1 sm:flex-initial px-3 py-1.5 uppercase tracking-wider font-bold transition flex items-center justify-center gap-1 cursor-pointer min-h-[34px] ${
-                        valuationUpdateMode === 'incremental'
-                          ? 'bg-cyan-500 text-black shadow-sm'
-                          : 'text-zinc-400 hover:text-white'
-                      }`}
-                      title="Incremental Weekly Update: Ingests only current week events and updates their scores, leaving unaffected historical indicators in LocalStorage completely intact"
-                    >
-                      <span>⚡</span>
-                      <span>Weekly Incremental</span>
-                    </button>
-                    <button
-                      onClick={() => setValuationUpdateMode('baseline')}
-                      className={`flex-1 sm:flex-initial px-3 py-1.5 uppercase tracking-wider font-bold transition flex items-center justify-center gap-1 cursor-pointer min-h-[34px] ${
-                        valuationUpdateMode === 'baseline'
-                          ? 'bg-cyan-500 text-black shadow-sm'
-                          : 'text-zinc-400 hover:text-white'
-                      }`}
-                      title="Baseline Load: Ingests full 2-month history to establish baseline indicators and starting scores across all currencies"
-                    >
-                      <span>🏛️</span>
-                      <span>Full Baseline</span>
-                    </button>
-                  </div>
-
-                  <button
-                    onClick={handleExportCSV}
-                    className="flex-1 sm:flex-initial px-3.5 py-2 text-[10px] sm:text-xs uppercase tracking-wider bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-400 border border-emerald-800/60 transition cursor-pointer font-bold min-h-[40px] sm:min-h-[36px] flex items-center justify-center gap-1.5"
-                  >
-                    <FileSpreadsheet className="w-3.5 h-3.5 shrink-0" />
-                    <span>Export Excel/CSV</span>
-                  </button>
-                  <button
-                    onClick={handleExportData}
-                    className="flex-1 sm:flex-initial px-3.5 py-2 text-[10px] sm:text-xs uppercase tracking-wider bg-cyan-950/40 hover:bg-cyan-900/60 text-cyan-400 border border-cyan-800/60 transition cursor-pointer font-bold min-h-[40px] sm:min-h-[36px] flex items-center justify-center gap-1.5"
-                  >
-                    <Download className="w-3.5 h-3.5 shrink-0" />
-                    <span>Export JSON</span>
-                  </button>
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="flex-1 sm:flex-initial px-3.5 py-2 text-[10px] sm:text-xs uppercase tracking-wider bg-[#0c0c12] hover:bg-zinc-800 text-zinc-300 border border-zinc-800 transition cursor-pointer min-h-[40px] sm:min-h-[36px] flex items-center justify-center gap-1.5"
-                  >
-                    <Upload className="w-3.5 h-3.5 shrink-0" />
-                    <span>Import Backup</span>
-                  </button>
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    accept=".json,.xlsx,.xls,.csv,.tsv,application/json"
-                    onChange={handleImportData}
-                    className="hidden"
-                  />
-                  <button
-                    onClick={() => currencyInvestingFileRef.current?.click()}
-                    className="flex-1 sm:flex-initial px-3.5 py-2 text-[10px] sm:text-xs uppercase tracking-wider bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-400 border border-emerald-800/60 transition cursor-pointer font-bold min-h-[40px] sm:min-h-[36px] flex items-center justify-center gap-1.5"
-                  >
-                    <FileSpreadsheet className="w-3.5 h-3.5 shrink-0" />
-                    <span>Import Investing.com</span>
-                  </button>
-                  <input
-                    type="file"
-                    ref={currencyInvestingFileRef}
-                    accept=".csv,.xlsx,.xls,.tsv,.json"
-                    onChange={handleCurrencyInvestingUpload}
-                    className="hidden"
-                  />
-                  <button
-                    onClick={handleResetData}
-                    className="flex-1 sm:flex-initial px-3.5 py-2 text-[10px] sm:text-xs uppercase tracking-wider bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 border border-rose-800/60 transition cursor-pointer font-bold min-h-[40px] sm:min-h-[36px] flex items-center justify-center gap-1.5"
-                    title={language === 'es' ? "Reiniciar todos los indicadores a 0" : "Reset all indicator values to 0"}
-                  >
-                    <RotateCcw className="w-3.5 h-3.5 shrink-0" />
-                    <span>{language === 'es' ? 'Restablecer a 0' : 'Reset to Zero'}</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Dedicated Valuation Spreadsheet Drop Zone */}
-              <div
-                onClick={() => currencyInvestingFileRef.current?.click()}
-                onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); setIsValuationDragOver(true); }}
-                onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setIsValuationDragOver(true); }}
-                onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setIsValuationDragOver(false); }}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setIsValuationDragOver(false);
-                  const file = e.dataTransfer?.files?.[0];
-                  if (file) processCurrencySpreadsheet(file);
-                }}
-                className={`border border-dashed rounded-xl p-5 sm:p-6 text-center transition-all cursor-pointer group select-none ${
-                  isValuationDragOver
-                    ? 'bg-cyan-950/70 border-cyan-400 shadow-[0_0_25px_rgba(6,182,212,0.4)] scale-[1.008]'
-                    : 'bg-[#07080e] border-zinc-800 hover:border-cyan-500/60 hover:bg-[#0b0c14]'
-                }`}
-              >
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 max-w-4xl mx-auto">
-                  <div className="flex items-center gap-3.5 text-left">
-                    <div className="w-10 h-10 rounded-lg bg-cyan-950/80 border border-cyan-500/40 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                      <FileSpreadsheet className="w-5 h-5 text-cyan-400" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-white text-xs sm:text-sm font-bold uppercase tracking-wider">
-                          {language === 'es' ? 'Cargar Tabla de Indicadores Excel / CSV' : 'Load Indicators Excel / CSV Table'}
-                        </span>
-                        <span className="px-1.5 py-0.5 bg-emerald-950/80 text-emerald-400 border border-emerald-800/60 text-[9px] font-bold uppercase">
-                          {valuationUpdateMode === 'incremental' ? 'Weekly Incremental' : 'Full Baseline'}
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-zinc-400 font-sans mt-0.5">
-                        {valuationUpdateMode === 'incremental'
-                          ? (language === 'es'
-                              ? 'Modo Semanal Incremental: Solo actualiza los eventos de la semana actual. Los datos históricos en LocalStorage permanecen intactos.'
-                              : 'Incremental Mode: Scans & updates only the releases for the current week, keeping all unaffected historical data in LocalStorage completely intact.')
-                          : (language === 'es'
-                              ? 'Modo Línea Base Completa: Ingiere archivo histórico de 2 meses de Investing.com para establecer la línea base y puntuaciones iniciales.'
-                              : 'Baseline Mode: Ingests 2-month Investing.com calendar to populate starting indicators and establish baseline scores.')
-                        }
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="px-2.5 py-1 bg-zinc-900 border border-zinc-700/80 text-[10px] text-zinc-300 font-mono font-bold uppercase">
-                      .XLSX
-                    </span>
-                    <span className="px-2.5 py-1 bg-zinc-900 border border-zinc-700/80 text-[10px] text-zinc-300 font-mono font-bold uppercase">
-                      .XLS
-                    </span>
-                    <span className="px-2.5 py-1 bg-zinc-900 border border-zinc-700/80 text-[10px] text-zinc-300 font-mono font-bold uppercase">
-                      .CSV
-                    </span>
-                  </div>
-                </div>
-              </div>
+              {/* Unified Valuation Spreadsheet Drop Zone */}
+              <SpreadsheetDropZone
+                title={language === 'es' ? 'Cargar Tabla de Indicadores Investing.com' : 'Load Investing.com Indicators Table'}
+                badge={valuationUpdateMode === 'incremental' ? (language === 'es' ? 'Semanal Incremental' : 'Weekly Incremental') : (language === 'es' ? 'Línea Base Completa' : 'Full Baseline')}
+                description={
+                  valuationUpdateMode === 'incremental'
+                    ? (language === 'es'
+                        ? 'Modo Semanal Incremental: Solo actualiza los eventos de la semana actual. Los datos históricos en LocalStorage permanecen intactos.'
+                        : 'Incremental Mode: Scans & updates only the releases for the current week, keeping all unaffected historical data in LocalStorage completely intact.')
+                    : (language === 'es'
+                        ? 'Modo Línea Base Completa: Ingiere archivo histórico de 2 meses de Investing.com para establecer la línea base y puntuaciones iniciales.'
+                        : 'Baseline Mode: Ingests 2-month Investing.com calendar to populate starting indicators and establish baseline scores.')
+                }
+                onFileSelected={processCurrencySpreadsheet}
+                externalInputRef={currencyInvestingFileRef}
+              />
 
               {/* 8 Currency Scorecards */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 2xl:grid-cols-8 gap-2.5 sm:gap-3.5">
+              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5 sm:gap-3">
                 {Object.keys(currencyTotals).map((curr) => {
                   const score = currencyTotals[curr];
                   const isSelected = currencyActiveTab === curr;
@@ -2769,28 +2432,28 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
                     <div
                       key={curr}
                       onClick={() => setCurrencyActiveTab(curr)}
-                      className={`p-3 sm:p-3.5 border text-center transition-all cursor-pointer group flex flex-col justify-between min-h-[100px] ${
+                      className={`p-3.5 border rounded-[2px] text-center transition-colors cursor-pointer group flex flex-col justify-between min-h-[100px] ${
                         isSelected
-                          ? 'bg-cyan-950/50 border-cyan-500 text-white shadow-[0_0_15px_rgba(6,182,212,0.25)]'
-                          : 'macro-panel text-zinc-400 hover:border-zinc-700'
+                          ? 'bg-[var(--surface-2)] border-[var(--accent)] text-[var(--ink)]'
+                          : 'bg-[var(--surface)] border-[var(--line)] text-[var(--ink-muted)] hover:border-[var(--line-strong)]'
                       }`}
                     >
                       <div>
-                        <div className="text-[10px] sm:text-[11px] font-bold uppercase tracking-widest">{curr}</div>
-                        <div className={`text-xl sm:text-2xl font-black mt-0.5 sm:mt-1 ${
-                          score > 0 ? 'text-cyan-400' : score < 0 ? 'text-rose-400' : 'text-zinc-500'
+                        <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--ink-muted)]">{curr}</div>
+                        <div className={`text-xl sm:text-2xl font-bold mt-1 tabular-nums ${
+                          score > 0 ? 'text-[#10B981]' : score < 0 ? 'text-[#EF4444]' : 'text-[var(--ink-muted)]'
                         }`}>
                           {score > 0 ? `+${score}` : score}
                         </div>
                       </div>
 
                       {/* Mini Bipolar Currency Strength Chart Meter */}
-                      <div className="mt-2 w-full h-1.5 bg-zinc-950 flex border border-zinc-800 relative">
-                        <div className="absolute left-1/2 top-0 bottom-0 w-px bg-zinc-700 z-10 -ml-px" />
+                      <div className="mt-2.5 w-full h-1.5 bg-[var(--bg)] flex border border-[var(--line)] relative">
+                        <div className="absolute left-1/2 top-0 bottom-0 w-px bg-[var(--line-strong)] z-10 -ml-px" />
                         <div className="w-1/2 flex justify-end">
                           {score < 0 && (
                             <div
-                              className="bg-rose-500 h-full shadow-[0_0_6px_rgba(244,63,94,0.7)]"
+                              className="bg-[#EF4444] h-full"
                               style={{ width: `${Math.min(100, (Math.abs(score) / 3.0) * 100)}%` }}
                             />
                           )}
@@ -2798,7 +2461,7 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
                         <div className="w-1/2 flex justify-start">
                           {score > 0 && (
                             <div
-                              className="bg-cyan-400 h-full shadow-[0_0_6px_rgba(34,211,238,0.7)]"
+                              className="bg-[#10B981] h-full"
                               style={{ width: `${Math.min(100, (score / 3.0) * 100)}%` }}
                             />
                           )}
@@ -2810,7 +2473,7 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
               </div>
 
               {/* CURRENCY VALUATION RANKING MATRIX BAR CHART */}
-              <div className="pt-2">
+              <div className="pt-1">
                 <ValuationRankingChart
                   totals={currencyTotals}
                   selectedCurrency={currencyActiveTab === 'dashboard' ? 'USD' : currencyActiveTab}
@@ -2822,73 +2485,79 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
           </section>
 
           {/* Section 2: 28 Cross-Pair Directional Bias Engine */}
-          <section className="w-full py-10 sm:py-16 border-b border-zinc-800/40 bg-[#121316]">
-            <div className="max-w-7xl 2xl:max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 space-y-6 font-mono">
+          <section className="w-full py-10 sm:py-12 border-b border-[var(--line)] bg-[var(--surface-2)]/35 transition-colors">
+            <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 space-y-6 font-mono">
               
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-zinc-800/60">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-[var(--line)]">
                 <div>
-                  <span className="text-cyan-400 text-xs font-bold uppercase tracking-wider block">
-                    Spread Differentials
+                  <span className="text-[var(--accent)] text-[10px] font-semibold uppercase tracking-[0.12em] block">
+                    // SPREAD DIFFERENTIALS
                   </span>
-                  <h2 className="text-xl sm:text-2xl font-bold text-white uppercase tracking-tight">
+                  <h2 className="font-sans text-xl sm:text-2xl font-semibold text-[var(--ink)] tracking-[-0.02em] mt-1">
                     Directional Bias Engine (28 Pairs)
                   </h2>
                 </div>
 
                 <div className="flex items-center gap-2 flex-wrap text-xs">
-                  <div className="flex items-center gap-1 bg-[#181920] border border-zinc-800 px-2.5 py-1 text-xs text-zinc-400 min-h-[36px]">
-                    <span>Sort:</span>
+                  <div className="flex items-center gap-2 bg-[var(--surface)] border border-[var(--line)] rounded-[2px] px-3 h-9 text-xs text-[var(--ink-muted)]">
+                    <span className="uppercase text-[10px] tracking-wider">Sort:</span>
                     <select
                       value={currencySort}
                       onChange={(e) => setCurrencySort(e.target.value as any)}
-                      className="bg-transparent text-zinc-200 font-bold outline-none cursor-pointer"
+                      className="bg-transparent text-[var(--ink)] font-semibold outline-none cursor-pointer"
                     >
-                      <option value="divergence" className="bg-[#181920]">Max Divergence (|Diff|)</option>
-                      <option value="bullish" className="bg-[#181920]">Most Bullish (+Diff)</option>
-                      <option value="bearish" className="bg-[#181920]">Most Bearish (-Diff)</option>
-                      <option value="default" className="bg-[#181920]">Default Pair Order</option>
+                      <option value="divergence" className="bg-[var(--surface)] text-[var(--ink)]">Max Divergence (|Diff|)</option>
+                      <option value="bullish" className="bg-[var(--surface)] text-[var(--ink)]">Most Bullish (+Diff)</option>
+                      <option value="bearish" className="bg-[var(--surface)] text-[var(--ink)]">Most Bearish (-Diff)</option>
+                      <option value="default" className="bg-[var(--surface)] text-[var(--ink)]">Default Pair Order</option>
                     </select>
                   </div>
 
-                  <div className="flex items-center gap-1 bg-[#181920] border border-zinc-800 px-2.5 py-1 text-xs text-zinc-400 min-h-[36px]">
-                    <span>Filter:</span>
+                  <div className="flex items-center gap-2 bg-[var(--surface)] border border-[var(--line)] rounded-[2px] px-3 h-9 text-xs text-[var(--ink-muted)]">
+                    <span className="uppercase text-[10px] tracking-wider">Filter:</span>
                     <select
                       value={currencyFilter}
                       onChange={(e) => setCurrencyFilter(e.target.value as any)}
-                      className="bg-transparent text-zinc-200 font-bold outline-none cursor-pointer"
+                      className="bg-transparent text-[var(--ink)] font-semibold outline-none cursor-pointer"
                     >
-                      <option value="all" className="bg-[#181920]">All Pairs (28)</option>
-                      <option value="strong" className="bg-[#181920]">Strong Div (≥ 8)</option>
-                      <option value="bullish" className="bg-[#181920]">Bullish Only</option>
-                      <option value="bearish" className="bg-[#181920]">Bearish Only</option>
+                      <option value="all" className="bg-[var(--surface)] text-[var(--ink)]">All Pairs (28)</option>
+                      <option value="strong" className="bg-[var(--surface)] text-[var(--ink)]">Strong Div (≥ 8)</option>
+                      <option value="bullish" className="bg-[var(--surface)] text-[var(--ink)]">Bullish Only</option>
+                      <option value="bearish" className="bg-[var(--surface)] text-[var(--ink)]">Bearish Only</option>
                     </select>
                   </div>
                 </div>
               </div>
 
               {/* 28 Pairs Grid */}
-              <div className="grid grid-cols-1 gap-3 max-w-3xl 2xl:max-w-4xl mx-auto">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {filteredPairs.map((p) => (
-                  <div key={p.pair} className="macro-card p-4 space-y-2.5">
+                  <div key={p.pair} className="bg-[var(--surface)] border border-[var(--line)] hover:border-[var(--line-strong)] rounded-[2px] p-4 space-y-2.5 transition-colors">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-white text-sm tracking-wide">{p.pair}</span>
-                        <span className={`text-[10px] font-bold px-2.5 py-0.5 border uppercase tracking-wider ${p.badgeBg}`}>
+                        <span className="font-semibold text-[var(--ink)] text-sm tracking-wide">{p.pair}</span>
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-[2px] border uppercase tracking-wider ${
+                          p.diff > 0
+                            ? 'bg-[#10B981]/10 text-[#10B981] border-[#10B981]/30'
+                            : p.diff < 0
+                            ? 'bg-[#EF4444]/10 text-[#EF4444] border-[#EF4444]/30'
+                            : 'bg-[var(--surface-2)] text-[var(--ink-muted)] border-[var(--line)]'
+                        }`}>
                           {p.biasText}
                         </span>
                       </div>
-                      <div className="text-xs text-zinc-400 uppercase">
-                        Spread: <span className="font-bold text-white">{p.diff > 0 ? `+${p.diff}` : p.diff}</span>
+                      <div className="text-xs text-[var(--ink-muted)] uppercase tabular-nums">
+                        Spread: <span className={`font-semibold ${p.diff > 0 ? 'text-[#10B981]' : p.diff < 0 ? 'text-[#EF4444]' : 'text-[var(--ink)]'}`}>{p.diff > 0 ? `+${p.diff}` : p.diff}</span>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-3 text-xs">
-                      <span className="text-rose-400 font-bold w-7 text-right tabular-nums">{p.shortPct}%</span>
-                      <div className="flex-1 h-2 bg-zinc-900 flex border border-zinc-700/60">
-                        <div className="bg-rose-500 h-full" style={{ width: `${p.shortPct}%` }} />
-                        <div className="bg-cyan-500 h-full" style={{ width: `${p.longPct}%` }} />
+                      <span className="text-[#EF4444] font-semibold w-8 text-right tabular-nums">{p.shortPct}%</span>
+                      <div className="flex-1 h-1.5 bg-[var(--bg)] flex border border-[var(--line)]">
+                        <div className="bg-[#EF4444] h-full" style={{ width: `${p.shortPct}%` }} />
+                        <div className="bg-[#10B981] h-full" style={{ width: `${p.longPct}%` }} />
                       </div>
-                      <span className="text-cyan-400 font-bold w-7 tabular-nums">{p.longPct}%</span>
+                      <span className="text-[#10B981] font-semibold w-8 tabular-nums">{p.longPct}%</span>
                     </div>
                   </div>
                 ))}
@@ -2898,28 +2567,28 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
           </section>
 
           {/* Section 3: Detailed Indicator Inputs & Breakdown Table */}
-          <section className="w-full py-10 sm:py-16 border-b border-zinc-900 bg-[#020203]">
-            <div className="max-w-7xl 2xl:max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 space-y-6 font-mono">
+          <section className="w-full py-10 sm:py-12 border-b border-[var(--line)] bg-[var(--bg)] transition-colors">
+            <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 space-y-6 font-mono">
               
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-zinc-900">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-[var(--line)]">
                 <div className="space-y-1">
-                  <span className="text-cyan-500 text-[10px] font-bold uppercase tracking-widest block">
+                  <span className="text-[var(--accent)] text-[10px] font-semibold uppercase tracking-[0.12em] block">
                     // MACROECONOMIC METRICS BREAKDOWN
                   </span>
-                  <h2 className="text-xl sm:text-2xl font-bold text-white uppercase tracking-tight">
+                  <h2 className="font-sans text-xl sm:text-2xl font-semibold text-[var(--ink)] tracking-[-0.02em]">
                     {currencyActiveTab === 'dashboard' ? 'USD' : currencyActiveTab} Indicators (Editable Live)
                   </h2>
                 </div>
 
-                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar touch-scroll text-xs py-1">
+                <div className="flex items-center border border-[var(--line)] rounded-[2px] divide-x divide-[var(--line)] overflow-x-auto no-scrollbar touch-scroll text-xs">
                   {['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'NZD', 'CAD', 'CHF'].map((c) => (
                     <button
                       key={c}
                       onClick={() => setCurrencyActiveTab(c)}
-                      className={`px-3.5 py-2 uppercase tracking-wider text-[11px] sm:text-xs transition cursor-pointer min-h-[40px] min-w-[44px] flex items-center justify-center font-bold ${
+                      className={`px-3.5 h-9 uppercase tracking-[0.08em] text-[11px] transition cursor-pointer flex items-center justify-center font-semibold ${
                         (currencyActiveTab === c || (currencyActiveTab === 'dashboard' && c === 'USD'))
-                          ? 'bg-cyan-500 text-black shadow-sm'
-                          : 'bg-[#0c0c12] text-zinc-400 border border-zinc-800 hover:text-white'
+                          ? 'bg-[var(--ink)] text-[var(--bg)]'
+                          : 'bg-[var(--surface)] text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface-2)]'
                       }`}
                     >
                       {c}
@@ -2943,69 +2612,69 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
               />
 
               {/* Indicator Table with responsive touch scrolling */}
-              <div className="macro-panel overflow-x-auto touch-scroll">
+              <div className="bg-[var(--surface)] border border-[var(--line)] rounded-[2px] overflow-x-auto touch-scroll">
                 <table className="w-full text-left font-mono text-xs min-w-[700px]">
                   <thead>
-                    <tr className="text-zinc-500 text-[10px] border-b border-zinc-900 uppercase tracking-wider bg-[#07080d]">
-                      <th className="p-3.5 pl-6">Indicator Name</th>
-                      <th className="p-3.5 w-36">Release Date</th>
-                      <th className="p-3.5 w-28">Previous</th>
-                      <th className="p-3.5 w-28">Forecast</th>
-                      <th className="p-3.5 w-28">Actual</th>
-                      <th className="p-3.5 text-right">Net Change</th>
-                      <th className="p-3.5 text-center">Score</th>
-                      <th className="p-3.5 text-right pr-6">Weight</th>
+                    <tr className="text-[var(--ink-muted)] text-[10px] border-b border-[var(--line)] uppercase tracking-[0.08em] bg-[var(--surface-2)]">
+                      <th className="p-3.5 pl-5 font-semibold">Indicator Name</th>
+                      <th className="p-3.5 w-36 font-semibold">Release Date</th>
+                      <th className="p-3.5 w-28 font-semibold">Previous</th>
+                      <th className="p-3.5 w-28 font-semibold">Forecast</th>
+                      <th className="p-3.5 w-28 font-semibold">Actual</th>
+                      <th className="p-3.5 text-right font-semibold">Net Change</th>
+                      <th className="p-3.5 text-center font-semibold">Score</th>
+                      <th className="p-3.5 text-right pr-5 font-semibold">Weight</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-zinc-900/60">
+                  <tbody className="divide-y divide-[var(--line)]">
                     {(currencyIndicators[currencyActiveTab === 'dashboard' ? 'USD' : currencyActiveTab] || []).map((ind, idx) => {
                       const evaluated = evaluateIndicator(ind);
                       const curr = currencyActiveTab === 'dashboard' ? 'USD' : currencyActiveTab;
 
                       return (
-                        <tr key={ind.name} className="hover:bg-[#08080f] transition-colors">
-                          <td className="p-3.5 pl-6 font-bold text-white">{ind.name}</td>
-                          <td className="p-3.5">
+                        <tr key={ind.name} className="hover:bg-[var(--surface-2)]/60 transition-colors">
+                          <td className="p-3 pl-5 font-semibold text-[var(--ink)]">{ind.name}</td>
+                          <td className="p-3">
                             <input
                               type="date"
                               value={ind.date || ''}
                               onChange={(e) => updateIndicatorValue(curr, idx, 'date', e.target.value)}
-                              className="w-full bg-[#0c0c12] border border-zinc-800 text-zinc-300 text-xs px-2 py-1.5 outline-none focus:border-cyan-500 font-mono min-h-[38px] sm:min-h-[34px]"
+                              className="w-full h-8 rounded-[2px] bg-[var(--surface-2)] border border-[var(--line)] text-[var(--ink)] text-xs px-2 outline-none focus:border-[var(--accent)] font-mono"
                             />
                           </td>
-                          <td className="p-3.5">
+                          <td className="p-3">
                             <input
                               type="text"
                               value={formatIndicatorDisplay(ind.previous, ind.type)}
                               onChange={(e) => updateIndicatorValue(curr, idx, 'previous', e.target.value)}
-                              className="w-full bg-[#0c0c12] border border-zinc-800 text-zinc-300 text-xs px-2 py-1.5 outline-none focus:border-cyan-500 font-mono min-h-[38px] sm:min-h-[34px]"
+                              className="w-full h-8 rounded-[2px] bg-[var(--surface-2)] border border-[var(--line)] text-[var(--ink)] text-xs px-2 outline-none focus:border-[var(--accent)] font-mono tabular-nums"
                             />
                           </td>
-                          <td className="p-3.5">
+                          <td className="p-3">
                             <input
                               type="text"
                               value={formatIndicatorDisplay(ind.forecast, ind.type)}
                               onChange={(e) => updateIndicatorValue(curr, idx, 'forecast', e.target.value)}
-                              className="w-full bg-[#0c0c12] border border-zinc-800 text-zinc-300 text-xs px-2 py-1.5 outline-none focus:border-cyan-500 font-mono min-h-[38px] sm:min-h-[34px]"
+                              className="w-full h-8 rounded-[2px] bg-[var(--surface-2)] border border-[var(--line)] text-[var(--ink)] text-xs px-2 outline-none focus:border-[var(--accent)] font-mono tabular-nums"
                             />
                           </td>
-                          <td className="p-3.5">
+                          <td className="p-3">
                             <input
                               type="text"
                               value={formatIndicatorDisplay(ind.actual, ind.type)}
                               onChange={(e) => updateIndicatorValue(curr, idx, 'actual', e.target.value)}
-                              className="w-full bg-[#0c0c12] border border-zinc-800 text-zinc-300 text-xs px-2 py-1.5 outline-none focus:border-cyan-500 font-mono min-h-[38px] sm:min-h-[34px]"
+                              className="w-full h-8 rounded-[2px] bg-[var(--surface-2)] border border-[var(--line)] text-[var(--ink)] text-xs px-2 outline-none focus:border-[var(--accent)] font-mono tabular-nums"
                             />
                           </td>
-                          <td className="p-3.5 text-right tabular-nums text-zinc-300 font-bold">
+                          <td className="p-3 text-right tabular-nums text-[var(--ink)] font-semibold">
                             {formatNetChangeDisplay(evaluated.netChange, ind.type)}
                           </td>
-                          <td className="p-3.5 text-center font-bold">
-                            <span className={evaluated.score > 0 ? 'text-cyan-400' : evaluated.score < 0 ? 'text-rose-400' : 'text-zinc-500'}>
+                          <td className="p-3 text-center font-semibold tabular-nums">
+                            <span className={evaluated.score > 0 ? 'text-[#10B981]' : evaluated.score < 0 ? 'text-[#EF4444]' : 'text-[var(--ink-muted)]'}>
                               {evaluated.score > 0 ? `+${evaluated.score}` : evaluated.score}
                             </span>
                           </td>
-                          <td className="p-3.5 text-right pr-6 text-zinc-500">{ind.weight}</td>
+                          <td className="p-3 text-right pr-5 text-[var(--ink-muted)] tabular-nums">{ind.weight}</td>
                         </tr>
                       );
                     })}
@@ -3019,99 +2688,36 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
         </div>
       )}
 
-      {/* SUB-VIEW: VOLATILITY MATRIX */}
-      {activeTab === 'volatility' && (
-        <section className="w-full py-10 sm:py-16 border-b border-zinc-900 bg-[#020203]">
-          <div className="max-w-7xl 2xl:max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 space-y-6 font-mono">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-zinc-900">
-              <div>
-                <span className="text-cyan-500 text-[10px] font-bold uppercase tracking-widest block">
-                  // REALIZED VARIANCE TABLE
-                </span>
-                <h2 className="text-xl sm:text-2xl font-bold text-white uppercase tracking-tight">
-                  Currency Pair Daily Average Volatility
-                </h2>
-              </div>
-              <input
-                type="text"
-                value={volatilitySearch}
-                onChange={(e) => setVolatilitySearch(e.target.value)}
-                placeholder="Filter by pair (e.g. JPY, EUR)..."
-                className="w-full sm:w-64 bg-[#0c0c12] border border-zinc-800 text-white text-xs px-3 py-2 outline-none focus:border-cyan-500 font-mono min-h-[38px]"
-              />
-            </div>
-
-            <div className="macro-panel overflow-x-auto touch-scroll">
-              <table className="w-full text-left font-mono text-xs min-w-[620px]">
-                <thead>
-                  <tr className="text-zinc-500 text-[10px] border-b border-zinc-900 uppercase tracking-wider bg-[#07080d]">
-                    <th onClick={() => toggleVolSort('symbol')} className="p-3.5 pl-4 cursor-pointer hover:text-cyan-400">
-                      Pair Symbol {volatilitySort === 'symbol' && (volatilitySortAsc ? '▲' : '▼')}
-                    </th>
-                    <th onClick={() => toggleVolSort('pips')} className="p-3.5 text-right cursor-pointer hover:text-cyan-400">
-                      Avg Daily Pips {volatilitySort === 'pips' && (volatilitySortAsc ? '▲' : '▼')}
-                    </th>
-                    <th onClick={() => toggleVolSort('cash')} className="p-3.5 text-right cursor-pointer hover:text-cyan-400">
-                      $ Cash Value (100k) {volatilitySort === 'cash' && (volatilitySortAsc ? '▲' : '▼')}
-                    </th>
-                    <th onClick={() => toggleVolSort('range')} className="p-3.5 text-right pr-4 cursor-pointer hover:text-cyan-400">
-                      % Realized Range {volatilitySort === 'range' && (volatilitySortAsc ? '▲' : '▼')}
-                    </th>
-                    <th className="p-3.5 text-center">Tier</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-zinc-900/60">
-                  {sortedVolatility.map((p) => (
-                    <tr key={p.symbol} className="hover:bg-[#08080f] transition-colors">
-                      <td className="p-3.5 pl-4 font-bold text-zinc-100">{p.symbol}</td>
-                      <td className="p-3.5 text-right tabular-nums text-zinc-300 font-semibold">{p.avgPips.toFixed(1)}</td>
-                      <td className="p-3.5 text-right tabular-nums text-zinc-400">${p.cashValue100k.toFixed(2)}</td>
-                      <td className="p-3.5 text-right pr-4 tabular-nums text-cyan-400 font-bold">{p.rangePct.toFixed(2)}%</td>
-                      <td className="p-3.5 text-center">
-                        <span className={`px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider border ${
-                          p.tier === 'High'
-                            ? 'bg-rose-950/40 text-rose-300 border-rose-900/50'
-                            : p.tier === 'Medium'
-                            ? 'bg-cyan-950/40 text-cyan-300 border-cyan-900/50'
-                            : 'bg-zinc-900 text-zinc-400 border-zinc-800'
-                        }`}>
-                          {p.tier}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </section>
-      )}
-
       {/* SUB-VIEW: RISK CALCULATOR */}
       {activeTab === 'calculator' && (
-        <section className="w-full py-10 sm:py-16 border-b border-zinc-900 bg-[#020203]">
-          <div className="max-w-7xl 2xl:max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 space-y-6 font-mono">
-            <div className="pb-4 border-b border-zinc-900">
-              <span className="text-cyan-500 text-[10px] font-bold uppercase tracking-widest block">
-                // MATHEMATICAL SIZING ENGINE
-              </span>
-              <h2 className="text-xl sm:text-2xl font-bold text-white uppercase tracking-tight">
-                Risk & Position Size Calculator
-              </h2>
-            </div>
+        <div className="w-full space-y-0">
+          <ToolHeader
+            onReturnToHub={() => handleTabSwitch('all')}
+            language={language}
+            eyebrow="POSITION SIZING"
+            tags={['EXACT MODEL', 'RISK CONTROL']}
+            title={language === 'es' ? 'Calculadora de Riesgo y Tamaño de Posición' : 'Risk & Position Size Calculator'}
+            subtitle={
+              language === 'es'
+                ? 'Dimensionamiento exacto de lotaje basado en divisa base de la cuenta, distancia de stop loss y porcentaje de riesgo.'
+                : 'Exact lot and unit sizing calculated from account base currency, stop-loss distance in pips, and capital risk percentage.'
+            }
+          />
+          <section className="w-full py-8 sm:py-10 border-b border-[var(--line)] bg-[var(--bg)] transition-colors">
+            <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 space-y-6 font-mono">
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
-              <div className="macro-panel p-5 sm:p-6 space-y-4">
-                <span className="text-zinc-500 text-[10px] uppercase tracking-widest block pb-2 border-b border-zinc-900">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="bg-[var(--surface)] border border-[var(--line)] rounded-[2px] p-5 sm:p-6 space-y-4">
+                <span className="text-[var(--ink-muted)] text-[10px] font-semibold uppercase tracking-[0.12em] block pb-2.5 border-b border-[var(--line)]">
                   // INPUT PARAMETERS
                 </span>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs text-zinc-400 uppercase">Account Base Currency</label>
+                  <label className="text-[11px] text-[var(--ink-muted)] uppercase tracking-[0.06em]">Account Base Currency</label>
                   <select
                     value={calcAcctCurr}
                     onChange={(e) => setCalcAcctCurr(e.target.value)}
-                    className="w-full bg-[#0c0c12] border border-zinc-800 text-white text-xs p-3 outline-none focus:border-cyan-500 min-h-[44px]"
+                    className="w-full h-10 rounded-[2px] bg-[var(--surface-2)] border border-[var(--line)] text-[var(--ink)] text-xs px-3 outline-none focus:border-[var(--accent)]"
                   >
                     <option value="USD">USD - US Dollar</option>
                     <option value="EUR">EUR - Euro</option>
@@ -3124,11 +2730,11 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs text-zinc-400 uppercase">Currency Pair</label>
+                  <label className="text-[11px] text-[var(--ink-muted)] uppercase tracking-[0.06em]">Currency Pair</label>
                   <select
                     value={calcPair}
                     onChange={(e) => setCalcPair(e.target.value)}
-                    className="w-full bg-[#0c0c12] border border-zinc-800 text-white text-xs p-3 outline-none focus:border-cyan-500 min-h-[44px]"
+                    className="w-full h-10 rounded-[2px] bg-[var(--surface-2)] border border-[var(--line)] text-[var(--ink)] text-xs px-3 outline-none focus:border-[var(--accent)]"
                   >
                     {PAIRS_LIST.map((p) => (
                       <option key={p} value={p}>{p.substring(0, 3)}/{p.substring(3, 6)}</option>
@@ -3137,132 +2743,144 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs text-zinc-400 uppercase">Account Balance ({calcAcctCurr})</label>
+                  <label className="text-[11px] text-[var(--ink-muted)] uppercase tracking-[0.06em]">Account Balance ({calcAcctCurr})</label>
                   <input
                     type="number"
                     value={calcBalance}
                     onChange={(e) => setCalcBalance(parseFloat(e.target.value) || 0)}
-                    className="w-full bg-[#0c0c12] border border-zinc-800 text-white text-xs p-3 outline-none focus:border-cyan-500 tabular-nums min-h-[44px]"
+                    className="w-full h-10 rounded-[2px] bg-[var(--surface-2)] border border-[var(--line)] text-[var(--ink)] text-xs px-3 outline-none focus:border-[var(--accent)] tabular-nums"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs text-zinc-400 uppercase">Risk Allocation (%)</label>
+                  <label className="text-[11px] text-[var(--ink-muted)] uppercase tracking-[0.06em]">Risk Allocation (%)</label>
                   <input
                     type="number"
                     step="0.1"
                     value={calcRiskPct}
                     onChange={(e) => setCalcRiskPct(parseFloat(e.target.value) || 0)}
-                    className="w-full bg-[#0c0c12] border border-zinc-800 text-white text-xs p-3 outline-none focus:border-cyan-500 tabular-nums min-h-[44px]"
+                    className="w-full h-10 rounded-[2px] bg-[var(--surface-2)] border border-[var(--line)] text-[var(--ink)] text-xs px-3 outline-none focus:border-[var(--accent)] tabular-nums"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs text-zinc-400 uppercase">Stop Loss Distance (Pips)</label>
+                  <label className="text-[11px] text-[var(--ink-muted)] uppercase tracking-[0.06em]">Stop Loss Distance (Pips)</label>
                   <input
                     type="number"
                     value={calcStopPips}
                     onChange={(e) => setCalcStopPips(parseFloat(e.target.value) || 0)}
-                    className="w-full bg-[#0c0c12] border border-zinc-800 text-white text-xs p-3 outline-none focus:border-cyan-500 tabular-nums min-h-[44px]"
+                    className="w-full h-10 rounded-[2px] bg-[var(--surface-2)] border border-[var(--line)] text-[var(--ink)] text-xs px-3 outline-none focus:border-[var(--accent)] tabular-nums"
                   />
                 </div>
               </div>
 
-              <div className="macro-panel p-5 sm:p-6 flex flex-col justify-between space-y-6">
+              <div className="bg-[var(--surface)] border border-[var(--line)] rounded-[2px] p-5 sm:p-6 flex flex-col justify-between space-y-6">
                 <div className="space-y-6">
-                  <span className="text-zinc-500 text-[10px] uppercase tracking-widest block pb-2 border-b border-zinc-800">
+                  <span className="text-[var(--ink-muted)] text-[10px] font-semibold uppercase tracking-[0.12em] block pb-2.5 border-b border-[var(--line)]">
                     // SIZING ALLOCATION OUTPUT
                   </span>
 
-                  <div className="space-y-4 divide-y divide-zinc-800/80 text-xs">
+                  <div className="space-y-4 divide-y divide-[var(--line)] text-xs">
                     <div className="pt-1 flex justify-between items-center">
-                      <span className="text-zinc-400 uppercase">Absolute Cash Risk:</span>
-                      <span className="text-lg sm:text-xl font-bold text-rose-400 tabular-nums">
+                      <span className="text-[var(--ink-muted)] uppercase">Absolute Cash Risk:</span>
+                      <span className="text-lg sm:text-xl font-bold text-[#EF4444] tabular-nums">
                         ${riskResult.cashRisk.toFixed(2)} {calcAcctCurr}
                       </span>
                     </div>
 
-                    <div className="pt-3 flex justify-between items-center">
-                      <span className="text-zinc-400 uppercase">Recommended Position Size:</span>
-                      <span className="text-xl sm:text-2xl font-black text-cyan-400 tabular-nums">
-                        {riskResult.standardLots} <span className="text-xs font-normal text-zinc-500">Lots</span>
+                    <div className="pt-4 flex justify-between items-center">
+                      <span className="text-[var(--ink-muted)] uppercase">Recommended Position Size:</span>
+                      <span className="text-xl sm:text-2xl font-bold text-[var(--ink)] tabular-nums">
+                        {riskResult.standardLots} <span className="text-xs font-normal text-[var(--ink-muted)]">Lots</span>
                       </span>
                     </div>
 
-                    <div className="pt-3 flex justify-between items-center">
-                      <span className="text-zinc-400 uppercase">Running Pip Value:</span>
-                      <span className="text-xs sm:text-sm font-semibold text-zinc-200 tabular-nums">
+                    <div className="pt-4 flex justify-between items-center">
+                      <span className="text-[var(--ink-muted)] uppercase">Running Pip Value:</span>
+                      <span className="text-xs sm:text-sm font-semibold text-[var(--ink)] tabular-nums">
                         ${riskResult.pipValue.toFixed(2)} {calcAcctCurr} / pip
                       </span>
                     </div>
                   </div>
                 </div>
 
-                <div className="p-3.5 bg-[#040406] border border-zinc-800 text-[10px] text-zinc-500 leading-relaxed font-sans font-light">
+                <div className="p-3.5 bg-[var(--surface-2)] border border-[var(--line)] rounded-[2px] text-[11px] text-[var(--ink-muted)] leading-relaxed font-sans">
                   Standard contract assumes 100,000 units. Conversions dynamically reflect G10 currency parities.
                 </div>
               </div>
             </div>
           </div>
         </section>
+        </div>
       )}
 
 
 
       {/* SUB-VIEW: CONSENSUS ENGINE */}
       {activeTab === 'consensus' && (
-        <section className="w-full py-10 sm:py-16 border-b border-zinc-900 bg-[#020203]">
-          <div className="max-w-7xl 2xl:max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 space-y-6 font-mono">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-zinc-900">
-              <div>
-                <span className="text-cyan-500 text-[10px] font-bold uppercase tracking-widest block">
-                  // EXPECTATIONS & REACTION MATRIX
-                </span>
-                <h2 className="text-xl sm:text-2xl font-bold text-white uppercase tracking-tight">
-                  Consensus Filter Hub
-                </h2>
-              </div>
+        <div className="w-full space-y-0">
+          <ToolHeader
+            onReturnToHub={() => handleTabSwitch('all')}
+            language={language}
+            eyebrow="EXPECTATIONS MATRIX"
+            tags={['BEAT / MISS', 'SURPRISE FILTER']}
+            title={language === 'es' ? 'Motor de Consenso y Reacción' : 'Consensus Filter Hub'}
+            subtitle={
+              language === 'es'
+                ? 'Filtros interactivos de expectativas, bandas de pronóstico de consenso y evaluación de sorpresas post-publicación.'
+                : 'Interactive expectation filters, consensus forecast bands, and post-release outcome evaluation.'
+            }
+            actions={
               <input
                 type="text"
                 value={consensusSearch}
                 onChange={(e) => setConsensusSearch(e.target.value)}
-                placeholder="Search indicator..."
-                className="w-full sm:w-64 bg-[#0c0c12] border border-zinc-800 text-white text-xs px-3 py-2 outline-none focus:border-cyan-500 font-mono min-h-[38px]"
+                placeholder={language === 'es' ? 'Buscar indicador...' : 'Search indicator...'}
+                className="w-full sm:w-64 h-9 rounded-[2px] bg-[var(--surface)] border border-[var(--line)] focus:border-[var(--accent)] text-[var(--ink)] placeholder:text-[var(--ink-muted)] text-xs px-3 outline-none font-mono transition-colors"
               />
-            </div>
+            }
+          />
+          <section className="w-full py-8 sm:py-10 border-b border-[var(--line)] bg-[var(--bg)] transition-colors">
+            <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 space-y-6 font-mono">
 
-            <div className="macro-panel overflow-x-auto touch-scroll">
+            <div className="bg-[var(--surface)] border border-[var(--line)] rounded-[2px] overflow-x-auto touch-scroll">
               <table className="w-full text-left font-mono text-xs min-w-[720px]">
                 <thead>
-                  <tr className="text-zinc-500 text-[10px] border-b border-zinc-900 uppercase tracking-wider bg-[#07080d]">
-                    <th className="p-3.5 pl-4">Time (UTC)</th>
-                    <th className="p-3.5">Jurisdiction</th>
-                    <th className="p-3.5">Economic Indicator</th>
-                    <th className="p-3.5 text-center">Consensus</th>
-                    <th className="p-3.5 text-center">Expectation Range</th>
-                    <th className="p-3.5 text-center">Prior</th>
-                    <th className="p-3.5 text-center">Outcome Evaluator</th>
+                  <tr className="text-[var(--ink-muted)] text-[10px] border-b border-[var(--line)] uppercase tracking-[0.08em] bg-[var(--surface-2)]">
+                    <th className="p-3.5 pl-5 font-semibold">Time (UTC)</th>
+                    <th className="p-3.5 font-semibold">Jurisdiction</th>
+                    <th className="p-3.5 font-semibold">Economic Indicator</th>
+                    <th className="p-3.5 text-center font-semibold">Consensus</th>
+                    <th className="p-3.5 text-center font-semibold">Expectation Range</th>
+                    <th className="p-3.5 text-center font-semibold">Prior</th>
+                    <th className="p-3.5 text-center pr-5 font-semibold">Outcome Evaluator</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-900/60">
-                  {consensusEvents.map((e) => (
+                <tbody className="divide-y divide-[var(--line)]">
+                  {consensusEvents
+                    .filter((e) =>
+                      !consensusSearch.trim() ||
+                      e.indicator.toLowerCase().includes(consensusSearch.toLowerCase()) ||
+                      e.country.toLowerCase().includes(consensusSearch.toLowerCase())
+                    )
+                    .map((e) => (
                     <tr
                       key={e.id}
                       className={`transition-colors ${
                         e.status === 'green'
-                          ? 'bg-emerald-950/20 text-emerald-100'
+                          ? 'bg-[#10B981]/[0.07]'
                           : e.status === 'red'
-                          ? 'bg-rose-950/20 text-rose-100'
-                          : 'hover:bg-[#08080f] text-zinc-300'
+                          ? 'bg-[#EF4444]/[0.07]'
+                          : 'hover:bg-[var(--surface-2)]/60'
                       }`}
                     >
-                      <td className="p-3.5 pl-4 text-zinc-400 tabular-nums">{e.time}</td>
-                      <td className="p-3.5 font-bold text-cyan-400">{e.country}</td>
-                      <td className="p-3.5 font-sans font-medium text-zinc-100">{e.indicator}</td>
-                      <td className="p-3.5 text-center text-cyan-300 font-bold">{e.consensus}</td>
-                      <td className="p-3.5 text-center text-zinc-400">{e.range}</td>
-                      <td className="p-3.5 text-center text-zinc-500">{e.prior}</td>
-                      <td className="p-3.5 text-center">
+                      <td className="p-3.5 pl-5 text-[var(--ink-muted)] tabular-nums">{e.time}</td>
+                      <td className="p-3.5 font-semibold text-[var(--accent)]">{e.country}</td>
+                      <td className="p-3.5 font-sans font-medium text-[var(--ink)]">{e.indicator}</td>
+                      <td className="p-3.5 text-center text-[var(--ink)] font-semibold tabular-nums">{e.consensus}</td>
+                      <td className="p-3.5 text-center text-[var(--ink-muted)] tabular-nums">{e.range}</td>
+                      <td className="p-3.5 text-center text-[var(--ink-muted)] tabular-nums">{e.prior}</td>
+                      <td className="p-3.5 text-center pr-5">
                         <button
                           onClick={() => {
                             setConsensusEvents((prev) =>
@@ -3273,15 +2891,15 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
                               )
                             );
                           }}
-                          className={`px-3.5 py-1.5 text-[10px] sm:text-xs font-bold uppercase transition-all cursor-pointer border min-h-[38px] inline-flex items-center justify-center ${
+                          className={`h-8 px-3 rounded-[2px] text-[10px] font-semibold uppercase tracking-[0.08em] transition-colors cursor-pointer border inline-flex items-center justify-center ${
                             e.status === 'green'
-                              ? 'bg-emerald-500/30 text-emerald-300 border-emerald-500/50 shadow-sm'
+                              ? 'bg-[#10B981]/15 text-[#10B981] border-[#10B981]/40'
                               : e.status === 'red'
-                              ? 'bg-rose-500/30 text-rose-300 border-rose-500/50 shadow-sm'
-                              : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-white'
+                              ? 'bg-[#EF4444]/15 text-[#EF4444] border-[#EF4444]/40'
+                              : 'bg-[var(--surface-2)] text-[var(--ink-muted)] border-[var(--line)] hover:text-[var(--ink)] hover:border-[var(--line-strong)]'
                           }`}
                         >
-                          {e.status === 'green' ? '🟢 BEAT' : e.status === 'red' ? '🔴 MISS' : '⚪ EVALUATE'}
+                          {e.status === 'green' ? 'BEAT' : e.status === 'red' ? 'MISS' : 'EVALUATE'}
                         </button>
                       </td>
                     </tr>
@@ -3290,23 +2908,24 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
               </table>
             </div>
           </div>
-        </section>
+          </section>
+        </div>
       )}
 
       {/* Macro Calendar Upload Status Modal */}
       {uploadModal && uploadModal.isOpen && (
-        <div className="fixed inset-0 z-50 bg-[#020203]/85 backdrop-blur-md flex items-center justify-center p-4">
-          <div className={`max-w-md w-full bg-[#07080e] border ${uploadModal.type === 'success' ? 'border-emerald-500/50 shadow-[0_0_35px_rgba(16,185,129,0.25)]' : 'border-rose-500/50 shadow-[0_0_35px_rgba(244,63,94,0.25)]'} p-6 rounded-xl font-mono space-y-4`}>
-            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className={`max-w-md w-full bg-[var(--surface)] border ${uploadModal.type === 'success' ? 'border-[#10B981]/50' : 'border-[#EF4444]/50'} p-6 rounded-[2px] font-mono space-y-4 shadow-xl`}>
+            <div className="flex items-center justify-between border-b border-[var(--line)] pb-3">
               <div className="flex items-center gap-2">
-                <span className={`w-2.5 h-2.5 rounded-full ${uploadModal.type === 'success' ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400'}`} />
-                <span className={`text-[11px] font-bold uppercase tracking-wider ${uploadModal.type === 'success' ? 'text-emerald-400' : 'text-rose-400'}`}>
+                <span className={`w-2 h-2 ${uploadModal.type === 'success' ? 'bg-[#10B981]' : 'bg-[#EF4444]'}`} />
+                <span className={`text-[11px] font-semibold uppercase tracking-[0.08em] ${uploadModal.type === 'success' ? 'text-[#10B981]' : 'text-[#EF4444]'}`}>
                   {uploadModal.type === 'success' ? '// CALENDAR INGESTION SUCCESS' : '// CALENDAR PARSING NOTICE'}
                 </span>
               </div>
               <button
                 onClick={() => setUploadModal(null)}
-                className="text-zinc-500 hover:text-white text-xs font-mono transition cursor-pointer p-1"
+                className="text-[var(--ink-muted)] hover:text-[var(--ink)] text-xs font-mono transition cursor-pointer p-1"
                 aria-label="Close modal"
               >
                 [ ✕ ]
@@ -3314,22 +2933,22 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
             </div>
 
             <div className="space-y-2">
-              <h3 className="text-white text-sm font-bold uppercase tracking-wide">
+              <h3 className="text-[var(--ink)] text-sm font-semibold uppercase tracking-wide">
                 {uploadModal.title}
               </h3>
-              <p className="text-zinc-300 text-xs font-sans leading-relaxed">
+              <p className="text-[var(--ink-muted)] text-xs font-sans leading-relaxed">
                 {uploadModal.message}
               </p>
             </div>
 
             {uploadModal.currencies && uploadModal.currencies.length > 0 && (
               <div className="pt-2">
-                <div className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1.5 font-mono">
+                <div className="text-[10px] text-[var(--ink-muted)] uppercase tracking-wider mb-1.5 font-mono">
                   {language === 'es' ? 'Divisas Actualizadas:' : 'Updated Currencies:'}
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {uploadModal.currencies.map(c => (
-                    <span key={c} className="px-2 py-0.5 bg-cyan-950/70 text-cyan-300 border border-cyan-500/40 text-[10px] font-bold">
+                    <span key={c} className="px-2 py-0.5 rounded-[2px] bg-[var(--surface-2)] text-[var(--accent)] border border-[var(--line)] text-[10px] font-semibold">
                       {c}
                     </span>
                   ))}
@@ -3337,14 +2956,10 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
               </div>
             )}
 
-            <div className="pt-3 border-t border-zinc-900 flex justify-end gap-2">
+            <div className="pt-3 border-t border-[var(--line)] flex justify-end gap-2">
               <button
                 onClick={() => setUploadModal(null)}
-                className={`px-4 py-2 text-xs font-bold uppercase tracking-wider transition cursor-pointer ${
-                  uploadModal.type === 'success'
-                    ? 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/50'
-                    : 'bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-700'
-                }`}
+                className="h-9 px-4 rounded-[2px] text-xs font-semibold uppercase tracking-[0.08em] bg-[var(--ink)] text-[var(--bg)] hover:opacity-90 transition cursor-pointer"
               >
                 {language === 'es' ? 'Aceptar' : 'Dismiss'}
               </button>

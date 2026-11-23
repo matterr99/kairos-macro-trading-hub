@@ -13,6 +13,7 @@ import { ResearchView } from './views/ResearchView';
 import { AcademyView } from './views/AcademyView';
 import { ToolsView } from './views/ToolsView';
 import { ArticleReaderModal } from './views/ArticleReaderModal';
+import { VisualSelectorOverlay } from './components/VisualSelectorOverlay';
 
 export default function App() {
   const [currentTab, setCurrentTab] = useState<NavigationTab>('console');
@@ -83,18 +84,18 @@ export default function App() {
   };
 
   return (
-    <div className={`${theme === 'light' ? 'light-theme bg-[#f8fafc] text-slate-800' : 'bg-[#020203] text-zinc-300'} min-h-screen flex flex-col font-sans selection:bg-cyan-900 selection:text-cyan-100 transition-colors duration-200`}>
+    <div className={`${theme === 'light' ? 'light-theme bg-[#ECEFF4] text-[#0B0E11]' : 'dark bg-[#0B0E11] text-[#F0F3F6]'} min-h-screen flex flex-col font-sans transition-colors duration-150`}>
       {/* 1. TOP HEADER WITH WORLD CLOCKS & NAVIGATION */}
+      <Header
+        currentTab={currentTab}
+        onSelectTab={handleTabChange}
+        language={language}
+        onToggleLanguage={toggleLanguage}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+      />
+      {/* 2. CURRENCIES VALUATION TICKER TAPE BAR */}
       <div className="print:hidden">
-        <Header
-          currentTab={currentTab}
-          onSelectTab={handleTabChange}
-          language={language}
-          onToggleLanguage={toggleLanguage}
-          theme={theme}
-          onToggleTheme={toggleTheme}
-        />
-        {/* 2. CURRENCIES VALUATION TICKER TAPE BAR */}
         <TickerTape language={language} theme={theme} />
       </div>
 
@@ -105,6 +106,7 @@ export default function App() {
             onSelectTab={handleTabChange}
             onOpenArticle={setSelectedArticle}
             language={language}
+            theme={theme}
           />
         )}
 
@@ -128,7 +130,7 @@ export default function App() {
 
       {/* 4. FOOTER */}
       <div className="print:hidden">
-        <Footer onSelectTab={handleTabChange} language={language} />
+        <Footer onSelectTab={handleTabChange} language={language} theme={theme} />
       </div>
 
       {/* 5. ARTICLE READER MODAL */}
@@ -139,6 +141,9 @@ export default function App() {
           language={language}
         />
       )}
+
+      {/* 6. TEMPORARY VISUAL DELETION PICKER */}
+      <VisualSelectorOverlay currentTab={currentTab} />
     </div>
   );
 }
