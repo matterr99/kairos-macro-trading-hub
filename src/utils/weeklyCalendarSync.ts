@@ -45,12 +45,19 @@ export function downloadRowsAsCsv(rows: string[][], filename = 'kairos_calendar_
 export async function fetchWeeklyCalendar(week: 'this' | 'next' = 'this'): Promise<WeeklyCalendarSyncResult> {
   const res = await fetch(`/api/weekly-calendar?week=${week}`);
   if (!res.ok) {
+    if (res.status === 404) {
+      throw new Error('Auto-Sync is only available on the local dev server (./start.sh). Use "Paste" or CSV upload on static hosting.');
+    }
     let msg = `HTTP ${res.status}`;
     try {
       const errJson = await res.json();
       if (errJson?.error) msg = errJson.error;
     } catch {}
     throw new Error(msg);
+  }
+  const contentType = res.headers.get('content-type') || '';
+  if (!contentType.includes('application/json')) {
+    throw new Error('Auto-Sync is only available on the local dev server (./start.sh). Use "Paste" or CSV upload on static hosting.');
   }
   const data = (await res.json()) as WeeklyCalendarSyncResult;
   if (!data || !Array.isArray(data.rows) || data.rows.length <= 1) {
@@ -78,7 +85,7 @@ function isNumericValueLine(line: string): boolean {
   const s = line.trim();
   if (!s) return false;
   if (/^holiday$/i.test(s)) return false;
-  return /^(?:-?\d[\d,]*\.?\d*(?:%|B|M|K|T)?\s*){1,3}$/i.test(s);
+  return /^(?:[+-]?\d[\d,]*\.?\d*(?:%|B|M|K|T)?\s*){1,3}$/i.test(s);
 }
 
 function extractNumericTokens(numBlock: string): string[] {
@@ -89,17 +96,63 @@ function extractNumericTokens(numBlock: string): string[] {
     if (dotCount >= 2 && !/[%BMKT]/i.test(chunk)) {
       const lastDotIdx = chunk.lastIndexOf('.');
       const decimals = chunk.length - lastDotIdx - 1;
-      const re = new RegExp(`-?\\d[\\d,]*\\.\\d{${decimals}}`, 'g');
+      const re = new RegExp(`[+-]?\\d[\\d,]*\\.\\d{${decimals}}`, 'g');
       const splitDec = chunk.match(re);
       if (splitDec && splitDec.length >= 2) {
         tokens.push(...splitDec);
         continue;
       }
     }
-    const matchedTokens = chunk.match(/-?\d[\d,]*\.?\d*(?:%|B|M|K|T)?/gi);
+    const matchedTokens = chunk.match(/[+-]?\d[\d,]*\.?\d*(?:%|B|M|K|T)?/gi);
     if (matchedTokens) tokens.push(...matchedTokens);
   }
   return tokens;
+}
+
+const MONTH_NAME_TO_NUM: Record<string, number> = {
+  january: 1, jan: 1, enero: 1, ene: 1,
+  february: 2, feb: 2, febrero: 2,
+  march: 3, mar: 3, marzo: 3,
+  april: 4, apr: 4, abril: 4, abr: 4,
+  may: 5, mayo: 5,
+  june: 6, jun: 6, junio: 6,
+  july: 7, jul: 7, julio: 7,
+  august: 8, aug: 8, agosto: 8, ago: 8,
+  september: 9, sep: 9, sept: 9, septiembre: 9,
+  october: 10, oct: 10, octubre: 10,
+  november: 11, nov: 11, noviembre: 11,
+  december: 12, dec: 12, diciembre: 12, dic: 12,
+};
+
+function parseCalendarDateHeaderToIso(line: string): string {
+  const cleaned = line
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+
+  // Matches "Thursday, October 1, 2026" or "Lunes, 2 de noviembre de 2026"
+  const enMatch = cleaned.match(/\b([a-z]{3,10})\s+(\d{1,2}),?\s+(\d{4})\b/);
+  if (enMatch && MONTH_NAME_TO_NUM[enMatch[1]]) {
+    const mm = String(MONTH_NAME_TO_NUM[enMatch[1]]).padStart(2, '0');
+    const dd = String(parseInt(enMatch[2], 10)).padStart(2, '0');
+    return `${enMatch[3]}-${mm}-${dd}`;
+  }
+
+  const esMatch = cleaned.match(/\b(\d{1,2})\s+(?:de\s+)?([a-z]{3,10})\s+(?:de\s+)?(\d{4})\b/);
+  if (esMatch && MONTH_NAME_TO_NUM[esMatch[2]]) {
+    const mm = String(MONTH_NAME_TO_NUM[esMatch[2]]).padStart(2, '0');
+    const dd = String(parseInt(esMatch[1], 10)).padStart(2, '0');
+    return `${esMatch[3]}-${mm}-${dd}`;
+  }
+
+  const parsed = new Date(line);
+  if (!isNaN(parsed.getTime())) {
+    const y = parsed.getFullYear();
+    const m = String(parsed.getMonth() + 1).padStart(2, '0');
+    const d = String(parsed.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+  return line;
 }
 
 function normalizeTimeToken(rawTime: string, currentTimeMins: number | null): string {
@@ -191,8 +244,7 @@ export function parseRawInvestingPaste(rawText: string): string[][] {
     if (headerWordRegex.test(line)) continue;
 
     if (dateHeaderRegex.test(line)) {
-      const parsed = new Date(line);
-      currentDate = !isNaN(parsed.getTime()) ? parsed.toISOString().slice(0, 10) : line;
+      currentDate = parseCalendarDateHeaderToIso(line);
       continue;
     }
 
@@ -251,7 +303,7 @@ export function parseRawInvestingPaste(rawText: string): string[][] {
 
     const eventAndNums = stripMarkdownLink(ccyMatch[2]).replace(/\s+/g, ' ').trim();
     const trailingBlockMatch = eventAndNums.match(
-      /^(.*?)(\s+(?:-?\d[\d,]*\.?\d*(?:%|B|M|K|T)?\s*){1,3})$/i
+      /^(.*?)(\s+(?:[+-]?\d[\d,]*\.?\d*(?:%|B|M|K|T)?\s*){1,3})$/i
     );
 
     let eventName = eventAndNums;

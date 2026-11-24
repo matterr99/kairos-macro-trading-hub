@@ -66,6 +66,7 @@ export function Header({
             hour: '2-digit',
             minute: '2-digit',
             hour12: false,
+            hourCycle: 'h23',
             timeZone: z.timeZone
           }).format(date);
         }
@@ -74,7 +75,8 @@ export function Header({
         const localFormatted = new Intl.DateTimeFormat('en-GB', {
           hour: '2-digit',
           minute: '2-digit',
-          hour12: false
+          hour12: false,
+          hourCycle: 'h23'
         }).format(date);
 
         const matchesPresetZone = PREDETERMINED_ZONES.has(localTz);

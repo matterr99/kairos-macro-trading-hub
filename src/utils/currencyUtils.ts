@@ -186,12 +186,11 @@ export function normalizeCurrencyCode(rawInput: any): string {
     return INVESTING_COUNTRY_TO_CURRENCY_MAP[lettersOnly];
   }
 
-  // Check 2-letter prefix if string has extra annotations (e.g. 'US - High', 'DE 10Y')
-  if (lettersOnly.length > 2) {
-    const firstTwo = lettersOnly.slice(0, 2);
-    if (INVESTING_COUNTRY_TO_CURRENCY_MAP[firstTwo]) {
-      return INVESTING_COUNTRY_TO_CURRENCY_MAP[firstTwo];
-    }
+  // Check leading delimited 2-3 letter code if string has extra annotations (e.g. 'US - High', 'DE 10Y', 'US (United States)')
+  // Avoids false positives on full words like 'CHILE', 'DECEMBER', 'UKRAINE', 'AUTO', 'FRIDAY'
+  const leadingCodeMatch = str.match(/^([A-Z]{2,3})(?:[\s\-:(/]|$)/);
+  if (leadingCodeMatch && INVESTING_COUNTRY_TO_CURRENCY_MAP[leadingCodeMatch[1]]) {
+    return INVESTING_COUNTRY_TO_CURRENCY_MAP[leadingCodeMatch[1]];
   }
 
   // If already standard 3-letter code or unrecognized string, return cleaned version

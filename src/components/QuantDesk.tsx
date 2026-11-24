@@ -50,6 +50,7 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
   const [p5Notes, setP5Notes] = useState<string>('');
   const [noteCB, setNoteCB] = useState<string>('');
   const [noteGeo, setNoteGeo] = useState<string>('');
+  const [hasHydrated, setHasHydrated] = useState<boolean>(false);
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -92,11 +93,14 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
       }
     } catch (e) {
       console.error('Failed to parse saved Quant Desk state', e);
+    } finally {
+      setHasHydrated(true);
     }
   }, []);
 
-  // Save to localStorage whenever state changes
+  // Save to localStorage whenever state changes (only after initial hydration)
   useEffect(() => {
+    if (!hasHydrated) return;
     const data = {
       baseCurrency,
       quoteCurrency,
@@ -115,7 +119,7 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
     } catch {
       // ignore
     }
-  }, [baseCurrency, quoteCurrency, noteCB, noteGeo, p4Oil, p4Gold, p4Notes, p5Notes, pillars, baseEvents, quoteEvents]);
+  }, [hasHydrated, baseCurrency, quoteCurrency, noteCB, noteGeo, p4Oil, p4Gold, p4Notes, p5Notes, pillars, baseEvents, quoteEvents]);
 
   // Mathematical Score Calculation
   let netWeight = 0;
@@ -180,9 +184,19 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
   };
 
   const handleSwapCurrencies = () => {
-    const temp = baseCurrency;
+    const invertDir = (val: 'buy' | 'sell' | 'neutral'): 'buy' | 'sell' | 'neutral' =>
+      val === 'buy' ? 'sell' : val === 'sell' ? 'buy' : 'neutral';
+
     setBaseCurrency(quoteCurrency);
-    setQuoteCurrency(temp);
+    setQuoteCurrency(baseCurrency);
+    setBaseEvents(quoteEvents);
+    setQuoteEvents(baseEvents);
+    setPillars(prev => ({
+      p2: invertDir(prev.p2),
+      p3: invertDir(prev.p3),
+      p4: invertDir(prev.p4),
+      p5: invertDir(prev.p5)
+    }));
   };
 
   // Reset
@@ -310,6 +324,8 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
   };
 
   const formatBiasLabel = (bias: string) => {
+    if (bias === 'buy') return isEs ? '▲ COMPRA (LONG)' : '▲ BUY (LONG)';
+    if (bias === 'sell') return isEs ? '▼ VENTA (SHORT)' : '▼ SELL (SHORT)';
     if (bias === 'very_bullish') return isEs ? '🟢 Muy Alcista (+2)' : '🟢 Very Bullish (+2)';
     if (bias === 'bullish') return isEs ? '🟡 Alcista (+1)' : '🟡 Bullish (+1)';
     if (bias === 'bearish') return isEs ? '🟠 Bajista (-1)' : '🟠 Bearish (-1)';
@@ -401,7 +417,14 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                     </span>
                     <select 
                       value={baseCurrency} 
-                      onChange={(e) => setBaseCurrency(e.target.value)} 
+                      onChange={(e) => {
+                        const next = e.target.value;
+                        if (next === quoteCurrency) {
+                          handleSwapCurrencies();
+                        } else {
+                          setBaseCurrency(next);
+                        }
+                      }} 
                       className="bg-transparent text-xl font-black text-[var(--ink)] hover:text-[var(--accent)] transition font-mono focus:outline-none cursor-pointer"
                     >
                       {G10_CURRENCIES.map(c => <option key={c} value={c} className="bg-[var(--surface)]">{c}</option>)}
@@ -424,7 +447,14 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                     </span>
                     <select 
                       value={quoteCurrency} 
-                      onChange={(e) => setQuoteCurrency(e.target.value)} 
+                      onChange={(e) => {
+                        const next = e.target.value;
+                        if (next === baseCurrency) {
+                          handleSwapCurrencies();
+                        } else {
+                          setQuoteCurrency(next);
+                        }
+                      }} 
                       className="bg-transparent text-xl font-black text-[var(--ink)] hover:text-[var(--accent)] transition font-mono focus:outline-none cursor-pointer"
                     >
                       {G10_CURRENCIES.map(c => <option key={c} value={c} className="bg-[var(--surface)]">{c}</option>)}
@@ -1095,7 +1125,7 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                 day: 'numeric'
               })}
             </div>
-            <div className="text-[9px] text-slate-400 font-mono">EXECUTION TIME: {new Date().toTimeString().slice(0, 8)} UTC</div>
+            <div className="text-[9px] text-slate-400 font-mono">EXECUTION TIME: {new Date().toISOString().slice(11, 19)} UTC</div>
           </div>
         </div>
 
@@ -1213,7 +1243,7 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
               {quoteEvents.filter(e => e.type !== 'none').map((e, idx) => (
                 <tr key={`q_pr_${idx}`} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}>
                   <td className="p-2 border border-slate-300 font-bold font-mono">
-                    <span className="bg-slate-200 text-slate-900 px-1.5 py-0.5 text-[10px] mr-1">{quoteCurrency}</span> (Quote)
+                    <span className="bg-slate-200 text-slate-900 px-1.5 py-0.5 text-[10px] mr-1">{quoteCurrency}</span> ({isEs ? 'Cotizada' : 'Quote'})
                   </td>
                   <td className="p-2 border border-slate-300 font-semibold text-slate-900">{e.type}</td>
                   <td className="p-2 border border-slate-300 font-mono text-[11px] font-bold">
@@ -1224,7 +1254,7 @@ export function QuantDesk({ onReturnToHub, language = 'en' }: QuantDeskProps) {
                   <td className="p-2 border border-slate-300 text-slate-700 font-mono text-[10px]">{e.note || '—'}</td>
                 </tr>
               ))}
-              {activeEventsCount === 0 && (
+              {baseEvents.every(e => e.type === 'none') && quoteEvents.every(e => e.type === 'none') && (
                 <tr>
                   <td colSpan={4} className="p-4 text-center text-slate-400 italic">
                     {isEs ? 'Sin eventos de catalizadores registrados para este par.' : 'No catalyst events registered for this asset pair.'}

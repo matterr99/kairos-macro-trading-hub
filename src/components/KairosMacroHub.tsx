@@ -351,6 +351,107 @@ function formatDayLabel(dayKey: string, isEs: boolean): string {
   return dayKey;
 }
 
+interface CanonicalDayBlock {
+  day: string;
+  events: MacroEvent[];
+  smartTitle: string;
+  summaryText: string;
+  categoryId: string;
+  ccy: string;
+}
+
+function buildCanonicalDayBlocks(
+  daysData: Record<string, MacroEvent[]>,
+  isEs: boolean
+): Record<string, CanonicalDayBlock[]> {
+  const result: Record<string, CanonicalDayBlock[]> = {};
+  Object.keys(daysData || {}).forEach(day => {
+    const rawEvents = daysData[day] || [];
+    const events = rawEvents.filter(e => isWhitelisted(e.ccy, e.event));
+    if (events.length === 0) return;
+
+    const blocks: CanonicalDayBlock[] = [];
+    let currentBlock: MacroEvent[] = [];
+
+    events.forEach((item, idx) => {
+      currentBlock.push(item);
+      const nextItem = events[idx + 1];
+      // Use language-independent (EN) category key so toggling EN/ES never duplicates scores
+      const currentCategory = getCategorySentimentTitle(item.ccy, item.event, false);
+      const nextCategory = nextItem ? getCategorySentimentTitle(nextItem.ccy, nextItem.event, false) : null;
+
+      if (!nextItem || nextItem.ccy !== item.ccy || nextCategory !== currentCategory) {
+        const smartTitle = getSmartGroupTitle(item.ccy, currentBlock, isEs);
+        const summaryText = Array.from(new Set(currentBlock.map(e => e.event))).join(' / ');
+        const blockIdx = blocks.length;
+        const categoryId = `${day}-${item.ccy}-${currentCategory}-${blockIdx}`.replace(/[^a-zA-Z0-9]/g, '-');
+        blocks.push({
+          day,
+          events: [...currentBlock],
+          smartTitle,
+          summaryText,
+          categoryId,
+          ccy: item.ccy
+        });
+        currentBlock = [];
+      }
+    });
+
+    if (blocks.length > 0) {
+      result[day] = blocks;
+    }
+  });
+  return result;
+}
+
+function reconcileCategoryScores(
+  daysData: Record<string, MacroEvent[]>,
+  rawScores?: Record<string, CategoryScore>
+): Record<string, CategoryScore> {
+  if (!rawScores || typeof rawScores !== 'object') return {};
+  const dayBlocksMap = buildCanonicalDayBlocks(daysData, false);
+  const allBlocks = Object.values(dayBlocksMap).flat();
+  if (allBlocks.length === 0) return rawScores;
+
+  const validBlockMap = new Map<string, CanonicalDayBlock>();
+  allBlocks.forEach(b => validBlockMap.set(b.categoryId, b));
+
+  const cleaned: Record<string, CategoryScore> = {};
+
+  // Pass 1: Keep exact canonical matches with non-zero scores
+  Object.entries(rawScores).forEach(([catId, entry]) => {
+    if (entry && entry.score !== 0 && validBlockMap.has(catId)) {
+      cleaned[catId] = entry;
+    }
+  });
+
+  // Pass 2: Migrate legacy/cloned keys (e.g. old filtered blockIdx or ES-language keys)
+  // to their matching unscored canonical block, dropping duplicates/orphans
+  Object.entries(rawScores).forEach(([catId, entry]) => {
+    if (!entry || entry.score === 0 || validBlockMap.has(catId)) return;
+    const entrySummary = (entry.eventsSummary || '').trim().toLowerCase();
+    const matched = allBlocks.find(b => {
+      if (cleaned[b.categoryId]) return false;
+      if (b.ccy !== entry.ccy) return false;
+      const dayPrefix = `${b.day}-${b.ccy}-`.replace(/[^a-zA-Z0-9]/g, '-');
+      if (!catId.startsWith(dayPrefix)) return false;
+      const blockSummary = b.summaryText.trim().toLowerCase();
+      return (
+        entrySummary === blockSummary ||
+        (entrySummary.length > 0 && (blockSummary.includes(entrySummary) || entrySummary.includes(blockSummary)))
+      );
+    });
+    if (matched) {
+      cleaned[matched.categoryId] = {
+        ...entry,
+        eventsSummary: matched.summaryText
+      };
+    }
+  });
+
+  return cleaned;
+}
+
 export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
   onReturnToHub,
   language = 'en'
@@ -381,7 +482,7 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
 
           return {
             daysData: repairedDaysData,
-            categoryScores: parsed.categoryScores || {},
+            categoryScores: reconcileCategoryScores(repairedDaysData, parsed.categoryScores),
             matrixEvents: parsed.matrixEvents || {},
             matrixTotals: parsed.matrixTotals || {},
             matrixPrev: Object.assign({ USD: 0, EUR: 0, GBP: 0, JPY: 0, CAD: 0, AUD: 0, NZD: 0, CHF: 0, CNH: 0, VIX: 0, Oil: 0, Gold: 0 }, parsed.matrixPrev || {}),
@@ -478,17 +579,33 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
     }
   }, [globalState]);
 
+  // Canonical, filter-independent & language-independent event blocks
+  const canonicalDayBlocks = useMemo(
+    () => buildCanonicalDayBlocks(globalState.daysData, isEs),
+    [globalState.daysData, isEs]
+  );
+
   // Compute live matrix events & totals
   const computedMatrix = useMemo(() => {
     const events: Record<string, number> = {
       USD: 0, EUR: 0, GBP: 0, JPY: 0, CAD: 0, AUD: 0, NZD: 0, CHF: 0, CNH: 0
     };
 
-    Object.values(globalState.categoryScores).forEach((entry: CategoryScore) => {
-      if (entry && entry.ccy && events[entry.ccy] !== undefined) {
-        events[entry.ccy] += entry.score;
-      }
-    });
+    const allCanonicalBlocks = Object.values(canonicalDayBlocks).flat();
+    if (allCanonicalBlocks.length > 0) {
+      allCanonicalBlocks.forEach(block => {
+        const entry = globalState.categoryScores[block.categoryId];
+        if (entry && entry.ccy && events[entry.ccy] !== undefined) {
+          events[entry.ccy] += entry.score;
+        }
+      });
+    } else {
+      Object.values(globalState.categoryScores).forEach((entry: CategoryScore) => {
+        if (entry && entry.ccy && events[entry.ccy] !== undefined) {
+          events[entry.ccy] += entry.score;
+        }
+      });
+    }
 
     const totals: Record<string, number> = {};
     CURRENCIES.forEach(ccy => {
@@ -504,7 +621,7 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
     });
 
     return { events, totals };
-  }, [globalState.categoryScores, globalState.matrixPrev, globalState.intermarketScores]);
+  }, [canonicalDayBlocks, globalState.categoryScores, globalState.matrixPrev, globalState.intermarketScores]);
 
   // Evaluated events helper
   const getCurrencyEvaluatedEventsList = (ccy: string): PrevBreakdownItem[] => {
@@ -517,6 +634,26 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
           score
         });
       }
+      return list;
+    }
+
+    const allCanonicalBlocks = Object.values(canonicalDayBlocks).flat();
+    if (allCanonicalBlocks.length > 0) {
+      allCanonicalBlocks.forEach(block => {
+        if (block.ccy !== ccy) return;
+        const entry = globalState.categoryScores?.[block.categoryId];
+        if (entry && entry.score !== 0) {
+          const rawLabel = block.summaryText || entry.eventsSummary || entry.title || '';
+          const cleanName = rawLabel
+            .replace(new RegExp(`^${ccy}\\s*-\\s*`, 'i'), '')
+            .replace(new RegExp(`\\s*\\(${ccy}\\)$`, 'i'), '')
+            .trim();
+          list.push({
+            label: cleanName || (isEs ? 'Evento evaluado' : 'Evaluated event'),
+            score: entry.score
+          });
+        }
+      });
       return list;
     }
 
@@ -586,11 +723,8 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
             } else {
               base = strong;
               quote = weak;
-              const isDirectBuy = base === 'EUR' || base === 'GBP' || base === 'AUD' || base === 'NZD';
-              direction = isDirectBuy ? 'BUY' : 'SELL';
-              actionText = isDirectBuy
-                ? (isEs ? `COMPRA ${base}/${quote}` : `BUY ${base}/${quote}`)
-                : (isEs ? `VENTA ${base}/${quote}` : `SELL ${base}/${quote}`);
+              direction = 'BUY';
+              actionText = isEs ? `COMPRA ${base}/${quote}` : `BUY ${base}/${quote}`;
             }
           } else {
             base = strong;
@@ -670,18 +804,23 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
 
   // Handlers for Score Buttons
   const setCategoryScore = (categoryId: string, ccy: string, scoreVal: number, title: string, eventsSummary: string) => {
-    setGlobalState(prev => ({
-      ...prev,
-      categoryScores: {
-        ...prev.categoryScores,
-        [categoryId]: {
+    setGlobalState(prev => {
+      const nextScores = { ...prev.categoryScores };
+      if (scoreVal === 0) {
+        delete nextScores[categoryId];
+      } else {
+        nextScores[categoryId] = {
           ccy,
           score: scoreVal,
           title,
           eventsSummary
-        }
+        };
       }
-    }));
+      return {
+        ...prev,
+        categoryScores: nextScores
+      };
+    });
   };
 
   const setIntermarketScore = (asset: string, scoreVal: number) => {
@@ -883,7 +1022,7 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
 
             setGlobalState({
               daysData: reevaluatedDaysData,
-              categoryScores: parsed.categoryScores || {},
+              categoryScores: reconcileCategoryScores(reevaluatedDaysData, parsed.categoryScores),
               matrixEvents: parsed.matrixEvents || {},
               matrixTotals: parsed.matrixTotals || {},
               matrixPrev: Object.assign({ USD: 0, EUR: 0, GBP: 0, JPY: 0, CAD: 0, AUD: 0, NZD: 0, CHF: 0, CNH: 0, VIX: 0, Oil: 0, Gold: 0 }, parsed.matrixPrev || {}),
@@ -922,19 +1061,13 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
       daysHtml = `<p style="padding: 20px; text-align: center; color: #64748b; font-style: italic;">${isEs ? 'No hay eventos evaluados cargados en el calendario activo.' : 'No evaluated events loaded in active calendar.'}</p>`;
     } else {
       dayKeys.forEach(day => {
-        let events = (globalState.daysData[day] || []).filter(e => isWhitelisted(e.ccy, e.event));
-        if (events.length === 0) return;
+        const dayBlocks = canonicalDayBlocks[day] || [];
+        if (dayBlocks.length === 0) return;
 
         let rowsHtml = '';
-        let currentBlock: MacroEvent[] = [];
-
-        events.forEach((item, idx) => {
-          currentBlock.push(item);
-          const nextItem = events[idx + 1];
-          const currentCategory = getCategorySentimentTitle(item.ccy, item.event, isEs);
-          const nextCategory = nextItem ? getCategorySentimentTitle(nextItem.ccy, nextItem.event, isEs) : null;
-
-          rowsHtml += `
+        dayBlocks.forEach(block => {
+          block.events.forEach(item => {
+            rowsHtml += `
             <tr style="border-bottom: 1px solid #e2e8f0;">
               <td style="padding: 5px 6px; font-family: monospace; font-size: 10px;">${item.time}</td>
               <td style="padding: 5px 6px; font-weight: bold; font-size: 10px;">${item.ccy}</td>
@@ -944,21 +1077,18 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
               <td style="padding: 5px 6px; font-size: 10px; text-align: right; color: #64748b;">${item.previous || '—'}</td>
             </tr>
           `;
+          });
 
-          if (!nextItem || nextItem.ccy !== item.ccy || nextCategory !== currentCategory) {
-            const smartTitle = getSmartGroupTitle(item.ccy, currentBlock, isEs);
-            const matchingScore = Object.values(globalState.categoryScores || {}).find(
-              cs => cs.ccy === item.ccy && (cs.title === smartTitle || cs.eventsSummary.includes(item.event))
-            );
-            const scoreVal = matchingScore ? matchingScore.score : 0;
-            const scoreColor = scoreVal > 0 ? '#166534' : (scoreVal < 0 ? '#991b1b' : '#475569');
-            const scoreBg = scoreVal > 0 ? '#dcfce7' : (scoreVal < 0 ? '#fee2e2' : '#f1f5f9');
-            const formattedVal = scoreVal > 0 ? `+${scoreVal}` : `${scoreVal}`;
+          const matchingScore = globalState.categoryScores?.[block.categoryId];
+          const scoreVal = matchingScore ? matchingScore.score : 0;
+          const scoreColor = scoreVal > 0 ? '#166534' : (scoreVal < 0 ? '#991b1b' : '#475569');
+          const scoreBg = scoreVal > 0 ? '#dcfce7' : (scoreVal < 0 ? '#fee2e2' : '#f1f5f9');
+          const formattedVal = scoreVal > 0 ? `+${scoreVal}` : `${scoreVal}`;
 
-            rowsHtml += `
+          rowsHtml += `
               <tr style="background-color: #fefce8; border-top: 1px solid #e2e8f0; border-bottom: 2px solid #cbd5e1;">
                 <td colspan="5" style="padding: 6px 8px; font-weight: bold; font-size: 10px; color: #854d0e; font-style: italic;">
-                  📊 ${smartTitle}
+                  📊 ${block.smartTitle}
                 </td>
                 <td style="padding: 4px; text-align: center;">
                   <span style="display: inline-block; padding: 2px 6px; border-radius: 3px; font-weight: bold; font-size: 10px; font-family: monospace; color: ${scoreColor}; background-color: ${scoreBg};">
@@ -967,8 +1097,6 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
                 </td>
               </tr>
             `;
-            currentBlock = [];
-          }
         });
 
         const dayNote = globalState.dailyNotes[day] || '';
@@ -2239,42 +2367,25 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
         {/* 6. INTERACTIVE WEEKLY CALENDAR & SENTIMENT GRADING */}
         <div className="space-y-6">
           {Object.keys(globalState.daysData).map(day => {
-            const rawEvents = globalState.daysData[day] || [];
-            let events = rawEvents.filter(e => isWhitelisted(e.ccy, e.event));
+            const canonicalBlocks = canonicalDayBlocks[day] || [];
+            if (canonicalBlocks.length === 0) return null;
 
-            if (activeCurrencyFilter !== 'ALL') events = events.filter(e => e.ccy === activeCurrencyFilter);
-            if (searchQuery) {
-              const q = searchQuery.toLowerCase();
-              events = events.filter(e => (e.event || '').toLowerCase().includes(q) || (e.ccy || '').toLowerCase().includes(q));
-            }
+            const q = searchQuery.trim().toLowerCase();
+            const blocks = canonicalBlocks
+              .filter(block => activeCurrencyFilter === 'ALL' || block.ccy === activeCurrencyFilter)
+              .map(block => {
+                if (!q) return block;
+                const matchingEvents = block.events.filter(
+                  e => (e.event || '').toLowerCase().includes(q) || (e.ccy || '').toLowerCase().includes(q)
+                );
+                return { ...block, events: matchingEvents };
+              })
+              .filter(block => block.events.length > 0);
 
-            if (events.length === 0) return null;
+            if (blocks.length === 0) return null;
 
+            const visibleEventCount = blocks.reduce((sum, b) => sum + b.events.length, 0);
             const formattedDayTitle = formatDayLabel(day, isEs);
-
-            // Group events for sentiment blocks
-            const blocks: Array<{ events: MacroEvent[]; smartTitle: string; categoryId: string; ccy: string }> = [];
-            let currentBlock: MacroEvent[] = [];
-
-            events.forEach((item, idx) => {
-              currentBlock.push(item);
-              const nextItem = events[idx + 1];
-              const currentCategory = getCategorySentimentTitle(item.ccy, item.event, isEs);
-              const nextCategory = nextItem ? getCategorySentimentTitle(nextItem.ccy, nextItem.event, isEs) : null;
-
-              if (!nextItem || nextItem.ccy !== item.ccy || nextCategory !== currentCategory) {
-                const smartTitle = getSmartGroupTitle(item.ccy, currentBlock, isEs);
-                const blockIdx = blocks.length;
-                const categoryId = `${day}-${item.ccy}-${currentCategory}-${blockIdx}`.replace(/[^a-zA-Z0-9]/g, '-');
-                blocks.push({
-                  events: [...currentBlock],
-                  smartTitle,
-                  categoryId,
-                  ccy: item.ccy
-                });
-                currentBlock = [];
-              }
-            });
 
             return (
               <div
@@ -2289,7 +2400,7 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
                   </div>
                   <div className="flex items-center gap-2 font-mono text-[10px]">
                     <span className="text-[var(--ink-muted)] bg-[var(--surface-2)] px-2.5 py-0.5 border border-[var(--line-strong)] font-bold">
-                      {events.length} {isEs ? 'Eventos' : 'Events'}
+                      {visibleEventCount} {isEs ? 'Eventos' : 'Events'}
                     </span>
                   </div>
                 </div>
@@ -2311,7 +2422,7 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
                       {blocks.map(block => {
                         const scoreObj = globalState.categoryScores[block.categoryId];
                         const currentScore = scoreObj ? scoreObj.score : 0;
-                        const summaryText = Array.from(new Set(block.events.map(e => e.event))).join(' / ');
+                        const summaryText = block.summaryText;
 
                         return (
                           <React.Fragment key={block.categoryId}>

@@ -1,9 +1,9 @@
 import { ArrowRight } from 'lucide-react';
-import { NavigationTab, Language, Theme } from '../types';
+import { NavigationTab, ToolSubTab, Language, Theme } from '../types';
 import { TRANSLATIONS } from '../locales/translations';
 
 interface FooterProps {
-  onSelectTab: (tab: NavigationTab) => void;
+  onSelectTab: (tab: NavigationTab, subTab?: ToolSubTab) => void;
   language?: Language;
   theme?: Theme;
 }
@@ -68,7 +68,7 @@ export function Footer({ onSelectTab, language = 'en', theme = 'dark' }: FooterP
             <ul className="space-y-2 text-xs">
               <li>
                 <button
-                  onClick={() => { onSelectTab('tools'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                  onClick={() => { onSelectTab('tools', 'calendar-filter'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
                   className={linkClass}
                 >
                   {language === 'es' ? 'Calendario Económico' : 'Economic Calendar'}
@@ -76,7 +76,7 @@ export function Footer({ onSelectTab, language = 'en', theme = 'dark' }: FooterP
               </li>
               <li>
                 <button
-                  onClick={() => { onSelectTab('tools'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                  onClick={() => { onSelectTab('tools', 'currency-strength'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
                   className={linkClass}
                 >
                   {language === 'es' ? 'Fuerza de Divisas' : 'Currency Strength'}
@@ -84,7 +84,7 @@ export function Footer({ onSelectTab, language = 'en', theme = 'dark' }: FooterP
               </li>
               <li>
                 <button
-                  onClick={() => { onSelectTab('tools'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                  onClick={() => { onSelectTab('tools', 'quant-desk'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
                   className={linkClass}
                 >
                   {language === 'es' ? 'Mesa Cuantitativa (Quant Desk)' : 'Quant Desk'}
@@ -92,7 +92,7 @@ export function Footer({ onSelectTab, language = 'en', theme = 'dark' }: FooterP
               </li>
               <li>
                 <button
-                  onClick={() => { onSelectTab('tools'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                  onClick={() => { onSelectTab('tools', 'calculator'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
                   className={linkClass}
                 >
                   {language === 'es' ? 'Calculadora de Riesgo' : 'Risk Sizing Engine'}

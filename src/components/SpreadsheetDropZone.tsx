@@ -65,6 +65,7 @@ export function SpreadsheetDropZone({
           ref={internalInputRef}
           accept={accept}
           className="hidden"
+          onClick={(e) => e.stopPropagation()}
           onChange={(e) => {
             const file = e.target.files?.[0];
             if (file) {

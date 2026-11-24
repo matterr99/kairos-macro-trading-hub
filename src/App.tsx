@@ -13,7 +13,6 @@ import { ResearchView } from './views/ResearchView';
 import { AcademyView } from './views/AcademyView';
 import { ToolsView } from './views/ToolsView';
 import { ArticleReaderModal } from './views/ArticleReaderModal';
-import { VisualSelectorOverlay } from './components/VisualSelectorOverlay';
 
 export default function App() {
   const [currentTab, setCurrentTab] = useState<NavigationTab>('console');
@@ -117,7 +116,7 @@ export default function App() {
           />
         )}
 
-        {currentTab === 'academy' && <AcademyView language={language} />}
+        {currentTab === 'academy' && <AcademyView language={language} onSelectTab={handleTabChange} />}
 
         {currentTab === 'tools' && (
           <ToolsView
@@ -141,9 +140,6 @@ export default function App() {
           language={language}
         />
       )}
-
-      {/* 6. TEMPORARY VISUAL DELETION PICKER */}
-      <VisualSelectorOverlay currentTab={currentTab} />
     </div>
   );
 }

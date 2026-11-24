@@ -45,7 +45,7 @@ export const CurrencyIndicatorChart: React.FC<CurrencyIndicatorChartProps> = ({
           const isPositive = score > 0;
           const isNegative = score < 0;
           const absScore = Math.abs(score);
-          const maxScale = 2;
+          const maxScale = 4;
           const barWidthPct = Math.min(100, (absScore / maxScale) * 100);
 
           return (

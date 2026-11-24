@@ -1,12 +1,13 @@
 import { Sparkles, ArrowRight } from 'lucide-react';
-import { Language } from '../types';
+import { Language, NavigationTab } from '../types';
 import { TRANSLATIONS } from '../locales/translations';
 
 interface AcademyViewProps {
   language?: Language;
+  onSelectTab?: (tab: NavigationTab) => void;
 }
 
-export function AcademyView({ language = 'en' }: AcademyViewProps) {
+export function AcademyView({ language = 'en', onSelectTab }: AcademyViewProps) {
   const t = TRANSLATIONS[language];
 
   return (
@@ -36,7 +37,7 @@ export function AcademyView({ language = 'en' }: AcademyViewProps) {
 
         <div className="pt-2">
           <button
-            onClick={() => window.location.href = '#'}
+            onClick={() => onSelectTab?.('console')}
             className="ui-button btn-arrow mx-auto"
           >
             <span>{language === 'es' ? 'Volver al Inicio' : 'Return to Console'}</span>

@@ -976,7 +976,7 @@
               const categoryId = `${day}-${item.ccy}-${currentCategory}`.replace(/[^a-zA-Z0-9]/g, '-');
               const scoreObj = globalState.categoryScores[categoryId];
 
-              if (scoreObj && scoreObj.score !== 0) {
+              if (scoreObj && scoreObj.score !== 0 && !matchedCatIds.has(categoryId)) {
                 matchedCatIds.add(categoryId);
                 const uniqueNames = Array.from(new Set(currentBlockEvents.map(e => e.event.trim())));
                 list.push({ label: uniqueNames.join(' / '), score: scoreObj.score });

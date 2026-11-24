@@ -10,7 +10,7 @@ interface ResearchViewProps {
 }
 
 export function ResearchView({ onOpenArticle, language = 'en' }: ResearchViewProps) {
-  const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [selectedCategoryIdx, setSelectedCategoryIdx] = useState<number>(0);
   const [searchQuery, setSearchQuery] = useState<string>('');
 
   const t = TRANSLATIONS[language];
@@ -20,7 +20,8 @@ export function ResearchView({ onOpenArticle, language = 'en' }: ResearchViewPro
     ? ['Todas', 'Macro vs. Técnico', 'Política de Bancos Centrales', 'Dinámica de Rendimiento y Carry']
     : ['All', 'Macro vs. Technical', 'Central Bank Policy', 'Yield & Carry Dynamics'];
 
-  const isAll = selectedCategory === 'All' || selectedCategory === 'Todas';
+  const isAll = selectedCategoryIdx === 0;
+  const selectedCategory = categories[selectedCategoryIdx] || categories[0];
 
   const filteredArticles = articles.filter((article) => {
     const matchesCategory = isAll || article.category === selectedCategory;
@@ -37,7 +38,7 @@ export function ResearchView({ onOpenArticle, language = 'en' }: ResearchViewPro
     : filteredArticles;
 
   const resetFilters = () => {
-    setSelectedCategory(language === 'es' ? 'Todas' : 'All');
+    setSelectedCategoryIdx(0);
     setSearchQuery('');
   };
 
@@ -89,11 +90,11 @@ export function ResearchView({ onOpenArticle, language = 'en' }: ResearchViewPro
         <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="w-fit max-w-full h-11 flex items-stretch overflow-x-auto no-scrollbar touch-scroll divide-x divide-[var(--line)] border-x border-[var(--line)]">
             {categories.map((cat, i) => {
-              const active = i === 0 ? isAll : selectedCategory === cat;
+              const active = i === selectedCategoryIdx;
               return (
                 <button
                   key={cat}
-                  onClick={() => setSelectedCategory(cat)}
+                  onClick={() => setSelectedCategoryIdx(i)}
                   className={`px-5 h-full flex items-center text-[11px] font-semibold uppercase tracking-[0.08em] border-b-2 transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
                     active
                       ? 'border-[var(--ink)] text-[var(--ink)] bg-[var(--surface)]'
@@ -151,7 +152,7 @@ export function ResearchView({ onOpenArticle, language = 'en' }: ResearchViewPro
             <div className="pt-2 flex items-baseline justify-between border-b border-[var(--line)] pb-4">
               <h2 className="font-sans font-semibold text-xl tracking-[-0.02em]">
                 {t.research.archiveTitle}{' '}
-                <span className="font-mono text-[var(--ink-muted)] font-normal text-sm tabular-nums">({filteredArticles.length})</span>
+                <span className="font-mono text-[var(--ink-muted)] font-normal text-sm tabular-nums">({listArticles.length})</span>
               </h2>
             </div>
           )}

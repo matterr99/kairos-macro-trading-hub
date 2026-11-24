@@ -72,6 +72,13 @@ interface ToolsViewProps {
 export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'en' }: ToolsViewProps) {
   const [activeTab, setActiveTab] = useState<ToolSubTab>(initialSubTab === 'central-banks' ? 'all' : initialSubTab);
 
+  // Keep activeTab in sync when parent Header/Footer navigates to a different sub-tab
+  useEffect(() => {
+    if (initialSubTab && initialSubTab !== 'central-banks') {
+      setActiveTab(initialSubTab);
+    }
+  }, [initialSubTab]);
+
   const t = TRANSLATIONS[language];
 
   const handleTabSwitch = (tab: ToolSubTab) => {
@@ -142,6 +149,7 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
   const [isSyncingValuation, setIsSyncingValuation] = useState<boolean>(false);
   const [isValPasteModalOpen, setIsValPasteModalOpen] = useState<boolean>(false);
   const [valRawPasteText, setValRawPasteText] = useState<string>('');
+  const [editingCell, setEditingCell] = useState<{ key: string; raw: string } | null>(null);
   const [uploadModal, setUploadModal] = useState<{
     isOpen: boolean;
     type: 'success' | 'error';
@@ -160,8 +168,22 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
   }, [currencyIndicators]);
 
   // --- Risk Calculator Math ---
+  const CURRENCY_SYMBOLS: Record<string, string> = {
+    USD: '$',
+    EUR: '€',
+    GBP: '£',
+    JPY: '¥',
+    AUD: 'A$',
+    NZD: 'NZ$',
+    CAD: 'C$',
+    CHF: 'CHF '
+  };
+
   const calculateRiskValues = () => {
-    const cashRisk = calcBalance * (calcRiskPct / 100);
+    const safeBalance = Math.max(0, calcBalance || 0);
+    const safeRiskPct = Math.max(0, calcRiskPct || 0);
+    const safeStopPips = Math.max(0, calcStopPips || 0);
+    const cashRisk = safeBalance * (safeRiskPct / 100);
     const quoteCurr = calcPair.substring(3, 6);
     const pipSize = quoteCurr === 'JPY' ? 0.01 : 0.0001;
     const contractUnits = 100000;
@@ -185,10 +207,10 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
     const pipValueInAcctPerLot = pipValueInQuotePerLot * quoteToAcctFactor;
 
     let standardLots = 0;
-    if (calcStopPips > 0 && pipValueInAcctPerLot > 0) {
-      standardLots = cashRisk / (calcStopPips * pipValueInAcctPerLot);
+    if (cashRisk > 0 && safeStopPips > 0 && pipValueInAcctPerLot > 0) {
+      standardLots = cashRisk / (safeStopPips * pipValueInAcctPerLot);
     }
-    const finalLots = Math.max(0.01, +(standardLots.toFixed(2)));
+    const finalLots = standardLots > 0 ? Math.max(0.01, +(standardLots.toFixed(2))) : 0;
     const totalPipVal = finalLots * pipValueInAcctPerLot;
 
     return {
@@ -439,7 +461,7 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
         if (netChange >= 0.003) rawScore = 2; else if (netChange >= 0.001) rawScore = 1; else if (netChange > -0.001) rawScore = 0; else if (netChange > -0.003) rawScore = -1; else rawScore = -2; break;
       case "UNEMP_RATE":
       case "EUR_UNEMP_FIXED":
-        if (netChange <= -0.002) rawScore = 2; else if (netChange <= -0.001) rawScore = 1; else if (Math.abs(netChange) < 0.0005) rawScore = 0; else if (netChange < 0.002) rawScore = -1; else rawScore = -2; break;
+        if (netChange <= -0.002) rawScore = 2; else if (netChange <= -0.001) rawScore = 1; else if (netChange < 0.001) rawScore = 0; else if (netChange < 0.002) rawScore = -1; else rawScore = -2; break;
       case "GBP_CLAIMANT":
       case "GER_UNEMP_CHANGE":
       case "CHF_UNEMP_CHANGE":
@@ -464,16 +486,14 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
     return { netChange, score: weightedScore };
   };
 
-  // Weighted Total (Normalized ±20 scale per currency)
+  // Weighted Total (Normalized ±20 scale per currency) — pure computation without mutating state
   const calculateCurrencyTotals = () => {
     const totals: Record<string, number> = {};
     for (const c in currencyIndicators) {
       let sum = 0;
       (currencyIndicators[c] || []).forEach(ind => {
         const evalResult = evaluateIndicator(ind);
-        ind.netChange = evalResult.netChange;
-        ind.score = evalResult.score;
-        sum += (ind.score || 0);
+        sum += (evalResult.score || 0);
       });
       totals[c] = parseFloat(sum.toFixed(1));
     }
@@ -677,7 +697,8 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
           const fcst = ind.forecast !== null && ind.forecast !== undefined ? ind.forecast : '';
           const prev = ind.previous !== null && ind.previous !== undefined ? ind.previous : '';
           const type = ind.type || '';
-          csv += `${curr},${name},${date},${time},${act},${fcst},${prev},${type},${evalRes.netChange},${evalRes.score}\n`;
+          const netChg = evalRes.netChange !== null && evalRes.netChange !== undefined ? evalRes.netChange : '';
+          csv += `${curr},${name},${date},${time},${act},${fcst},${prev},${type},${netChg},${evalRes.score}\n`;
         });
       });
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -856,7 +877,7 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
           if (!clean.includes("yoy") && (clean.includes("average hourly earnings") || clean.includes("ingresos medios por hora"))) return i;
         }
         if (iname.includes("core pce")) {
-          if (!clean.includes("yoy") && (clean.includes("core pce price index") || clean.includes("core pce") || clean.includes("pce price index"))) return i;
+          if (!clean.includes("yoy") && (clean.includes("core pce price index") || clean.includes("core pce"))) return i;
         }
         if (iname === "cpi mom") {
           if (!clean.includes("core") && !clean.includes("yoy") && (clean === "cpi (mom)" || clean.startsWith("cpi (mom)") || clean.includes("consumer price index (mom)"))) return i;
@@ -878,20 +899,20 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
 
       // EUR Indicators (Normalized ±20)
       if (targetCurr === "EUR") {
-        const isEurozoneWide = clean.includes("eurozone") || clean.includes("euro zone") || clean.includes("zona euro") || clean.includes("ea") || clean.includes("emu") || ctry === 'eu' || ctry === 'eur' || ctry === 'eurozone' || ctry === 'zona euro';
+        const isEurozoneWide = clean.includes("eurozone") || clean.includes("euro zone") || clean.includes("zona euro") || /\bea\b/.test(clean) || /\bemu\b/.test(clean) || ctry === 'eu' || ctry === 'eur' || ctry === 'eurozone' || ctry === 'zona euro';
         const isOtherCountry = clean.includes("spanish") || clean.includes("spain") || clean.includes("españa") || clean.includes("french") || clean.includes("france") || clean.includes("francia") || clean.includes("italian") || clean.includes("italy") || clean.includes("italia") || ctry === 'es' || ctry === 'fr' || ctry === 'it';
 
         if (iname === "cpi mom") {
-          if (!isOtherCountry && !clean.includes("german") && !clean.includes("yoy") &&
+          if (!isOtherCountry && !clean.includes("german") && !clean.includes("core") && !clean.includes("yoy") &&
               (clean === "cpi (mom)" || clean.startsWith("cpi (mom)") || clean.includes("eurozone cpi (mom)") || clean.includes("hicp (mom)"))) return i;
         }
         if (iname === "hcob mfg pmi") {
           if (!isOtherCountry && !clean.includes("german") &&
-              (clean.includes("eurozone manufacturing") || clean.includes("hcob eurozone") || (clean.includes("manufacturing pmi") && isEurozoneWide))) return i;
+              (clean.includes("eurozone manufacturing") || (clean.includes("hcob eurozone") && clean.includes("manufacturing")) || (clean.includes("manufacturing pmi") && isEurozoneWide))) return i;
         }
         if (iname === "hcob services pmi") {
           if (!isOtherCountry && !clean.includes("german") &&
-              (clean.includes("eurozone services") || clean.includes("hcob eurozone") || (clean.includes("services pmi") && isEurozoneWide))) return i;
+              (clean.includes("eurozone services") || (clean.includes("hcob eurozone") && clean.includes("services")) || (clean.includes("services pmi") && isEurozoneWide))) return i;
         }
         if (iname === "unemployment rate") {
           if (!isOtherCountry && !clean.includes("german") && !clean.includes("change") &&
@@ -1213,6 +1234,14 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
         num = num / 100.0;
       }
       return parseFloat(num.toFixed(4));
+    }
+
+    // Trade Balance stored in billions (convert M -> B)
+    if (typeUpper === 'TRADE_BAL') {
+      if (hasM && !hasB) {
+        num = num / 1000.0;
+      }
+      return parseFloat(num.toFixed(2));
     }
 
     // Surveys & Confidence Indices (CONFIDENCE, INDEX_SMALL, SURVEY_5, ANZ_BIZ)
@@ -1573,6 +1602,14 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
         const safeStr = typeof rawCur === 'string' ? rawCur.trim().toUpperCase() : String(rawCur || '').trim().toUpperCase();
         let normalizedCurrency = INVESTING_COM_MAP[safeStr] || safeStr;
 
+        // Route China Manufacturing PMI / PPI releases to AUD's China Proxy indicator
+        if (
+          ['CN', 'CNY', 'CNH', 'CHN', 'CHINA'].includes(safeStr) &&
+          (rawEvent.toLowerCase().includes('pmi') || rawEvent.toLowerCase().includes('ppi'))
+        ) {
+          normalizedCurrency = 'AUD';
+        }
+
         const G10_CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'NZD', 'CAD', 'CHF'];
 
         // Fallback scan ONLY if safeStr was empty or not in G10 (only match valid isolated currency codes or countries)
@@ -1676,7 +1713,7 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
 
       // Compute updated state synchronously BEFORE setCurrencyIndicators so the modal
       // reports the real updatedCount & updatedCurrencies (React 18 batches state updaters asynchronously).
-      const baseSource = isBaselineMode && isStorageEmpty ? DEFAULT_CURRENCY_INDICATORS : currencyIndicators;
+      const baseSource = isBaselineMode ? DEFAULT_CURRENCY_INDICATORS : currencyIndicators;
       const nextState: Record<string, MacroIndicator[]> = JSON.parse(JSON.stringify(baseSource));
 
       for (const curr of Object.keys(slotUpdates)) {
@@ -2230,6 +2267,12 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
     e.target.value = '';
   };
 
+  // Keep latest spreadsheet drop handlers in refs to avoid stale closures in window listener
+  const currencyDropHandlerRef = useRef(processCurrencySpreadsheet);
+  const bankDropHandlerRef = useRef(processBankSpreadsheet);
+  currencyDropHandlerRef.current = processCurrencySpreadsheet;
+  bankDropHandlerRef.current = processBankSpreadsheet;
+
   // Drag and drop file loading for active tool views
   useEffect(() => {
     const handleDragOver = (e: DragEvent) => {
@@ -2243,9 +2286,9 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
         const file = e.dataTransfer?.files?.[0];
         if (!file) return;
         if (activeTab === 'currency-strength') {
-          processCurrencySpreadsheet(file);
+          currencyDropHandlerRef.current(file);
         } else if (activeTab === 'central-banks') {
-          processBankSpreadsheet(file);
+          bankDropHandlerRef.current(file);
         }
       }
     };
@@ -2552,7 +2595,7 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
                           {score < 0 && (
                             <div
                               className="bg-[#EF4444] h-full"
-                              style={{ width: `${Math.min(100, (Math.abs(score) / 3.0) * 100)}%` }}
+                              style={{ width: `${Math.min(100, (Math.abs(score) / 20.0) * 100)}%` }}
                             />
                           )}
                         </div>
@@ -2560,7 +2603,7 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
                           {score > 0 && (
                             <div
                               className="bg-[#10B981] h-full"
-                              style={{ width: `${Math.min(100, (score / 3.0) * 100)}%` }}
+                              style={{ width: `${Math.min(100, (score / 20.0) * 100)}%` }}
                             />
                           )}
                         </div>
@@ -2740,30 +2783,36 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
                               className="w-full h-8 rounded-[2px] bg-[var(--surface-2)] border border-[var(--line)] text-[var(--ink)] text-xs px-2 outline-none focus:border-[var(--accent)] font-mono"
                             />
                           </td>
-                          <td className="p-3">
-                            <input
-                              type="text"
-                              value={formatIndicatorDisplay(ind.previous, ind.type)}
-                              onChange={(e) => updateIndicatorValue(curr, idx, 'previous', e.target.value)}
-                              className="w-full h-8 rounded-[2px] bg-[var(--surface-2)] border border-[var(--line)] text-[var(--ink)] text-xs px-2 outline-none focus:border-[var(--accent)] font-mono tabular-nums"
-                            />
-                          </td>
-                          <td className="p-3">
-                            <input
-                              type="text"
-                              value={formatIndicatorDisplay(ind.forecast, ind.type)}
-                              onChange={(e) => updateIndicatorValue(curr, idx, 'forecast', e.target.value)}
-                              className="w-full h-8 rounded-[2px] bg-[var(--surface-2)] border border-[var(--line)] text-[var(--ink)] text-xs px-2 outline-none focus:border-[var(--accent)] font-mono tabular-nums"
-                            />
-                          </td>
-                          <td className="p-3">
-                            <input
-                              type="text"
-                              value={formatIndicatorDisplay(ind.actual, ind.type)}
-                              onChange={(e) => updateIndicatorValue(curr, idx, 'actual', e.target.value)}
-                              className="w-full h-8 rounded-[2px] bg-[var(--surface-2)] border border-[var(--line)] text-[var(--ink)] text-xs px-2 outline-none focus:border-[var(--accent)] font-mono tabular-nums"
-                            />
-                          </td>
+                          {(['previous', 'forecast', 'actual'] as const).map((field) => {
+                            const cellKey = `${curr}-${idx}-${field}`;
+                            const isEditing = editingCell?.key === cellKey;
+                            const displayVal = formatIndicatorDisplay(ind[field], ind.type);
+                            return (
+                              <td key={field} className="p-3">
+                                <input
+                                  type="text"
+                                  value={isEditing ? editingCell.raw : displayVal}
+                                  onFocus={() => setEditingCell({ key: cellKey, raw: displayVal })}
+                                  onChange={(e) => setEditingCell({ key: cellKey, raw: e.target.value })}
+                                  onBlur={() => {
+                                    if (editingCell && editingCell.key === cellKey) {
+                                      updateIndicatorValue(curr, idx, field, editingCell.raw);
+                                      setEditingCell(null);
+                                    }
+                                  }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      e.currentTarget.blur();
+                                    } else if (e.key === 'Escape') {
+                                      setEditingCell(null);
+                                      e.currentTarget.blur();
+                                    }
+                                  }}
+                                  className="w-full h-8 rounded-[2px] bg-[var(--surface-2)] border border-[var(--line)] text-[var(--ink)] text-xs px-2 outline-none focus:border-[var(--accent)] font-mono tabular-nums"
+                                />
+                              </td>
+                            );
+                          })}
                           <td className="p-3 text-right tabular-nums text-[var(--ink)] font-semibold">
                             {formatNetChangeDisplay(evaluated.netChange, ind.type)}
                           </td>
@@ -2882,7 +2931,7 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
                     <div className="pt-1 flex justify-between items-center">
                       <span className="text-[var(--ink-muted)] uppercase">Absolute Cash Risk:</span>
                       <span className="text-lg sm:text-xl font-bold text-[#EF4444] tabular-nums">
-                        ${riskResult.cashRisk.toFixed(2)} {calcAcctCurr}
+                        {CURRENCY_SYMBOLS[calcAcctCurr] || ''}{riskResult.cashRisk.toFixed(2)} {calcAcctCurr}
                       </span>
                     </div>
 
@@ -2896,7 +2945,7 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
                     <div className="pt-4 flex justify-between items-center">
                       <span className="text-[var(--ink-muted)] uppercase">Running Pip Value:</span>
                       <span className="text-xs sm:text-sm font-semibold text-[var(--ink)] tabular-nums">
-                        ${riskResult.pipValue.toFixed(2)} {calcAcctCurr} / pip
+                        {CURRENCY_SYMBOLS[calcAcctCurr] || ''}{riskResult.pipValue.toFixed(2)} {calcAcctCurr} / pip
                       </span>
                     </div>
                   </div>

@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { X } from 'lucide-react';
 import { ResearchArticle, Language } from '../types';
 
@@ -8,13 +9,28 @@ interface ArticleReaderModalProps {
 }
 
 export function ArticleReaderModal({ article, onClose, language = 'en' }: ArticleReaderModalProps) {
+  useEffect(() => {
+    if (!article) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [article, onClose]);
+
   if (!article) return null;
 
   const isEs = language === 'es';
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
-      <div className="macro-panel max-w-4xl w-full my-auto overflow-hidden flex flex-col max-h-[90vh] rounded-3xl shadow-2xl border border-[var(--line)]">
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="macro-panel max-w-4xl w-full my-auto overflow-hidden flex flex-col max-h-[90vh] rounded-3xl shadow-2xl border border-[var(--line)]"
+      >
         
         {/* Top bar */}
         <div className="px-6 py-4 border-b border-[var(--line)] bg-[var(--surface-solid)] flex items-center justify-between font-mono">
