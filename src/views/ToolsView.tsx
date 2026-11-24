@@ -13,8 +13,12 @@ import {
   Landmark,
   Calendar,
   Clock,
-  ArrowLeft
+  ArrowLeft,
+  RefreshCw,
+  ClipboardPaste,
+  X
 } from 'lucide-react';
+import { fetchWeeklyCalendar, parseRawInvestingPaste, rowsToCsvFile, downloadRowsAsCsv } from '../utils/weeklyCalendarSync';
 import { ToolSubTab, MacroIndicator, Language } from '../types';
 import {
   CENTRAL_BANKS,
@@ -119,10 +123,10 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
   const [consensusEvents, setConsensusEvents] = useState(INITIAL_CONSENSUS_EVENTS);
   const [consensusSearch, setConsensusSearch] = useState<string>('');
 
-  // Currency Strength state
+  // Currency Strength state (v3: Normalized ±20 Weighted Model aligned with Excel & Macro CEF.pdf)
   const [currencyIndicators, setCurrencyIndicators] = useState<Record<string, MacroIndicator[]>>(() => {
     try {
-      const saved = localStorage.getItem('forex_dashboard_data_v2');
+      const saved = localStorage.getItem('forex_dashboard_data_v3');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed && typeof parsed === 'object') return parsed;
@@ -135,6 +139,9 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
   const [currencyFilter, setCurrencyFilter] = useState<'all' | 'strong' | 'bullish' | 'bearish'>('all');
   const [isValuationDragOver, setIsValuationDragOver] = useState<boolean>(false);
   const [valuationUpdateMode, setValuationUpdateMode] = useState<'incremental' | 'baseline'>('incremental');
+  const [isSyncingValuation, setIsSyncingValuation] = useState<boolean>(false);
+  const [isValPasteModalOpen, setIsValPasteModalOpen] = useState<boolean>(false);
+  const [valRawPasteText, setValRawPasteText] = useState<string>('');
   const [uploadModal, setUploadModal] = useState<{
     isOpen: boolean;
     type: 'success' | 'error';
@@ -148,7 +155,7 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
   // Save currencyIndicators to localStorage
   useEffect(() => {
     try {
-      localStorage.setItem('forex_dashboard_data_v2', JSON.stringify(currencyIndicators));
+      localStorage.setItem('forex_dashboard_data_v3', JSON.stringify(currencyIndicators));
     } catch {}
   }, [currencyIndicators]);
 
@@ -213,19 +220,34 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
     }
   };
 
-  // Helper to format weights ("High" -> "5.0", "Med" -> "4.0", "Low" -> "3.0", or numeric strings)
+  // Helper to format economic multiplier weights ("2.0" => ±4, "1.0" => ±2, "0.5" => ±1)
   const formatWeight = (weight: any): string => {
-    if (typeof weight === 'number' && !isNaN(weight) && weight > 0) return weight.toFixed(1);
-    const s = String(weight || '').trim().toLowerCase();
-    if (s === 'high' || s === 'h' || s === '5.0' || s === '5') return "5.0";
-    if (s === 'med' || s === 'medium' || s === 'm' || s === '4.0' || s === '4') return "4.0";
-    if (s === 'low' || s === 'l' || s === '3.0' || s === '3') return "3.0";
+    if (typeof weight === 'number' && !isNaN(weight) && weight > 0) {
+      if (weight <= 2.5) return weight.toFixed(1);
+      if (weight >= 5.0) return "1.0";
+      if (weight >= 4.0) return "1.0";
+      return "0.5";
+    }
+    const s = String(weight || '').trim().toLowerCase().replace(/x$/, '');
+    if (s === '2.0' || s === '2' || s === '2x') return "2.0";
+    if (s === '1.0' || s === '1' || s === '1x') return "1.0";
+    if (s === '0.5' || s === '.5' || s === '0.5x') return "0.5";
+    if (s === 'high' || s === 'h' || s === '5.0' || s === '5') return "1.0";
+    if (s === 'med' || s === 'medium' || s === 'm' || s === '4.0' || s === '4') return "1.0";
+    if (s === 'low' || s === 'l' || s === '3.0' || s === '3') return "0.5";
     const num = parseFloat(s);
-    return (!isNaN(num) && num > 0) ? num.toFixed(1) : "4.0";
+    if (!isNaN(num) && num > 0 && num <= 2.5) return num.toFixed(1);
+    return "1.0";
   };
 
   const parseWeight = (weight: any): number => {
     return parseFloat(formatWeight(weight));
+  };
+
+  const formatWeightBadge = (weight: any): string => {
+    const mult = parseWeight(weight);
+    const cap = Math.round(mult * 2);
+    return `${mult.toFixed(1)}x (±${cap})`;
   };
 
   const formatTimeTo24h = (val: any, fallback: string = "08:30:00"): string => {
@@ -374,57 +396,75 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
     return parseFloat(num.toFixed(2));
   };
 
-  // --- Mathematical Scoring Engine (Legacy Discrete Integer Engine) ---
+  // --- Mathematical Scoring Engine (Weighted ±20 Model: Actual vs. Forecast, Excel =D-C logic) ---
   const evaluateIndicator = (ind: MacroIndicator): { netChange: number | null; score: number } => {
-    // If actual or previous has not been released yet, prevent score/netChange evaluation
+    // If actual has not been released yet, prevent score/netChange evaluation
     if (ind.actual === null || ind.actual === undefined || (ind.actual as any) === '' || isNaN(ind.actual as any)) {
       return { netChange: null, score: 0 };
     }
-    if (ind.previous === null || ind.previous === undefined || (ind.previous as any) === '' || isNaN(ind.previous as any)) {
+
+    // Use Forecast as primary benchmark (=Actual - Forecast per USD/EUR/GBP Excel models), fallback to Previous
+    const hasForecast = ind.forecast !== null && ind.forecast !== undefined && (ind.forecast as any) !== '' && !isNaN(ind.forecast as any);
+    const hasPrevious = ind.previous !== null && ind.previous !== undefined && (ind.previous as any) !== '' && !isNaN(ind.previous as any);
+    if (!hasForecast && !hasPrevious) {
       return { netChange: null, score: 0 };
     }
+    const refVal = hasForecast ? (ind.forecast as number) : (ind.previous as number);
 
     // Safety protection for index-based surveys (PMI, Consumer Surveys, Confidence indices):
-    // An actual of 0 or <= 0 when previous is a non-zero index level (e.g. 35.4) is an unreleased placeholder.
+    // An actual of 0 when reference is a non-zero index level (e.g. 35.4) is an unreleased placeholder.
     const indexTypes = ["PMI", "AUD_SERVICES", "CONFIDENCE", "INDEX_SMALL", "SURVEY_5", "ANZ_BIZ"];
-    if (indexTypes.includes(ind.type) && ind.actual === 0 && (ind.previous > 5 || ind.previous < -5)) {
+    if (indexTypes.includes(ind.type) && ind.actual === 0 && (refVal > 5 || refVal < -5)) {
       return { netChange: null, score: 0 };
     }
 
-    const netChange = parseFloat((ind.actual - ind.previous).toFixed(4));
-    let score = 0;
+    const netChange = parseFloat((ind.actual - refVal).toFixed(4));
+    let rawScore = 0;
     switch(ind.type) {
       case "PMI":
       case "AUD_SERVICES":
-        if (netChange >= 2.0) score = 2; else if (netChange >= 0.5) score = 1; else if (netChange > -0.5) score = 0; else if (netChange > -2.0) score = -1; else score = -2; break;
+        if (netChange >= 2.0) rawScore = 2;
+        else if (netChange >= 0.5) rawScore = 1;
+        else if (netChange > -0.5) rawScore = 0;
+        else if (netChange > -2.0) rawScore = -1;
+        else rawScore = -2;
+        // Respect PMI 50 expansion/contraction threshold (Macro CEF.pdf p. 8)
+        if (ind.actual < 50 && rawScore > 1) rawScore = 1;
+        if (ind.actual >= 50 && rawScore < -1 && netChange > -2.5) rawScore = -1;
+        break;
       case "CPI":
       case "PCT_GROWTH":
       case "GBP_RETAIL":
       case "CARD_TRANS":
-        if (netChange >= 0.003) score = 2; else if (netChange >= 0.001) score = 1; else if (netChange > -0.001) score = 0; else if (netChange > -0.003) score = -1; else score = -2; break;
+        if (netChange >= 0.003) rawScore = 2; else if (netChange >= 0.001) rawScore = 1; else if (netChange > -0.001) rawScore = 0; else if (netChange > -0.003) rawScore = -1; else rawScore = -2; break;
       case "UNEMP_RATE":
       case "EUR_UNEMP_FIXED":
-        if (netChange <= -0.002) score = 2; else if (netChange <= -0.001) score = 1; else if (netChange === 0) score = 0; else if (netChange < 0.002) score = -1; else score = -2; break;
+        if (netChange <= -0.002) rawScore = 2; else if (netChange <= -0.001) rawScore = 1; else if (Math.abs(netChange) < 0.0005) rawScore = 0; else if (netChange < 0.002) rawScore = -1; else rawScore = -2; break;
       case "GBP_CLAIMANT":
       case "GER_UNEMP_CHANGE":
       case "CHF_UNEMP_CHANGE":
-        if (netChange <= -15.0) score = 2; else if (netChange <= -3.0) score = 1; else if (netChange < 3.0) score = 0; else if (netChange < 15.0) score = -1; else score = -2; break;
+        if (netChange <= -15.0) rawScore = 2; else if (netChange <= -3.0) rawScore = 1; else if (netChange < 3.0) rawScore = 0; else if (netChange < 15.0) rawScore = -1; else rawScore = -2; break;
       case "JOBS_K":
       case "CAD_JOBS":
-        if (netChange >= 40.0) score = 2; else if (netChange >= 10.0) score = 1; else if (netChange > -10.0) score = 0; else if (netChange > -40.0) score = -1; else score = -2; break;
+        if (netChange >= 40.0) rawScore = 2; else if (netChange >= 10.0) rawScore = 1; else if (netChange > -10.0) rawScore = 0; else if (netChange > -40.0) rawScore = -1; else rawScore = -2; break;
       case "NFP":
-        if (netChange >= 50) score = 2; else if (netChange >= 15) score = 1; else if (netChange > -15) score = 0; else if (netChange > -50) score = -1; else score = -2; break;
+        if (netChange >= 50) rawScore = 2; else if (netChange >= 15) rawScore = 1; else if (netChange > -15) rawScore = 0; else if (netChange > -50) rawScore = -1; else rawScore = -2; break;
+      case "TRADE_BAL":
+        if (netChange >= 0.5) rawScore = 2; else if (netChange >= 0.1) rawScore = 1; else if (netChange > -0.1) rawScore = 0; else if (netChange > -0.5) rawScore = -1; else rawScore = -2; break;
       case "CONFIDENCE":
       case "INDEX_SMALL":
       case "SURVEY_5":
       case "ANZ_BIZ":
-        if (netChange >= 4.0) score = 2; else if (netChange >= 1.0) score = 1; else if (netChange > -1.0) score = 0; else if (netChange > -4.0) score = -1; else score = -2; break;
-      default: score = netChange > 0 ? 1 : netChange < 0 ? -1 : 0;
+        if (netChange >= 4.0) rawScore = 2; else if (netChange >= 1.0) rawScore = 1; else if (netChange > -1.0) rawScore = 0; else if (netChange > -4.0) rawScore = -1; else rawScore = -2; break;
+      default: rawScore = netChange > 0 ? 1 : netChange < 0 ? -1 : 0;
     }
-    return { netChange, score };
+
+    const mult = parseWeight(ind.weight);
+    const weightedScore = parseFloat((rawScore * mult).toFixed(1));
+    return { netChange, score: weightedScore };
   };
 
-  // Discrete Integer Total: sum of individual indicator scores
+  // Weighted Total (Normalized ±20 scale per currency)
   const calculateCurrencyTotals = () => {
     const totals: Record<string, number> = {};
     for (const c in currencyIndicators) {
@@ -435,7 +475,7 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
         ind.score = evalResult.score;
         sum += (ind.score || 0);
       });
-      totals[c] = sum;
+      totals[c] = parseFloat(sum.toFixed(1));
     }
     return totals;
   };
@@ -445,7 +485,7 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
   const getPairDivergence = (base: string, quote: string) => {
     const bScore = currencyTotals[base] !== undefined ? currencyTotals[base] : 0;
     const qScore = currencyTotals[quote] !== undefined ? currencyTotals[quote] : 0;
-    const diff = bScore - qScore;
+    const diff = parseFloat((bScore - qScore).toFixed(1));
 
     let longPct = Math.max(5, Math.min(95, Math.round(50 + (diff * 2.5))));
     const shortPct = 100 - longPct;
@@ -678,7 +718,7 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
         if (sanitized) {
           setCurrencyIndicators(sanitized);
           try {
-            localStorage.setItem('forex_dashboard_data_v2', JSON.stringify(sanitized));
+            localStorage.setItem('forex_dashboard_data_v3', JSON.stringify(sanitized));
           } catch {}
           alert(language === 'es' ? "¡Copia de seguridad de valoración importada con éxito!" : "Macro Valuation Data Imported Successfully.");
         } else {
@@ -717,7 +757,7 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
 
     setCurrencyIndicators(zeroIndicators);
     try {
-      localStorage.setItem('forex_dashboard_data_v2', JSON.stringify(zeroIndicators));
+      localStorage.setItem('forex_dashboard_data_v3', JSON.stringify(zeroIndicators));
     } catch {}
 
     setUploadModal({
@@ -785,8 +825,9 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
     const ev = clean;
     const ctry = (rawCountryOrCur || '').toLowerCase().trim();
 
-    // Exclude non-indicator calendar noise (speeches, debt auctions, minutes, summits, trade balance, CFTC positions)
-    if (/\b(speaks|speech|discurso|habla|auction|subasta|minutes|actas|summit|statement|press conference|monetary policy statement|meeting|reunion|bill auction|bond auction|gilt auction|oat auction|btf auction|jgb auction|bobl auction|crude oil|gasoline|refinery|heating oil|rig count|mortgage|m4 money|m3 money|m2 money|net lending|borrowing|budget balance|car registration|passenger cars|vehicle sales|redbook|commodity prices|milk auction|globaldairytrade|terms of trade|foreign reserves|foreign bonds|foreign investments|cftc|speculative|trade balance|balanza comercial)\b/i.test(ev)) {
+    // Exclude non-indicator calendar noise (speeches, debt auctions, minutes, summits, CFTC positions)
+    // NOTE: Trade Balance & GlobalDairyTrade (GDT) are intentionally KEPT for AUD/CAD/JPY/NZD/CHF per Macro CEF.pdf
+    if (/\b(speaks|speech|discurso|habla|auction|subasta|minutes|actas|summit|statement|press conference|monetary policy statement|meeting|reunion|bill auction|bond auction|gilt auction|oat auction|btf auction|jgb auction|bobl auction|crude oil|gasoline|refinery|heating oil|rig count|mortgage|m4 money|m3 money|m2 money|net lending|borrowing|budget balance|car registration|passenger cars|vehicle sales|redbook|commodity prices|terms of trade|foreign reserves|foreign bonds|foreign investments|cftc|speculative)\b/i.test(ev)) {
       return -1;
     }
 
@@ -794,7 +835,7 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
       const ind = indList[i];
       const iname = ind.name.toLowerCase();
 
-      // USD Indicators (9 slots)
+      // USD Indicators (Normalized ±20)
       if (targetCurr === "USD") {
         if (iname === "ism mfg pmi") {
           if ((clean.includes("ism manufacturing pmi") || (clean.includes("ism") && clean.includes("manufacturing") && clean.includes("pmi"))) &&
@@ -804,15 +845,24 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
           if ((clean.includes("ism services") || clean.includes("ism non-manufacturing")) &&
               !clean.includes("employment") && !clean.includes("orders") && !clean.includes("prices")) return i;
         }
-        if (iname === "cpi mom") {
-          if (!clean.includes("core") && !clean.includes("yoy") && (clean === "cpi (mom)" || clean.startsWith("cpi (mom)") || clean.includes("consumer price index (mom)"))) return i;
+        if (iname === "nfp") {
+          if (!clean.includes("adp") && !clean.includes("private") && !clean.includes("manufacturing") &&
+              (clean.includes("nonfarm payrolls") || clean.includes("non-farm payrolls") || clean.includes("non farm payrolls") || clean.includes("nóminas no agrícolas") || clean.includes("nominas no agricolas"))) return i;
         }
         if (iname === "unemployment rate") {
           if (!clean.includes("u6") && !clean.includes("claims") && (clean === "unemployment rate" || clean.startsWith("unemployment rate ("))) return i;
         }
-        if (iname === "nfp") {
-          if (!clean.includes("adp") && !clean.includes("private") && !clean.includes("manufacturing") &&
-              (clean.includes("nonfarm payrolls") || clean.includes("non-farm payrolls") || clean.includes("non farm payrolls") || clean.includes("nóminas no agrícolas") || clean.includes("nominas no agricolas"))) return i;
+        if (iname.includes("avg hourly earnings")) {
+          if (!clean.includes("yoy") && (clean.includes("average hourly earnings") || clean.includes("ingresos medios por hora"))) return i;
+        }
+        if (iname.includes("core pce")) {
+          if (!clean.includes("yoy") && (clean.includes("core pce price index") || clean.includes("core pce") || clean.includes("pce price index"))) return i;
+        }
+        if (iname === "cpi mom") {
+          if (!clean.includes("core") && !clean.includes("yoy") && (clean === "cpi (mom)" || clean.startsWith("cpi (mom)") || clean.includes("consumer price index (mom)"))) return i;
+        }
+        if (iname === "ppi mom") {
+          if (!clean.includes("core") && !clean.includes("yoy") && (clean === "ppi (mom)" || clean.startsWith("ppi (mom)") || clean.includes("producer price index (mom)"))) return i;
         }
         if (iname === "retail sales mom") {
           if (!clean.includes("core") && !clean.includes("ex") && !clean.includes("control") && !clean.includes("yoy") &&
@@ -821,140 +871,136 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
         if (iname === "cb consumer confidence") {
           if (clean.includes("cb consumer confidence") || clean.includes("conference board consumer confidence")) return i;
         }
-        if (iname === "nfib small business index") {
-          if (clean.includes("nfib small business") || clean.includes("nfib")) return i;
-        }
-        if (iname === "atlanta fed gdpnow") {
-          if (clean.includes("atlanta fed gdpnow") || clean.includes("gdpnow")) return i;
+        if (iname.includes("uom consumer sentiment")) {
+          if (!clean.includes("expectation") && !clean.includes("inflation") && (clean.includes("michigan consumer sentiment") || clean.includes("u-mich") || clean.includes("michigan"))) return i;
         }
       }
 
-      // EUR Indicators (9 slots: Eurozone & Germany)
+      // EUR Indicators (Normalized ±20)
       if (targetCurr === "EUR") {
         const isEurozoneWide = clean.includes("eurozone") || clean.includes("euro zone") || clean.includes("zona euro") || clean.includes("ea") || clean.includes("emu") || ctry === 'eu' || ctry === 'eur' || ctry === 'eurozone' || ctry === 'zona euro';
-        const isGerman = clean.includes("german") || clean.includes("germany") || clean.includes("alemania") || ctry === 'de' || ctry === 'germany' || ctry === 'alemania';
         const isOtherCountry = clean.includes("spanish") || clean.includes("spain") || clean.includes("españa") || clean.includes("french") || clean.includes("france") || clean.includes("francia") || clean.includes("italian") || clean.includes("italy") || clean.includes("italia") || ctry === 'es' || ctry === 'fr' || ctry === 'it';
 
+        if (iname === "cpi mom") {
+          if (!isOtherCountry && !clean.includes("german") && !clean.includes("yoy") &&
+              (clean === "cpi (mom)" || clean.startsWith("cpi (mom)") || clean.includes("eurozone cpi (mom)") || clean.includes("hicp (mom)"))) return i;
+        }
         if (iname === "hcob mfg pmi") {
-          // Strictly Eurozone HCOB Manufacturing PMI (NOT Spanish, French, Italian, or German)
           if (!isOtherCountry && !clean.includes("german") &&
               (clean.includes("eurozone manufacturing") || clean.includes("hcob eurozone") || (clean.includes("manufacturing pmi") && isEurozoneWide))) return i;
         }
         if (iname === "hcob services pmi") {
-          // Strictly Eurozone HCOB Services PMI (NOT Spanish, French, Italian, or German)
           if (!isOtherCountry && !clean.includes("german") &&
               (clean.includes("eurozone services") || clean.includes("hcob eurozone") || (clean.includes("services pmi") && isEurozoneWide))) return i;
         }
-        if (iname === "cpi mom") {
-          // Eurozone CPI MoM (NOT German CPI, French CPI, Spanish CPI, Italian CPI)
-          if (!isOtherCountry && !clean.includes("german") && !clean.includes("yoy") &&
-              (clean === "cpi (mom)" || clean.startsWith("cpi (mom)") || clean.includes("eurozone cpi (mom)") || clean.includes("core cpi (mom)"))) return i;
-        }
         if (iname === "unemployment rate") {
-          // Eurozone Unemployment Rate (NOT Spanish, German, French, Italian)
           if (!isOtherCountry && !clean.includes("german") && !clean.includes("change") &&
               (clean === "unemployment rate" || clean.startsWith("unemployment rate (") || clean.includes("eurozone unemployment rate"))) return i;
         }
-        if (iname === "germany unemp change") {
-          // MUST BE German unemployment change (NOT Spanish unemployment change!)
-          if ((isGerman || clean.includes("german") || clean.includes("germany") || clean.includes("alemania")) &&
-              (clean.includes("unemployment change") || clean.includes("desempleo") || clean.includes("cambio del desempleo"))) return i;
+        if (iname.includes("wage growth")) {
+          if (clean.includes("wages") || clean.includes("negotiated wages") || clean.includes("salarios") || clean.includes("labor cost")) return i;
         }
         if (iname === "retail sales mom") {
-          // Eurozone Retail Sales MoM (or German Retail Sales MoM)
           if (!isOtherCountry && !clean.includes("yoy") &&
               (clean === "retail sales (mom)" || clean.startsWith("retail sales (mom)") || clean.includes("german retail sales (mom)"))) return i;
         }
+        if (iname.includes("zew")) {
+          if (clean.includes("zew economic sentiment") || clean.includes("zew")) return i;
+        }
+        if (iname === "industrial production mom") {
+          if (!isOtherCountry && !clean.includes("yoy") &&
+              (clean.includes("industrial production (mom)") || clean.includes("german industrial production (mom)"))) return i;
+        }
         if (iname === "consumer confidence") {
-          // Eurozone Consumer Confidence
           if (!isOtherCountry && !clean.includes("german") &&
               (clean === "consumer confidence" || clean.startsWith("consumer confidence (") || clean.includes("eurozone consumer confidence"))) return i;
         }
         if (iname === "ifo business climate") {
           if (clean.includes("ifo business climate") || clean.includes("ifo")) return i;
         }
-        if (iname === "industrial production mom") {
-          if (!isOtherCountry && !clean.includes("yoy") &&
-              (clean.includes("industrial production (mom)") || clean.includes("german industrial production (mom)"))) return i;
-        }
       }
 
-      // GBP Indicators (9 slots: UK / GB)
+      // GBP Indicators (Normalized ±20)
       if (targetCurr === "GBP") {
+        if (iname === "cpi mom" && !clean.includes("core") && !clean.includes("yoy") && (clean === "cpi (mom)" || clean.startsWith("cpi (mom)"))) return i;
+        if (iname.includes("avg earnings") && (clean.includes("average earnings") || clean.includes("ingresos medios")) && !clean.includes("incl")) return i;
         if (iname === "s&p mfg pmi" && clean.includes("manufacturing pmi")) return i;
         if (iname === "s&p services pmi" && clean.includes("services pmi")) return i;
-        if (iname === "cpi mom" && !clean.includes("core") && !clean.includes("yoy") && (clean === "cpi (mom)" || clean.startsWith("cpi (mom)"))) return i;
         if (iname === "unemployment rate" && (clean === "unemployment rate" || clean.startsWith("unemployment rate ("))) return i;
-        if (iname === "claimant count" && clean.includes("claimant count")) return i;
+        if (iname.includes("claimant count") && clean.includes("claimant count")) return i;
         if (iname === "retail sales mom" && !clean.includes("core") && !clean.includes("ex") && !clean.includes("yoy") && (clean === "retail sales (mom)" || clean.startsWith("retail sales (mom)"))) return i;
+        if (iname.includes("labor productivity") && (clean.includes("labour productivity") || clean.includes("labor productivity") || clean.includes("productividad"))) return i;
         if (iname === "gfk consumer confidence" && (clean.includes("gfk consumer confidence") || clean.includes("gfk"))) return i;
-        if (iname === "cbi industrial trends" && (clean.includes("cbi industrial trends") || clean.includes("cbi industrial"))) return i;
-        if (iname === "monthly gdp" && (clean.includes("monthly gdp") || clean.includes("monthly gdp tracker") || clean.startsWith("gdp (mom)") || clean === "gdp (mom)")) return i;
       }
 
-      // JPY Indicators (9 slots: JP)
+      // JPY Indicators (Normalized ±20)
       if (targetCurr === "JPY") {
+        if (iname.includes("tokyo cpi") && (clean.includes("tokyo cpi") || clean.includes("tokyo core cpi") || clean.includes("national core cpi") || clean.includes("national cpi") || (clean.includes("cpi") && clean.includes("mom")))) return i;
+        if (iname.includes("cash earnings") && (clean.includes("cash earnings") || clean.includes("wage income") || clean.includes("overall wage") || clean.includes("labor cash earnings"))) return i;
+        if (iname.includes("tankan") && clean.includes("tankan")) return i;
         if (iname === "jibun mfg pmi" && clean.includes("manufacturing pmi")) return i;
         if (iname === "jibun services pmi" && (clean.includes("services pmi") || clean.includes("manufacturing & services pmi"))) return i;
-        if (iname === "tokyo cpi mom" && (clean.includes("tokyo cpi") || clean.includes("tokyo core cpi") || clean.includes("national cpi") || clean.includes("cpi, n.s.a") || clean.includes("cpi n.s.a") || (clean.includes("cpi") && clean.includes("mom")))) return i;
+        if (iname.includes("ppi") && !clean.includes("yoy") && (clean.includes("ppi") || clean.includes("cgpi") || clean.includes("producer price"))) return i;
+        if (iname.includes("household spending") && !clean.includes("large") && (clean.includes("household spending") || clean.includes("retail sales (mom)") || clean.includes("retail sales"))) return i;
+        if (iname === "trade balance" && (clean.includes("trade balance") || clean.includes("balanza comercial"))) return i;
         if (iname === "unemployment rate" && (clean === "unemployment rate" || clean.startsWith("unemployment rate ("))) return i;
-        if (iname === "cash earnings mom" && (clean.includes("cash earnings") || clean.includes("wage income") || clean.includes("overall wage") || clean.includes("labor cash earnings") || clean.includes("wage"))) return i;
-        if (iname === "retail sales mom" && !clean.includes("large") && (clean.includes("retail sales (mom)") || clean.includes("retail sales") || clean.includes("retailers' sales (mom)"))) return i;
-        if (iname === "consumer survey" && (clean.includes("household confidence") || clean.includes("consumer survey") || clean.includes("consumer confidence"))) return i;
-        if (iname === "reuters tankan" && clean.includes("reuters tankan")) return i;
-        if (iname === "jcer monthly gdp" && (clean.includes("jcer") || clean.includes("monthly gdp")) && !clean.includes("tertiary")) return i;
+        if (iname === "consumer confidence" && (clean.includes("household confidence") || clean.includes("consumer survey") || clean.includes("consumer confidence"))) return i;
       }
 
-      // AUD Indicators (9 slots: AU)
+      // AUD Indicators (Normalized ±20)
       if (targetCurr === "AUD") {
-        if (iname === "judo mfg pmi" && clean.includes("manufacturing pmi")) return i;
-        if (iname === "judo services pmi" && (clean.includes("services pmi") || clean.includes("manufacturing & services pmi"))) return i;
-        if (iname === "cpi indicator mom" && (clean.includes("cpi indicator") || clean.includes("monthly cpi"))) return i;
-        if (iname === "unemployment rate" && (clean === "unemployment rate" || clean.startsWith("unemployment rate ("))) return i;
+        if (iname.includes("trimmed mean") && (clean.includes("trimmed mean cpi") || clean.includes("cpi indicator") || clean.includes("monthly cpi") || clean.includes("cpi (qoq)"))) return i;
         if (iname === "employment change" && (clean === "employment change" || clean.startsWith("employment change ("))) return i;
-        if (iname === "retail sales mom" && (clean.includes("retail sales (mom)") || clean.includes("retail sales (yoy)") || clean.includes("retail sales") || clean.startsWith("retail sales"))) return i;
-        if (iname === "westpac sentiment" && (clean.includes("westpac consumer sentiment") || clean.includes("westpac sentiment"))) return i;
+        if (iname === "unemployment rate" && (clean === "unemployment rate" || clean.startsWith("unemployment rate ("))) return i;
+        if (iname.includes("wage price index") && (clean.includes("wage price index") || clean.includes("wpi"))) return i;
+        if (iname.includes("retail sales") && (clean.includes("retail sales") || clean.includes("household spending"))) return i;
+        if (iname === "trade balance" && (clean.includes("trade balance") || clean.includes("balanza comercial"))) return i;
+        if (iname.includes("china mfg pmi") && (clean.includes("china") || clean.includes("caixin") || ctry === 'cn' || ctry === 'cnh' || ctry === 'cny') && (clean.includes("manufacturing pmi") || clean.includes("ppi"))) return i;
+        if (iname === "judo mfg pmi" && clean.includes("manufacturing pmi") && !clean.includes("china") && !clean.includes("caixin")) return i;
+        if (iname === "judo services pmi" && (clean.includes("services pmi") || clean.includes("manufacturing & services pmi"))) return i;
         if (iname === "nab business confidence" && clean.includes("nab business confidence")) return i;
-        if (iname === "aig industry index" && (clean.includes("aig industry index") || clean.includes("ai group industry") || (clean.includes("aig") && clean.includes("index")))) return i;
+        if (iname.includes("westpac") && (clean.includes("westpac consumer sentiment") || clean.includes("westpac sentiment"))) return i;
       }
 
-      // NZD Indicators (9 slots: NZ)
+      // NZD Indicators (Normalized ±20)
       if (targetCurr === "NZD") {
-        if (iname === "busnz mfg pmi" && (clean.includes("business nz pmi") || clean.includes("businessnz pmi") || clean.includes("business nz") || clean.includes("mfg pmi") || (clean.includes("manufacturing") && clean.includes("pmi")))) return i;
-        if (iname === "busnz services pmi" && (clean.includes("performance of services index") || clean.includes("performance of services") || clean.includes("services index") || clean.includes("psi") || clean.includes("services pmi") || clean.includes("businessnz psi"))) return i;
-        if (iname === "food prices mom" && (clean.includes("fpi (mom)") || clean.includes("fpi mom") || clean.includes("fpi") || clean.includes("food price index") || clean.includes("food price") || clean.includes("food prices"))) return i;
-        if (iname === "unemployment rate" && (clean === "unemployment rate" || clean.startsWith("unemployment rate (") || clean.includes("hlfs unemployment") || clean.includes("unemployment"))) return i;
-        if (iname === "mei jobs change" && !clean.includes("migration") && (clean.includes("mei jobs") || clean.includes("employment change") || clean.includes("filled jobs") || clean.includes("jobs change"))) return i;
-        if (iname === "card transactions" && (clean.includes("electronic card retail sales (mom)") || clean.includes("card transactions") || clean.includes("card retail"))) return i;
-        if (iname === "anz consumer confidence" && (clean.includes("anz consumer confidence") || clean.includes("westpac consumer sentiment") || clean.includes("westpac sentiment") || clean.includes("consumer confidence") || clean.includes("consumer sentiment"))) return i;
+        if (iname.includes("quarterly cpi") && (clean.includes("cpi (qoq)") || clean.includes("cpi (yoy)") || clean.includes("food price") || clean.includes("fpi"))) return i;
+        if (iname.includes("gdt dairy") && (clean.includes("globaldairytrade") || clean.includes("gdt") || clean.includes("dairy"))) return i;
+        if (iname === "trade balance" && (clean.includes("trade balance") || clean.includes("balanza comercial"))) return i;
+        if (iname === "unemployment rate" && (clean === "unemployment rate" || clean.startsWith("unemployment rate (") || clean.includes("hlfs unemployment"))) return i;
+        if (iname.includes("employment change") && !clean.includes("migration") && (clean.includes("mei jobs") || clean.includes("employment change") || clean.includes("filled jobs") || clean.includes("jobs change"))) return i;
+        if (iname === "busnz mfg pmi" && (clean.includes("business nz pmi") || clean.includes("businessnz") || clean.includes("mfg pmi") || (clean.includes("manufacturing") && clean.includes("pmi")))) return i;
+        if (iname.includes("busnz services pmi") && (clean.includes("performance of services") || clean.includes("services index") || clean.includes("psi") || clean.includes("services pmi"))) return i;
+        if (iname.includes("card transactions") && (clean.includes("electronic card") || clean.includes("card transactions") || clean.includes("card retail"))) return i;
         if (iname === "anz business confidence" && (clean.includes("anz business confidence") || clean.includes("business confidence"))) return i;
-        if (iname === "busnz activity index" && !clean.includes("terms of trade") && (clean.includes("nbnz own activity") || clean.includes("businessnz activity") || clean.includes("own activity"))) return i;
+        if (iname === "anz consumer confidence" && (clean.includes("anz consumer confidence") || clean.includes("westpac consumer sentiment") || clean.includes("consumer confidence"))) return i;
       }
 
-      // CAD Indicators (9 slots: CA)
+      // CAD Indicators (Normalized ±20)
       if (targetCurr === "CAD") {
+        if (iname.includes("boc core") && (clean.includes("trimmed cpi") || clean.includes("median cpi") || clean.includes("common cpi") || clean.includes("core cpi") || clean === "cpi (mom)" || clean.startsWith("cpi (mom)"))) return i;
+        if (iname === "net employment change" && (clean === "employment change" || clean.startsWith("employment change (") || clean.includes("net change in employment"))) return i;
+        if (iname === "unemployment rate" && (clean === "unemployment rate" || clean.startsWith("unemployment rate ("))) return i;
+        if (iname.includes("avg hourly wages") && (clean.includes("hourly wages") || clean.includes("average hourly wages") || clean.includes("wages"))) return i;
+        if (iname === "retail sales mom" && !clean.includes("core") && !clean.includes("yoy") && (clean === "retail sales (mom)" || clean.startsWith("retail sales (mom)"))) return i;
+        if (iname === "monthly gdp mom" && (clean.startsWith("gdp (mom)") || clean === "gdp (mom)" || clean.includes("monthly gdp"))) return i;
+        if (iname === "trade balance" && (clean.includes("trade balance") || clean.includes("balanza comercial"))) return i;
+        if (iname.includes("cfib") && !clean.includes("wholesale") && (clean.includes("business barometer") || clean.includes("cfib") || clean.includes("business outlook"))) return i;
         if (iname === "s&p mfg pmi" && clean.includes("manufacturing pmi") && !clean.includes("ivey")) return i;
         if (iname === "ivey pmi" && clean.includes("ivey pmi") && !clean.includes("n.s.a")) return i;
-        if (iname === "cpi mom" && !clean.includes("core") && !clean.includes("yoy") && (clean === "cpi (mom)" || clean.startsWith("cpi (mom)"))) return i;
-        if (iname === "unemployment rate" && (clean === "unemployment rate" || clean.startsWith("unemployment rate ("))) return i;
-        if (iname === "net employment change" && (clean === "employment change" || clean.startsWith("employment change (") || clean.includes("net change in employment"))) return i;
-        if (iname === "retail sales mom" && !clean.includes("core") && !clean.includes("yoy") && (clean === "retail sales (mom)" || clean.startsWith("retail sales (mom)"))) return i;
-        if (iname === "cb consumer survey" && (clean.includes("ipsos pcsi") || clean.includes("business outlook") || clean.includes("boc business outlook") || clean.includes("consumer confidence") || clean.includes("consumer survey") || clean.includes("leading index"))) return i;
-        if (iname === "cfib business barometer" && !clean.includes("wholesale") && (clean.includes("business barometer") || clean.includes("cfib") || clean.includes("barometer"))) return i;
-        if (iname === "monthly gdp mom" && (clean.startsWith("gdp (mom)") || clean === "gdp (mom)" || clean.includes("monthly gdp"))) return i;
       }
 
-      // CHF Indicators (9 slots: CH)
+      // CHF Indicators (Normalized ±20)
       if (targetCurr === "CHF") {
-        if (iname === "procure mfg pmi" && clean.includes("manufacturing pmi")) return i;
-        if (iname === "procure services pmi" && (clean.includes("services pmi") || clean.includes("procure services") || clean.includes("procure.ch services"))) return i;
         if (iname === "cpi mom" && !clean.includes("core") && !clean.includes("yoy") && (clean === "cpi (mom)" || clean.startsWith("cpi (mom)"))) return i;
-        if (iname === "unemp rate" && clean.includes("unemployment rate") && !clean.includes("change")) return i;
-        if (iname === "unemp change" && (clean.includes("unemployment change") || clean.includes("unemployment rate s.a") || clean.includes("unemployment rate sa"))) return i;
-        if (iname === "retail sales mom" && (clean.includes("retail sales (mom)") || clean.includes("real retail sales (mom)") || clean.includes("retail sales (yoy)") || clean.includes("real retail sales (yoy)") || clean.includes("retail sales"))) return i;
-        if (iname === "consumer sentiment" && (clean.includes("consumer climate") || clean.includes("consumer sentiment"))) return i;
-        if (iname === "kof indicator" && clean.includes("kof")) return i;
-        if (iname === "seco economic indicators" && (clean.includes("seco") || clean.includes("consumer climate") || clean.includes("economic forecast"))) return i;
+        if (iname === "trade balance" && (clean.includes("trade balance") || clean.includes("balanza comercial"))) return i;
+        if (iname === "procure services pmi" && (clean.includes("services pmi") || clean.includes("procure services") || clean.includes("procure.ch services"))) return i;
+        if (iname === "procure mfg pmi" && clean.includes("manufacturing pmi")) return i;
+        if (iname.includes("kof") && clean.includes("kof")) return i;
+        if (iname === "ppi mom" && !clean.includes("yoy") && (clean.includes("ppi") || clean.includes("producer"))) return i;
+        if (iname === "gdp qoq" && (clean.includes("gdp (qoq)") || clean.includes("gdp"))) return i;
+        if (iname.includes("real retail sales") && (clean.includes("retail sales"))) return i;
+        if (iname === "unemployment rate" && clean.includes("unemployment rate") && !clean.includes("change")) return i;
       }
     }
 
@@ -1219,7 +1265,7 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
           if (sanitized) {
             setCurrencyIndicators(sanitized);
             try {
-              localStorage.setItem('forex_dashboard_data_v2', JSON.stringify(sanitized));
+              localStorage.setItem('forex_dashboard_data_v3', JSON.stringify(sanitized));
             } catch {}
             setUploadModal({
               isOpen: true,
@@ -1472,7 +1518,7 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
       let currentDate: string | null = null;
 
       // Check if LocalStorage is empty or needs baseline load
-      const isStorageEmpty = !localStorage.getItem('forex_dashboard_data_v2');
+      const isStorageEmpty = !localStorage.getItem('forex_dashboard_data_v3');
       const isBaselineMode = valuationUpdateMode === 'baseline' || isStorageEmpty;
 
       interface CandidateRelease {
@@ -1595,9 +1641,7 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
           }
 
           let weightVal = item.weight;
-          if (impCol !== -1 && row[impCol] !== undefined && row[impCol] !== '') {
-            weightVal = formatWeight(row[impCol]);
-          }
+          // Preserve curated ±20 economic multiplier weights (do not overwrite with generic Investing.com stars)
 
           let timeVal = item.time || "08:30:00";
           if (timeCol !== -1 && row[timeCol] !== undefined && row[timeCol] !== '') {
@@ -1630,80 +1674,69 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
       let updatedCount = 0;
       const updatedCurrencies = new Set<string>();
 
-      setCurrencyIndicators((prev) => {
-        // Baseline Mode starts with existing or default and establishes complete starting scores
-        // Incremental Mode preserves all unaffected historical indicators in LocalStorage completely intact
-        const baseSource = isBaselineMode && isStorageEmpty ? DEFAULT_CURRENCY_INDICATORS : prev;
-        const nextState: Record<string, MacroIndicator[]> = JSON.parse(JSON.stringify(baseSource));
+      // Compute updated state synchronously BEFORE setCurrencyIndicators so the modal
+      // reports the real updatedCount & updatedCurrencies (React 18 batches state updaters asynchronously).
+      const baseSource = isBaselineMode && isStorageEmpty ? DEFAULT_CURRENCY_INDICATORS : currencyIndicators;
+      const nextState: Record<string, MacroIndicator[]> = JSON.parse(JSON.stringify(baseSource));
 
-        for (const curr of Object.keys(slotUpdates)) {
-          const slotMap = slotUpdates[curr];
-          if (!nextState[curr]) nextState[curr] = JSON.parse(JSON.stringify(DEFAULT_CURRENCY_INDICATORS[curr] || []));
-          const list = [...nextState[curr]];
+      for (const curr of Object.keys(slotUpdates)) {
+        const slotMap = slotUpdates[curr];
+        if (!nextState[curr]) nextState[curr] = JSON.parse(JSON.stringify(DEFAULT_CURRENCY_INDICATORS[curr] || []));
+        const list = [...nextState[curr]];
 
-          for (const slotStr of Object.keys(slotMap)) {
-            const slotIdx = parseInt(slotStr, 10);
-            const candidates = slotMap[slotIdx];
-            if (!candidates || candidates.length === 0 || !list[slotIdx]) continue;
+        for (const slotStr of Object.keys(slotMap)) {
+          const slotIdx = parseInt(slotStr, 10);
+          const candidates = slotMap[slotIdx];
+          if (!candidates || candidates.length === 0 || !list[slotIdx]) continue;
 
-            let chosenCandidate: CandidateRelease | null = null;
+          let chosenCandidate: CandidateRelease | null = null;
 
-            if (!isBaselineMode) {
-              // Incremental Weekly Mode:
-              // Only update indicators that were ACTUALLY RELEASED during this week!
-              // Events pending release (actual === null) in the weekly table MUST NOT overwrite
-              // or clear the existing baseline data in storage!
-              const releasedCandidates = candidates.filter(c => c.hasActual && c.actual !== null && !isNaN(c.actual));
-              if (releasedCandidates.length === 0) {
-                // No release this week for this slot: keep baseline completely intact!
-                continue;
-              }
+          if (!isBaselineMode) {
+            const releasedCandidates = candidates.filter(c => c.hasActual && c.actual !== null && !isNaN(c.actual));
+            if (releasedCandidates.length === 0) continue;
+            releasedCandidates.sort((a, b) => a.date.localeCompare(b.date));
+            chosenCandidate = releasedCandidates[releasedCandidates.length - 1];
+          } else {
+            const releasedCandidates = candidates.filter(c => c.hasActual && c.actual !== null && !isNaN(c.actual));
+            if (releasedCandidates.length > 0) {
               releasedCandidates.sort((a, b) => a.date.localeCompare(b.date));
               chosenCandidate = releasedCandidates[releasedCandidates.length - 1];
             } else {
-              // Baseline Mode (2-month history):
-              // Pick the latest released candidate if available, else the latest candidate
-              const releasedCandidates = candidates.filter(c => c.hasActual && c.actual !== null && !isNaN(c.actual));
-              if (releasedCandidates.length > 0) {
-                releasedCandidates.sort((a, b) => a.date.localeCompare(b.date));
-                chosenCandidate = releasedCandidates[releasedCandidates.length - 1];
-              } else {
-                candidates.sort((a, b) => a.date.localeCompare(b.date));
-                chosenCandidate = candidates[candidates.length - 1];
-              }
+              candidates.sort((a, b) => a.date.localeCompare(b.date));
+              chosenCandidate = candidates[candidates.length - 1];
             }
-
-            if (!chosenCandidate) continue;
-
-            const item = { ...list[slotIdx] };
-            if (chosenCandidate.date) item.date = chosenCandidate.date;
-            if (chosenCandidate.time) item.time = chosenCandidate.time;
-            if (chosenCandidate.previous !== null) item.previous = chosenCandidate.previous;
-            if (chosenCandidate.forecast !== null) item.forecast = chosenCandidate.forecast;
-            item.actual = chosenCandidate.actual;
-            if (chosenCandidate.weight) item.weight = chosenCandidate.weight;
-
-            const evalRes = evaluateIndicator(item);
-            item.netChange = evalRes.netChange;
-            item.score = evalRes.score;
-
-            list[slotIdx] = item;
-            updatedCount++;
-            updatedCurrencies.add(curr);
           }
 
-          nextState[curr] = list;
+          if (!chosenCandidate) continue;
+
+          const item = { ...list[slotIdx] };
+          if (chosenCandidate.date) item.date = chosenCandidate.date;
+          if (chosenCandidate.time) item.time = chosenCandidate.time;
+          if (chosenCandidate.previous !== null) item.previous = chosenCandidate.previous;
+          if (chosenCandidate.forecast !== null) item.forecast = chosenCandidate.forecast;
+          item.actual = chosenCandidate.actual;
+          if (chosenCandidate.weight) item.weight = chosenCandidate.weight;
+
+          const evalRes = evaluateIndicator(item);
+          item.netChange = evalRes.netChange;
+          item.score = evalRes.score;
+
+          list[slotIdx] = item;
+          updatedCount++;
+          updatedCurrencies.add(curr);
         }
 
-        try {
-          localStorage.setItem('forex_dashboard_data_v2', JSON.stringify(nextState));
-        } catch {}
-
-        return nextState;
-      });
+        nextState[curr] = list;
+      }
 
       if (updatedCount > 0) {
-        const unaffectedCount = 72 - updatedCount;
+        setCurrencyIndicators(nextState);
+        try {
+          localStorage.setItem('forex_dashboard_data_v3', JSON.stringify(nextState));
+        } catch {}
+
+        const totalSlots = Object.values(nextState).reduce((acc, arr) => acc + (arr?.length || 0), 0);
+        const unaffectedCount = Math.max(0, totalSlots - updatedCount);
         setUploadModal({
           isOpen: true,
           type: 'success',
@@ -1715,8 +1748,8 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
                 ? `Se cargó la línea base histórica con éxito: ${updatedCount} indicadores actualizados en ${updatedCurrencies.size} divisa(s) (${Array.from(updatedCurrencies).join(', ')}). Puntuaciones iniciales establecidas.`
                 : `Successfully established baseline data: ${updatedCount} indicators populated across ${updatedCurrencies.size} currencies (${Array.from(updatedCurrencies).join(', ')}). Starting scores established.`)
             : (language === 'es'
-                ? `Actualización incremental exitosa: se actualizaron únicamente ${updatedCount} evento(s) de la semana en ${updatedCurrencies.size} divisa(s) (${Array.from(updatedCurrencies).join(', ')}). ${unaffectedCount} indicadores históricos permanecen intactos en almacenamiento local.`
-                : `Incremental update applied: updated only the ${updatedCount} event(s) released this week across ${updatedCurrencies.size} currencies (${Array.from(updatedCurrencies).join(', ')}). ${unaffectedCount} unaffected historical indicators remain completely intact in storage.`),
+                ? `Actualización incremental exitosa: se actualizaron ${updatedCount} indicador(es) en ${updatedCurrencies.size} divisa(s) (${Array.from(updatedCurrencies).join(', ')}). ${unaffectedCount} indicadores históricos permanecen intactos en almacenamiento local.`
+                : `Incremental update applied: updated ${updatedCount} indicator(s) across ${updatedCurrencies.size} currencies (${Array.from(updatedCurrencies).join(', ')}). ${unaffectedCount} unaffected historical indicators remain intact in storage.`),
           updatedCount,
           currencies: Array.from(updatedCurrencies)
         });
@@ -1822,6 +1855,52 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
     setUploadModal(null); // Explicitly reset error modal state
     if (file) processCurrencySpreadsheet(file);
     e.target.value = ''; // Clear file input so user can re-upload the same file
+  };
+
+  const handleAutoSyncValuation = async (week: 'this' | 'next' = 'this') => {
+    if (isSyncingValuation) return;
+    setIsSyncingValuation(true);
+    try {
+      const result = await fetchWeeklyCalendar(week);
+      const csvFile = rowsToCsvFile(result.rows, `kairos_weekly_sync_${week}.csv`);
+      processCurrencySpreadsheet(csvFile);
+    } catch (err: any) {
+      setUploadModal({
+        isOpen: true,
+        type: 'error',
+        title: language === 'es' ? 'Error en Auto-Sync Semanal' : 'Weekly Auto-Sync Failed',
+        message:
+          err?.message ||
+          (language === 'es'
+            ? 'No se pudo obtener el calendario semanal. Asegúrate de estar ejecutando ./start.sh.'
+            : 'Could not fetch live weekly calendar. Make sure the local dev server (./start.sh) is running.'),
+      });
+    } finally {
+      setIsSyncingValuation(false);
+    }
+  };
+
+  const handleProcessValuationPaste = (alsoDownloadCsv = false) => {
+    const rows = parseRawInvestingPaste(valRawPasteText);
+    if (rows.length <= 1) {
+      setUploadModal({
+        isOpen: true,
+        type: 'error',
+        title: language === 'es' ? 'Sin Filas Válidas' : 'No Valid Rows Found',
+        message:
+          language === 'es'
+            ? 'No se detectaron eventos de Investing.com en el texto pegado.'
+            : 'No Investing.com calendar events were detected in the pasted text.',
+      });
+      return;
+    }
+    if (alsoDownloadCsv) {
+      downloadRowsAsCsv(rows, `investing_valuation_${new Date().toISOString().slice(0, 10)}.csv`);
+    }
+    const csvFile = rowsToCsvFile(rows, 'pasted_investing.csv');
+    setValRawPasteText('');
+    setIsValPasteModalOpen(false);
+    processCurrencySpreadsheet(csvFile);
   };
 
   // --- Central Bank Calculations & Trajectory ---
@@ -2376,6 +2455,25 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
                 />
                 <button
                   type="button"
+                  disabled={isSyncingValuation}
+                  onClick={() => handleAutoSyncValuation('this')}
+                  className="flex-1 sm:flex-initial h-9 px-3.5 rounded-[2px] text-[11px] uppercase tracking-[0.08em] bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-semibold transition cursor-pointer inline-flex items-center justify-center gap-1.5"
+                  title={language === 'es' ? 'Sincronizar automáticamente datos semanales en vivo' : 'Automatically fetch & apply this week’s live G10 releases'}
+                >
+                  <RefreshCw size={13} className={`shrink-0 ${isSyncingValuation ? 'animate-spin' : ''}`} />
+                  <span>{isSyncingValuation ? (language === 'es' ? 'Sincronizando...' : 'Syncing...') : (language === 'es' ? 'Auto-Sync Semana' : 'Auto-Sync Week')}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsValPasteModalOpen(true)}
+                  className="flex-1 sm:flex-initial h-9 px-3.5 rounded-[2px] text-[11px] uppercase tracking-[0.08em] bg-[var(--surface)] hover:bg-[var(--surface-2)] text-[var(--accent)] border border-[var(--accent)]/40 transition cursor-pointer inline-flex items-center justify-center gap-1.5"
+                  title={language === 'es' ? 'Pegar texto copiado directo de Investing.com sin usar Gemini' : 'Paste raw text copied from Investing.com without Gemini'}
+                >
+                  <ClipboardPaste size={13} className="shrink-0" />
+                  <span>{language === 'es' ? 'Pegar Texto' : 'Paste Raw'}</span>
+                </button>
+                <button
+                  type="button"
                   onClick={() => currencyInvestingFileRef.current?.click()}
                   className="flex-1 sm:flex-initial h-9 px-3.5 rounded-[2px] text-[11px] uppercase tracking-[0.08em] bg-[var(--ink)] text-[var(--bg)] hover:opacity-90 font-semibold transition cursor-pointer inline-flex items-center justify-center gap-1.5"
                 >
@@ -2674,7 +2772,7 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
                               {evaluated.score > 0 ? `+${evaluated.score}` : evaluated.score}
                             </span>
                           </td>
-                          <td className="p-3 text-right pr-5 text-[var(--ink-muted)] tabular-nums">{ind.weight}</td>
+                          <td className="p-3 text-right pr-5 text-[var(--ink-muted)] tabular-nums">{formatWeightBadge(ind.weight)}</td>
                         </tr>
                       );
                     })}
@@ -2909,6 +3007,58 @@ export function ToolsView({ initialSubTab = 'all', onSubTabChange, language = 'e
             </div>
           </div>
           </section>
+        </div>
+      )}
+
+      {/* Valuation Raw Investing.com Paste Modal */}
+      {isValPasteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-[var(--surface)] border border-[var(--line-strong)] max-w-2xl w-full p-5 space-y-4 shadow-2xl font-mono">
+            <div className="flex items-center justify-between border-b border-[var(--line)] pb-3">
+              <div className="flex items-center gap-2 text-xs font-bold text-[var(--ink)] uppercase tracking-wider">
+                <ClipboardPaste size={15} className="text-[var(--accent)]" />
+                <span>{language === 'es' ? 'Pegar Tabla de Investing.com (Sin Gemini)' : 'Paste Raw Investing.com Table (No Gemini)'}</span>
+              </div>
+              <button type="button" onClick={() => setIsValPasteModalOpen(false)} className="text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer">
+                <X size={16} />
+              </button>
+            </div>
+            <p className="text-[11px] text-[var(--ink-muted)] font-sans">
+              {language === 'es'
+                ? 'Copia el calendario directamente desde Investing.com (Ctrl+C) y pégalo aquí. Se extraerán automáticamente Actual, Pronóstico y Previo para actualizar los indicadores G10.'
+                : 'Copy economic calendar rows directly from Investing.com (Ctrl+C) and paste below. Actual, Forecast, and Previous values will be parsed and applied to matching G10 indicators.'}
+            </p>
+            <textarea
+              value={valRawPasteText}
+              onChange={(e) => setValRawPasteText(e.target.value)}
+              rows={9}
+              placeholder={language === 'es' ? 'Pega aquí el texto copiado de Investing.com...' : 'Paste raw Investing.com text here...'}
+              className="w-full bg-[var(--bg)] border border-[var(--line)] p-3 text-xs text-[var(--ink)] font-mono outline-none focus:border-[var(--accent)]"
+            />
+            <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setIsValPasteModalOpen(false)}
+                className="h-9 px-3.5 text-[11px] uppercase bg-[var(--bg)] text-[var(--ink-muted)] border border-[var(--line)] cursor-pointer"
+              >
+                {language === 'es' ? 'Cancelar' : 'Cancel'}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleProcessValuationPaste(true)}
+                className="h-9 px-3.5 text-[11px] uppercase bg-[var(--surface-2)] text-[var(--ink)] border border-[var(--line-strong)] font-semibold cursor-pointer"
+              >
+                {language === 'es' ? 'Procesar + Descargar CSV' : 'Parse + Download CSV'}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleProcessValuationPaste(false)}
+                className="h-9 px-4 text-[11px] uppercase bg-[var(--ink)] text-[var(--bg)] font-bold cursor-pointer"
+              >
+                {language === 'es' ? 'Procesar y Actualizar' : 'Parse & Update'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

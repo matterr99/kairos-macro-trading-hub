@@ -227,94 +227,104 @@ export const INITIAL_CONSENSUS_EVENTS: ConsensusEvent[] = [
   { id: "c10", time: "19:30", country: "JP", indicator: "Tokyo Core CPI YoY", consensus: "2.1%", range: "2.0% to 2.3%", prior: "2.2%", status: "none", dateIso: "2026-09-29", dayLabel: "TUESDAY, SEP 29, 2026" }
 ];
 
+// Normalized ±20 Max Scale per Currency (Aligned with USD/EUR/GBP Excel models & Macro CEF.pdf)
+// weight: "2.0" => ±4 max (2x), "1.0" => ±2 max (1x), "0.5" => ±1 max (0.5x)
 export const DEFAULT_CURRENCY_INDICATORS: Record<string, MacroIndicator[]> = {
   USD: [
-    { name: "ISM Mfg PMI", date: "2026-08-03", time: "10:00:00", previous: 53.3, forecast: 54.5, actual: 55.6, type: "PMI", weight: "5.0" },
-    { name: "ISM Services PMI", date: "2026-08-05", time: "10:00:00", previous: 54.0, forecast: 54.6, actual: 54.1, type: "PMI", weight: "5.0" },
-    { name: "CPI MoM", date: "2026-08-12", time: "08:30:00", previous: 0.002, forecast: 0.002, actual: 0.001, type: "CPI", weight: "5.0" },
-    { name: "Unemployment Rate", date: "2026-08-07", time: "08:30:00", previous: 0.042, forecast: 0.041, actual: 0.041, type: "UNEMP_RATE", weight: "5.0" },
-    { name: "NFP", date: "2026-08-07", time: "08:30:00", previous: 57, forecast: 145, actual: -23, type: "NFP", weight: "5.0" },
-    { name: "Retail Sales MoM", date: "2026-08-14", time: "08:30:00", previous: 0.002, forecast: 0.004, actual: 0.005, type: "PCT_GROWTH", weight: "4.0" },
-    { name: "CB Consumer Confidence", date: "2026-07-28", time: "10:00:00", previous: 99.5, forecast: 100.2, actual: 100.8, type: "CONFIDENCE", weight: "4.0" },
-    { name: "NFIB Small Business Index", date: "2026-08-11", time: "06:00:00", previous: 93.1, forecast: 93.5, actual: 93.9, type: "INDEX_SMALL", weight: "3.0" },
-    { name: "Atlanta Fed GDPNow", date: "2026-08-19", time: "11:50:00", previous: 0.021, forecast: 0.024, actual: 0.025, type: "PCT_GROWTH", weight: "4.0" }
+    { name: "ISM Mfg PMI", date: "2026-08-03", time: "10:00:00", previous: 49.0, forecast: 48.8, actual: 52.6, type: "PMI", weight: "1.0" },
+    { name: "ISM Services PMI", date: "2026-08-05", time: "10:00:00", previous: 50.8, forecast: 50.8, actual: 53.8, type: "PMI", weight: "1.0" },
+    { name: "NFP", date: "2026-08-07", time: "08:30:00", previous: 14, forecast: 111, actual: 130, type: "NFP", weight: "1.0" },
+    { name: "Unemployment Rate", date: "2026-08-07", time: "08:30:00", previous: 0.041, forecast: 0.043, actual: 0.043, type: "UNEMP_RATE", weight: "1.0" },
+    { name: "Avg Hourly Earnings MoM", date: "2026-08-07", time: "08:30:00", previous: 0.002, forecast: 0.003, actual: 0.004, type: "PCT_GROWTH", weight: "1.0" },
+    { name: "Core PCE MoM", date: "2026-08-28", time: "08:30:00", previous: 0.002, forecast: 0.002, actual: 0.003, type: "CPI", weight: "1.0" },
+    { name: "CPI MoM", date: "2026-08-12", time: "08:30:00", previous: 0.005, forecast: 0.002, actual: 0.002, type: "CPI", weight: "1.0" },
+    { name: "PPI MoM", date: "2026-08-13", time: "08:30:00", previous: 0.006, forecast: 0.003, actual: 0.005, type: "CPI", weight: "1.0" },
+    { name: "Retail Sales MoM", date: "2026-08-14", time: "08:30:00", previous: 0.002, forecast: 0.002, actual: 0.000, type: "PCT_GROWTH", weight: "1.0" },
+    { name: "CB Consumer Confidence", date: "2026-07-28", time: "10:00:00", previous: 93.9, forecast: 90.0, actual: 84.5, type: "CONFIDENCE", weight: "0.5" },
+    { name: "UoM Consumer Sentiment", date: "2026-08-14", time: "10:00:00", previous: 57.0, forecast: 56.5, actual: 56.4, type: "CONFIDENCE", weight: "0.5" }
   ],
   EUR: [
-    { name: "HCOB Mfg PMI", date: "2026-08-21", time: "04:00:00", previous: 51.9, forecast: 51.8, actual: 52.8, type: "PMI", weight: "5.0" },
-    { name: "HCOB Services PMI", date: "2026-08-05", time: "04:00:00", previous: 52.0, forecast: 51.5, actual: 51.7, type: "PMI", weight: "5.0" },
-    { name: "CPI MoM", date: "2026-08-18", time: "05:00:00", previous: 0.002, forecast: 0.002, actual: 0.002, type: "CPI", weight: "5.0" },
-    { name: "Unemployment Rate", date: "2026-08-03", time: "05:00:00", previous: 0.063, forecast: 0.063, actual: 0.063, type: "EUR_UNEMP_FIXED", weight: "4.0" },
-    { name: "Germany Unemp Change", date: "2026-08-04", time: "03:55:00", previous: 17, forecast: 15, actual: 18, type: "GER_UNEMP_CHANGE", weight: "4.0" },
-    { name: "Retail Sales MoM", date: "2026-08-06", time: "05:00:00", previous: -0.003, forecast: 0.001, actual: 0.003, type: "PCT_GROWTH", weight: "4.0" },
-    { name: "Consumer Confidence", date: "2026-08-20", time: "10:00:00", previous: -13.0, forecast: -12.5, actual: -12.2, type: "CONFIDENCE", weight: "3.0" },
-    { name: "IFO Business Climate", date: "2026-08-26", time: "04:00:00", previous: 85.5, forecast: 86.0, actual: 86.5, type: "INDEX_SMALL", weight: "4.0" },
-    { name: "Industrial Production MoM", date: "2026-08-13", time: "05:00:00", previous: -0.006, forecast: 0.002, actual: 0.005, type: "PCT_GROWTH", weight: "3.0" }
+    { name: "CPI MoM", date: "2026-08-18", time: "05:00:00", previous: 0.006, forecast: 0.002, actual: 0.002, type: "CPI", weight: "2.0" },
+    { name: "HCOB Mfg PMI", date: "2026-08-21", time: "04:00:00", previous: 49.0, forecast: 49.4, actual: 49.4, type: "PMI", weight: "1.0" },
+    { name: "HCOB Services PMI", date: "2026-08-21", time: "04:00:00", previous: 50.1, forecast: 51.0, actual: 51.9, type: "PMI", weight: "1.0" },
+    { name: "Unemployment Rate", date: "2026-08-03", time: "05:00:00", previous: 0.062, forecast: 0.063, actual: 0.062, type: "EUR_UNEMP_FIXED", weight: "1.0" },
+    { name: "Eurozone Wage Growth YoY", date: "2026-08-20", time: "05:00:00", previous: 0.041, forecast: 0.032, actual: 0.030, type: "PCT_GROWTH", weight: "1.0" },
+    { name: "Retail Sales MoM", date: "2026-08-06", time: "05:00:00", previous: 0.002, forecast: 0.000, actual: 0.000, type: "PCT_GROWTH", weight: "1.0" },
+    { name: "ZEW Economic Sentiment", date: "2026-08-18", time: "05:00:00", previous: 36.0, forecast: 36.5, actual: 40.8, type: "CONFIDENCE", weight: "1.0" },
+    { name: "Industrial Production MoM", date: "2026-08-13", time: "05:00:00", previous: 0.011, forecast: 0.007, actual: 0.007, type: "PCT_GROWTH", weight: "1.0" },
+    { name: "Consumer Confidence", date: "2026-08-20", time: "10:00:00", previous: -16.7, forecast: -16.0, actual: -15.8, type: "CONFIDENCE", weight: "0.5" },
+    { name: "IFO Business Climate", date: "2026-08-26", time: "04:00:00", previous: 85.5, forecast: 86.0, actual: 86.5, type: "INDEX_SMALL", weight: "0.5" }
   ],
   GBP: [
-    { name: "S&P Mfg PMI", date: "2026-08-21", time: "04:30:00", previous: 52.1, forecast: 51.4, actual: 52.5, type: "PMI", weight: "5.0" },
-    { name: "S&P Services PMI", date: "2026-08-21", time: "04:30:00", previous: 52.1, forecast: 51.6, actual: 52.8, type: "PMI", weight: "5.0" },
-    { name: "CPI MoM", date: "2026-08-19", time: "02:00:00", previous: 0.001, forecast: 0.002, actual: 0.002, type: "CPI", weight: "5.0" },
-    { name: "Unemployment Rate", date: "2026-08-11", time: "02:00:00", previous: 0.044, forecast: 0.044, actual: 0.044, type: "UNEMP_RATE", weight: "5.0" },
-    { name: "Claimant Count", date: "2026-08-11", time: "02:00:00", previous: 13.5, forecast: 22.0, actual: 23.7, type: "GBP_CLAIMANT", weight: "4.0" },
-    { name: "Retail Sales MoM", date: "2026-08-21", time: "02:00:00", previous: 0.005, forecast: -0.002, actual: -0.001, type: "GBP_RETAIL", weight: "4.0" },
-    { name: "GfK Consumer Confidence", date: "2026-08-21", time: "19:01:00", previous: -13, forecast: -12, actual: -11, type: "CONFIDENCE", weight: "4.0" },
-    { name: "CBI Industrial Trends", date: "2026-08-20", time: "06:00:00", previous: -20, forecast: -18, actual: -15, type: "SURVEY_5", weight: "3.0" },
-    { name: "Monthly GDP", date: "2026-08-14", time: "02:00:00", previous: 0.002, forecast: 0.001, actual: 0.001, type: "PCT_GROWTH", weight: "5.0" }
-  ],
-  JPY: [
-    { name: "Jibun Mfg PMI", date: "2026-08-21", time: "20:30:00", previous: 49.1, forecast: 49.5, actual: 49.8, type: "PMI", weight: "5.0" },
-    { name: "Jibun Services PMI", date: "2026-08-21", time: "20:30:00", previous: 53.7, forecast: 54.0, actual: 54.1, type: "PMI", weight: "5.0" },
-    { name: "Tokyo CPI MoM", date: "2026-07-31", time: "19:30:00", previous: 0.002, forecast: 0.001, actual: 0.002, type: "CPI", weight: "5.0" },
-    { name: "Unemployment Rate", date: "2026-07-31", time: "19:30:00", previous: 0.025, forecast: 0.025, actual: 0.025, type: "UNEMP_RATE", weight: "5.0" },
-    { name: "Cash Earnings MoM", date: "2026-08-06", time: "19:30:00", previous: 0.045, forecast: 0.023, actual: 0.021, type: "PCT_GROWTH", weight: "5.0" },
-    { name: "Retail Sales MoM", date: "2026-07-30", time: "19:50:00", previous: 0.006, forecast: 0.002, actual: 0.004, type: "PCT_GROWTH", weight: "4.0" },
-    { name: "Consumer Survey", date: "2026-08-05", time: "01:00:00", previous: 36.7, forecast: 37.0, actual: 36.4, type: "CONFIDENCE", weight: "4.0" },
-    { name: "Reuters Tankan", date: "2026-08-19", time: "19:00:00", previous: 7, forecast: 9, actual: 10, type: "SURVEY_5", weight: "4.0" },
-    { name: "JCER Monthly GDP", date: "2026-08-17", time: "19:50:00", previous: 0.002, forecast: -0.001, actual: 0.001, type: "PCT_GROWTH", weight: "4.0" }
+    { name: "CPI MoM", date: "2026-08-19", time: "02:00:00", previous: -0.001, forecast: 0.004, actual: 0.004, type: "CPI", weight: "2.0" },
+    { name: "Avg Earnings ex-Bonus YoY", date: "2026-08-11", time: "02:00:00", previous: 0.061, forecast: 0.046, actual: 0.042, type: "PCT_GROWTH", weight: "1.0" },
+    { name: "S&P Mfg PMI", date: "2026-08-21", time: "04:30:00", previous: 46.4, forecast: 49.5, actual: 51.6, type: "PMI", weight: "1.0" },
+    { name: "S&P Services PMI", date: "2026-08-21", time: "04:30:00", previous: 51.1, forecast: 52.0, actual: 54.3, type: "PMI", weight: "1.0" },
+    { name: "Unemployment Rate", date: "2026-08-11", time: "02:00:00", previous: 0.044, forecast: 0.049, actual: 0.052, type: "UNEMP_RATE", weight: "1.0" },
+    { name: "Claimant Count Change", date: "2026-08-11", time: "02:00:00", previous: 22.0, forecast: 24.0, actual: 28.6, type: "GBP_CLAIMANT", weight: "1.0" },
+    { name: "Retail Sales MoM", date: "2026-08-21", time: "02:00:00", previous: 0.014, forecast: 0.004, actual: 0.004, type: "GBP_RETAIL", weight: "1.0" },
+    { name: "Labor Productivity QoQ", date: "2026-08-14", time: "02:00:00", previous: 0.007, forecast: 0.009, actual: 0.011, type: "PCT_GROWTH", weight: "1.0" },
+    { name: "GfK Consumer Confidence", date: "2026-08-21", time: "19:01:00", previous: -20, forecast: -17, actual: -17, type: "CONFIDENCE", weight: "1.0" }
   ],
   AUD: [
-    { name: "Judo Mfg PMI", date: "2026-08-21", time: "19:00:00", previous: 47.5, forecast: 48.0, actual: 48.2, type: "PMI", weight: "5.0" },
-    { name: "Judo Services PMI", date: "2026-08-21", time: "19:00:00", previous: 50.4, forecast: 50.6, actual: 50.8, type: "AUD_SERVICES", weight: "5.0" },
-    { name: "CPI Indicator MoM", date: "2026-07-31", time: "21:30:00", previous: 0.0049, forecast: 0.0036, actual: 0.0005, type: "CPI", weight: "5.0" },
-    { name: "Unemployment Rate", date: "2026-08-20", time: "21:30:00", previous: 0.044, forecast: 0.044, actual: 0.045, type: "UNEMP_RATE", weight: "5.0" },
-    { name: "Employment Change", date: "2026-08-20", time: "21:30:00", previous: 80.3, forecast: 15.0, actual: -15.8, type: "JOBS_K", weight: "5.0" },
-    { name: "Retail Sales MoM", date: "2026-08-04", time: "21:30:00", previous: 0.005, forecast: 0.003, actual: 0.005, type: "PCT_GROWTH", weight: "4.0" },
-    { name: "Westpac Sentiment", date: "2026-08-11", time: "19:30:00", previous: 82.7, forecast: 83.5, actual: 84.1, type: "CONFIDENCE", weight: "4.0" },
-    { name: "NAB Business Confidence", date: "2026-08-11", time: "20:30:00", previous: 4, forecast: 5, actual: 6, type: "SURVEY_5", weight: "4.0" },
-    { name: "AIG Industry Index", date: "2026-08-17", time: "18:00:00", previous: -6.1, forecast: -5.0, actual: -4.2, type: "SURVEY_5", weight: "3.0" }
-  ],
-  NZD: [
-    { name: "BusNZ Mfg PMI", date: "2026-08-14", time: "18:30:00", previous: 41.1, forecast: 42.5, actual: 43.0, type: "PMI", weight: "5.0" },
-    { name: "BusNZ Services PMI", date: "2026-08-17", time: "17:30:00", previous: 40.2, forecast: 42.0, actual: 41.5, type: "PMI", weight: "5.0" },
-    { name: "Food Prices MoM", date: "2026-08-13", time: "17:45:00", previous: -0.002, forecast: 0.001, actual: 0.002, type: "CPI", weight: "4.0" },
-    { name: "Unemployment Rate", date: "2026-08-05", time: "17:45:00", previous: 0.046, forecast: 0.047, actual: 0.046, type: "UNEMP_RATE", weight: "5.0" },
-    { name: "MEI Jobs Change", date: "2026-07-29", time: "17:45:00", previous: 0.001, forecast: 0.001, actual: 0.001, type: "PCT_GROWTH", weight: "4.0" },
-    { name: "Card Transactions", date: "2026-08-11", time: "17:45:00", previous: -0.003, forecast: 0.001, actual: 0.002, type: "CARD_TRANS", weight: "4.0" },
-    { name: "ANZ Consumer Confidence", date: "2026-07-31", time: "21:00:00", previous: 87.9, forecast: 89.0, actual: 88.2, type: "CONFIDENCE", weight: "4.0" },
-    { name: "ANZ Business Confidence", date: "2026-07-30", time: "20:00:00", previous: 27.1, forecast: 30.0, actual: 29.5, type: "ANZ_BIZ", weight: "4.0" },
-    { name: "BusNZ Activity Index", date: "2026-08-18", time: "17:30:00", previous: -0.002, forecast: 0.001, actual: 0.001, type: "PCT_GROWTH", weight: "4.0" }
+    { name: "Trimmed Mean / Monthly CPI", date: "2026-07-31", time: "21:30:00", previous: 0.004, forecast: 0.003, actual: 0.002, type: "CPI", weight: "2.0" },
+    { name: "Employment Change", date: "2026-08-20", time: "21:30:00", previous: 45.0, forecast: 20.0, actual: 15.0, type: "JOBS_K", weight: "1.0" },
+    { name: "Unemployment Rate", date: "2026-08-20", time: "21:30:00", previous: 0.044, forecast: 0.044, actual: 0.045, type: "UNEMP_RATE", weight: "1.0" },
+    { name: "Wage Price Index (WPI)", date: "2026-08-12", time: "21:30:00", previous: 0.008, forecast: 0.008, actual: 0.009, type: "PCT_GROWTH", weight: "1.0" },
+    { name: "Retail Sales / Spending MoM", date: "2026-08-04", time: "21:30:00", previous: 0.005, forecast: 0.003, actual: 0.005, type: "PCT_GROWTH", weight: "1.0" },
+    { name: "Trade Balance", date: "2026-08-06", time: "21:30:00", previous: 5.5, forecast: 5.2, actual: 5.8, type: "TRADE_BAL", weight: "1.0" },
+    { name: "China Mfg PMI / PPI Proxy", date: "2026-08-01", time: "21:45:00", previous: 49.5, forecast: 49.8, actual: 50.2, type: "PMI", weight: "1.0" },
+    { name: "Judo Mfg PMI", date: "2026-08-21", time: "19:00:00", previous: 47.5, forecast: 48.0, actual: 48.2, type: "PMI", weight: "0.5" },
+    { name: "Judo Services PMI", date: "2026-08-21", time: "19:00:00", previous: 50.4, forecast: 50.6, actual: 50.8, type: "AUD_SERVICES", weight: "0.5" },
+    { name: "NAB Business Confidence", date: "2026-08-11", time: "20:30:00", previous: 4, forecast: 5, actual: 6, type: "SURVEY_5", weight: "0.5" },
+    { name: "Westpac Consumer Sentiment", date: "2026-08-11", time: "19:30:00", previous: 82.7, forecast: 83.5, actual: 84.1, type: "CONFIDENCE", weight: "0.5" }
   ],
   CAD: [
-    { name: "S&P Mfg PMI", date: "2026-08-04", time: "09:30:00", previous: 47.8, forecast: 48.5, actual: 48.1, type: "PMI", weight: "5.0" },
-    { name: "Ivey PMI", date: "2026-08-07", time: "10:00:00", previous: 57.6, forecast: 56.5, actual: 57.1, type: "PMI", weight: "5.0" },
-    { name: "CPI MoM", date: "2026-08-18", time: "08:30:00", previous: -0.001, forecast: 0.002, actual: 0.001, type: "CPI", weight: "5.0" },
-    { name: "Unemployment Rate", date: "2026-08-07", time: "08:30:00", previous: 0.064, forecast: 0.064, actual: 0.064, type: "UNEMP_RATE", weight: "5.0" },
-    { name: "Net Employment Change", date: "2026-08-07", time: "08:30:00", previous: -1.4, forecast: 22.0, actual: -2.8, type: "CAD_JOBS", weight: "5.0" },
-    { name: "Retail Sales MoM", date: "2026-08-21", time: "08:30:00", previous: -0.008, forecast: 0.004, actual: 0.003, type: "PCT_GROWTH", weight: "4.0" },
-    { name: "CB Consumer Survey", date: "2026-08-11", time: "11:00:00", previous: 50.15, forecast: 51.0, actual: 50.8, type: "CONFIDENCE", weight: "4.0" },
-    { name: "CFIB Business Barometer", date: "2026-08-06", time: "10:00:00", previous: 55.4, forecast: 56.0, actual: 55.9, type: "CONFIDENCE", weight: "3.0" },
-    { name: "Monthly GDP MoM", date: "2026-07-31", time: "08:30:00", previous: 0.003, forecast: 0.002, actual: 0.002, type: "PCT_GROWTH", weight: "5.0" }
+    { name: "CPI / BoC Core (Median/Trimmed)", date: "2026-08-18", time: "08:30:00", previous: 0.001, forecast: 0.002, actual: 0.001, type: "CPI", weight: "2.0" },
+    { name: "Net Employment Change", date: "2026-08-07", time: "08:30:00", previous: -1.4, forecast: 22.0, actual: -2.8, type: "CAD_JOBS", weight: "1.0" },
+    { name: "Unemployment Rate", date: "2026-08-07", time: "08:30:00", previous: 0.064, forecast: 0.064, actual: 0.064, type: "UNEMP_RATE", weight: "1.0" },
+    { name: "Avg Hourly Wages YoY", date: "2026-08-07", time: "08:30:00", previous: 0.036, forecast: 0.035, actual: 0.037, type: "PCT_GROWTH", weight: "1.0" },
+    { name: "Retail Sales MoM", date: "2026-08-21", time: "08:30:00", previous: -0.008, forecast: 0.004, actual: 0.003, type: "PCT_GROWTH", weight: "1.0" },
+    { name: "Monthly GDP MoM", date: "2026-07-31", time: "08:30:00", previous: 0.003, forecast: 0.002, actual: 0.002, type: "PCT_GROWTH", weight: "1.0" },
+    { name: "Trade Balance", date: "2026-08-05", time: "08:30:00", previous: 0.6, forecast: 0.8, actual: 1.1, type: "TRADE_BAL", weight: "1.0" },
+    { name: "CFIB / BoC Business Outlook", date: "2026-08-06", time: "10:00:00", previous: 55.4, forecast: 56.0, actual: 55.9, type: "CONFIDENCE", weight: "1.0" },
+    { name: "S&P Mfg PMI", date: "2026-08-04", time: "09:30:00", previous: 47.8, forecast: 48.5, actual: 48.1, type: "PMI", weight: "0.5" },
+    { name: "Ivey PMI", date: "2026-08-07", time: "10:00:00", previous: 57.6, forecast: 56.5, actual: 57.1, type: "PMI", weight: "0.5" }
+  ],
+  JPY: [
+    { name: "Tokyo CPI / National Core CPI", date: "2026-07-31", time: "19:30:00", previous: 0.002, forecast: 0.001, actual: 0.002, type: "CPI", weight: "2.0" },
+    { name: "Labor Cash Earnings YoY", date: "2026-08-06", time: "19:30:00", previous: 0.032, forecast: 0.025, actual: 0.028, type: "PCT_GROWTH", weight: "1.0" },
+    { name: "Reuters / BoJ Tankan", date: "2026-08-19", time: "19:00:00", previous: 7, forecast: 9, actual: 10, type: "SURVEY_5", weight: "1.0" },
+    { name: "Jibun Mfg PMI", date: "2026-08-21", time: "20:30:00", previous: 49.1, forecast: 49.5, actual: 49.8, type: "PMI", weight: "1.0" },
+    { name: "Jibun Services PMI", date: "2026-08-21", time: "20:30:00", previous: 53.7, forecast: 54.0, actual: 54.1, type: "PMI", weight: "1.0" },
+    { name: "PPI / CGPI MoM", date: "2026-08-12", time: "19:50:00", previous: 0.002, forecast: 0.002, actual: 0.003, type: "CPI", weight: "1.0" },
+    { name: "Household Spending / Retail MoM", date: "2026-07-30", time: "19:50:00", previous: 0.006, forecast: 0.002, actual: 0.004, type: "PCT_GROWTH", weight: "1.0" },
+    { name: "Trade Balance", date: "2026-08-18", time: "19:50:00", previous: 0.2, forecast: 0.1, actual: 0.3, type: "TRADE_BAL", weight: "1.0" },
+    { name: "Unemployment Rate", date: "2026-07-31", time: "19:30:00", previous: 0.025, forecast: 0.025, actual: 0.025, type: "UNEMP_RATE", weight: "0.5" },
+    { name: "Consumer Confidence", date: "2026-08-05", time: "01:00:00", previous: 36.7, forecast: 37.0, actual: 36.4, type: "CONFIDENCE", weight: "0.5" }
+  ],
+  NZD: [
+    { name: "Quarterly CPI / Food Prices", date: "2026-08-13", time: "17:45:00", previous: 0.004, forecast: 0.005, actual: 0.006, type: "CPI", weight: "2.0" },
+    { name: "GDT Dairy Price Index", date: "2026-08-18", time: "11:00:00", previous: 0.005, forecast: 0.010, actual: 0.015, type: "PCT_GROWTH", weight: "1.0" },
+    { name: "Trade Balance", date: "2026-08-20", time: "17:45:00", previous: 0.4, forecast: 0.3, actual: 0.5, type: "TRADE_BAL", weight: "1.0" },
+    { name: "Unemployment Rate", date: "2026-08-05", time: "17:45:00", previous: 0.046, forecast: 0.047, actual: 0.046, type: "UNEMP_RATE", weight: "1.0" },
+    { name: "Employment Change / MEI Jobs", date: "2026-07-29", time: "17:45:00", previous: 0.001, forecast: 0.001, actual: 0.002, type: "PCT_GROWTH", weight: "1.0" },
+    { name: "BusNZ Mfg PMI", date: "2026-08-14", time: "18:30:00", previous: 41.1, forecast: 42.5, actual: 43.0, type: "PMI", weight: "1.0" },
+    { name: "BusNZ Services PMI (PSI)", date: "2026-08-17", time: "17:30:00", previous: 40.2, forecast: 42.0, actual: 41.5, type: "PMI", weight: "1.0" },
+    { name: "Card Transactions MoM", date: "2026-08-11", time: "17:45:00", previous: -0.003, forecast: 0.001, actual: 0.002, type: "CARD_TRANS", weight: "1.0" },
+    { name: "ANZ Business Confidence", date: "2026-07-30", time: "20:00:00", previous: 27.1, forecast: 30.0, actual: 29.5, type: "ANZ_BIZ", weight: "0.5" },
+    { name: "ANZ Consumer Confidence", date: "2026-07-31", time: "21:00:00", previous: 87.9, forecast: 89.0, actual: 88.2, type: "CONFIDENCE", weight: "0.5" }
   ],
   CHF: [
-    { name: "Procure Mfg PMI", date: "2026-08-04", time: "03:30:00", previous: 43.1, forecast: 44.5, actual: 43.9, type: "PMI", weight: "5.0" },
-    { name: "Procure Services PMI", date: "2026-08-05", time: "03:30:00", previous: 52.4, forecast: 53.0, actual: 52.7, type: "PMI", weight: "5.0" },
-    { name: "CPI MoM", date: "2026-08-04", time: "02:30:00", previous: -0.002, forecast: 0.001, actual: -0.001, type: "CPI", weight: "5.0" },
-    { name: "Unemp Rate", date: "2026-08-07", time: "03:00:00", previous: 0.024, forecast: 0.024, actual: 0.025, type: "UNEMP_RATE", weight: "5.0" },
-    { name: "Unemp Change", date: "2026-08-07", time: "03:00:00", previous: 1.2, forecast: 1.0, actual: 1.1, type: "CHF_UNEMP_CHANGE", weight: "4.0" },
-    { name: "Retail Sales MoM", date: "2026-07-31", time: "02:30:00", previous: 0.003, forecast: 0.002, actual: 0.001, type: "PCT_GROWTH", weight: "4.0" },
-    { name: "Consumer Sentiment", date: "2026-08-06", time: "03:00:00", previous: -34.0, forecast: -32.0, actual: -33.0, type: "CONFIDENCE", weight: "4.0" },
-    { name: "KOF Indicator", date: "2026-07-30", time: "03:00:00", previous: 101.0, forecast: 101.5, actual: 101.2, type: "CONFIDENCE", weight: "4.0" },
-    { name: "SECO Economic Indicators", date: "2026-08-18", time: "03:00:00", previous: 0.012, forecast: 0.013, actual: 0.013, type: "PCT_GROWTH", weight: "5.0" }
+    { name: "CPI MoM", date: "2026-08-04", time: "02:30:00", previous: -0.002, forecast: 0.001, actual: -0.001, type: "CPI", weight: "2.0" },
+    { name: "Trade Balance", date: "2026-08-20", time: "02:00:00", previous: 4.1, forecast: 4.3, actual: 4.8, type: "TRADE_BAL", weight: "2.0" },
+    { name: "Procure Services PMI", date: "2026-08-05", time: "03:30:00", previous: 52.4, forecast: 53.0, actual: 52.7, type: "PMI", weight: "1.0" },
+    { name: "Procure Mfg PMI", date: "2026-08-04", time: "03:30:00", previous: 43.1, forecast: 44.5, actual: 43.9, type: "PMI", weight: "1.0" },
+    { name: "KOF Economic Barometer", date: "2026-07-30", time: "03:00:00", previous: 101.0, forecast: 101.5, actual: 101.2, type: "CONFIDENCE", weight: "1.0" },
+    { name: "PPI MoM", date: "2026-08-14", time: "02:30:00", previous: -0.001, forecast: 0.001, actual: 0.000, type: "CPI", weight: "1.0" },
+    { name: "GDP QoQ", date: "2026-08-18", time: "03:00:00", previous: 0.003, forecast: 0.004, actual: 0.004, type: "PCT_GROWTH", weight: "1.0" },
+    { name: "Real Retail Sales YoY", date: "2026-07-31", time: "02:30:00", previous: 0.003, forecast: 0.002, actual: 0.001, type: "PCT_GROWTH", weight: "0.5" },
+    { name: "Unemployment Rate", date: "2026-08-07", time: "03:00:00", previous: 0.024, forecast: 0.024, actual: 0.025, type: "UNEMP_RATE", weight: "0.5" }
   ]
 };
 

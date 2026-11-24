@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import * as XLSX from 'xlsx';
 import Papa from 'papaparse';
-import { Printer, Download, Upload, RotateCcw, Pin, Copy, Check, X, AlertTriangle, AlertCircle, CheckCircle2, Info, FileText } from 'lucide-react';
+import { Printer, Download, Upload, RotateCcw, Pin, Copy, Check, X, AlertTriangle, AlertCircle, CheckCircle2, Info, FileText, RefreshCw, ClipboardPaste } from 'lucide-react';
 import { Language } from '../types';
 import { normalizeCurrencyCode, isG10Currency } from '../utils/currencyUtils';
+import { fetchWeeklyCalendar, parseRawInvestingPaste, downloadRowsAsCsv } from '../utils/weeklyCalendarSync';
 import { ToolHeader } from './ToolHeader';
 import { SpreadsheetDropZone } from './SpreadsheetDropZone';
 
@@ -63,6 +64,7 @@ const CORE_INDICATOR_RULES: Array<{
   { id: 'USD_WAGES', ccy: 'USD', match: ['average hourly earnings', 'ingresos medios por hora'], avoid: [] },
   { id: 'USD_RETAIL', ccy: 'USD', match: ['retail sales', 'ventas minoristas'], avoid: [] },
   { id: 'USD_GDP', ccy: 'USD', match: ['gdp', 'atlanta fed gdpnow', 'gdpnow', 'pib'], avoid: ['final'] },
+  { id: 'USD_EIA_OIL', ccy: 'USD', match: ['crude oil inventories', 'eia crude oil', 'inventarios de petroleo crudo'], avoid: ['cushing', 'gasoline', 'distillate'] },
 
   // EUR - Single Mandate Inflation (CPI/PPI/Wages) + Leading Activity (HCOB PMIs, IFO, ZEW) + German/EZ Trade
   { id: 'EUR_HCOB_MFG', ccy: 'EUR', match: ['hcob euro zone manufacturing pmi', 'german manufacturing pmi', 'french manufacturing pmi', 'pmi manufacturero de la zona euro'], avoid: ['services', 'composite', 'construction', 'final', 'italy', 'spain'] },
@@ -127,10 +129,10 @@ const CORE_INDICATOR_RULES: Array<{
   { id: 'CAD_RETAIL', ccy: 'CAD', match: ['retail sales', 'ventas minoristas'], avoid: [] },
   { id: 'CAD_GDP', ccy: 'CAD', match: ['monthly gdp', 'gdp', 'pib mensual', 'pib'], avoid: ['final'] },
 
-  // CHF - CPI (Deflation/SNB Trigger) + KOF + Procure.ch PMI + Trade Balance
+  // CHF - CPI (Deflation/SNB Trigger) + KOF + Procure.ch PMI (Mfg & Services) + Trade Balance
   { id: 'CHF_CPI', ccy: 'CHF', match: ['cpi', 'ipc'], avoid: [] },
   { id: 'CHF_KOF', ccy: 'CHF', match: ['kof economic barometer', 'kof indicator', 'barometro economico kof'], avoid: [] },
-  { id: 'CHF_PROCURE', ccy: 'CHF', match: ['procure.ch manufacturing pmi', 'procure.ch pmi', 'pmi del sector manufacturero de procure.ch'], avoid: ['services'] },
+  { id: 'CHF_PROCURE', ccy: 'CHF', match: ['procure.ch manufacturing pmi', 'procure.ch services pmi', 'procure.ch pmi', 'pmi del sector manufacturero de procure.ch'], avoid: [] },
   { id: 'CHF_GDP_RETAIL', ccy: 'CHF', match: ['gdp', 'real retail sales', 'retail sales', 'trade balance', 'pib', 'ventas minoristas', 'balanza comercial'], avoid: [] },
 
   // CNH - China Catalysts Driving AUD, NZD & Global Commodities
@@ -151,7 +153,7 @@ const WHITELIST: Record<string, string[]> = {
     'manufacturing pmi', 'services pmi', 'non-manufacturing pmi',
     'pmi manufacturero', 'pmi de servicios', 'pmi no manufacturero'
   ],
-  USD: ['ism', 'cpi', 'pce', 'ppi', 'unemployment rate', 'unemployment', 'nfp', 'nonfarm payrolls', 'non-farm payrolls', 'adp', 'average hourly earnings', 'employment cost index', 'eci', 'jobless claims', 'continuing jobless', 'jolts', 'retail sales', 'trade balance', 'gdp', 'gdpnow', 'atlanta fed', 'cb consumer confidence', 'michigan', 'u-mich', 'nfib', 'philly fed', 'empire state', 'durable goods', 'ipc', 'tasa de desempleo', 'balanza comercial'],
+  USD: ['ism', 'cpi', 'pce', 'ppi', 'unemployment rate', 'unemployment', 'nfp', 'nonfarm payrolls', 'non-farm payrolls', 'adp', 'average hourly earnings', 'employment cost index', 'eci', 'jobless claims', 'continuing jobless', 'jolts', 'retail sales', 'trade balance', 'gdp', 'gdpnow', 'atlanta fed', 'cb consumer confidence', 'michigan', 'u-mich', 'nfib', 'philly fed', 'empire state', 'durable goods', 'crude oil inventories', 'eia crude oil', 'ipc', 'tasa de desempleo', 'balanza comercial'],
   CAD: ['ivey', 'cpi', 'median cpi', 'trimmed cpi', 'common cpi', 'ppi', 'ippi', 'unemployment rate', 'unemployment', 'net employment change', 'employment change', 'average hourly wages', 'hourly wages', 'retail sales', 'trade balance', 'monthly gdp', 'gdp', 'boc business outlook', 'cfib', 'cb consumer survey', 'ipc', 'tasa de desempleo', 'desempleo', 'empleo', 'ventas minoristas', 'balanza comercial', 'pib'],
   EUR: ['hcob', 'cpi', 'hicp', 'ppi', 'negotiated wages', 'unemployment', 'germany unemp', 'retail sales', 'trade balance', 'gdp', 'ifo', 'zew', 'consumer confidence', 'gfk', 'ipc', 'tasa de desempleo', 'desempleo', 'ventas minoristas', 'balanza comercial', 'pib'],
   CHF: ['procure', 'svme', 'cpi', 'ppi', 'unemp', 'unemployment', 'retail sales', 'trade balance', 'gdp', 'kof', 'seco', 'consumer sentiment', 'ipc', 'tasa de desempleo', 'desempleo', 'ventas minoristas', 'balanza comercial', 'pib'],
@@ -207,8 +209,8 @@ function isWhitelisted(ccy: string, eventName: string): boolean {
   const lower = normalizeText(eventName);
 
   const blacklist = [
-    // Energy & Commodities (Scored separately in Intermarket)
-    'opec', 'crude oil', 'oil inventories', 'eia crude', 'gasoline inventories', 'distillate stocks', 'baker hughes',
+    // Energy noise (EIA Crude Oil Inventories kept as CAD/Oil catalyst per Macro CEF.pdf p. 44)
+    'opec', 'gasoline inventories', 'distillate stocks', 'cushing crude', 'baker hughes',
     // Sovereign Debt, Bond, Note & Bill Auctions
     'auction', 'bill auction', 'note auction', 'bond auction', 'oat', 'bund', 'btp', 'gilt', 'jgb',
     'subasta', 'obligacion', 'bonos', 'letras',
@@ -233,27 +235,27 @@ function isWhitelisted(ccy: string, eventName: string): boolean {
   // EUR Regional Noise Filter (Keep Eurozone aggregate & Germany; block peripheral prints)
   if (ccy === 'EUR') {
     const regionalNoise = ['italy', 'italian', 'spain', 'spanish', 'belgium', 'austria', 'greece', 'portugal', 'dutch', 'netherlands'];
-    const isAllowedSpeech = lower.includes('lagarde') || lower.includes('schnabel') || lower.includes('lane') || lower.includes('nagel') || lower.includes('villeroy') || lower.includes('knot') || lower.includes('panetta') || lower.includes('escriva');
+    const isAllowedSpeech = lower.includes('lagarde') || lower.includes('schnabel') || lower.includes('lane') || lower.includes('nagel') || lower.includes('villeroy') || lower.includes('knot') || lower.includes('panetta') || lower.includes('escriva') || lower.includes('de cos');
     const isCoreMacro = lower.includes('euro zone') || lower.includes('eurozone') || lower.includes('german') || lower.includes('germany') || lower.includes('ifo') || lower.includes('zew');
     if (regionalNoise.some(term => lower.includes(term)) && !isAllowedSpeech && !isCoreMacro) {
       return false;
     }
   }
 
-  // Central Bank & Executive Speakers Filter ("Los Ruidosos" vs "Los Monolitos")
+  // Central Bank & Executive Speakers Filter ("Los Ruidosos" vs "Los Monolitos" - Macro CEF.pdf pp. 59-61)
   if (lower.includes('speaks') || lower.includes('speech') || lower.includes('testimony') || lower.includes('discurso')) {
     if (ccy === 'USD') return true; // Includes Fed voters/regionals & US President
     if (ccy === 'EUR') {
-      const ecbVips = ['lagarde', 'schnabel', 'lane', 'nagel', 'villeroy', 'knot', 'panetta', 'escriva', 'president'];
+      const ecbVips = ['lagarde', 'schnabel', 'lane', 'nagel', 'villeroy', 'knot', 'panetta', 'escriva', 'de cos', 'president'];
       return ecbVips.some(name => lower.includes(name));
     }
     if (ccy === 'GBP') {
       const boeVips = ['bailey', 'pill', 'mann', 'dhingra', 'greene', 'taylor', 'governor', 'mpc member'];
       return boeVips.some(name => lower.includes(name));
     }
-    if (ccy === 'CAD') return lower.includes('macklem') || lower.includes('governor');
+    if (ccy === 'CAD') return lower.includes('macklem') || lower.includes('rogers') || lower.includes('governor');
     if (ccy === 'AUD') return lower.includes('bullock') || lower.includes('governor');
-    if (ccy === 'NZD') return lower.includes('breman') || lower.includes('orr') || lower.includes('governor');
+    if (ccy === 'NZD') return lower.includes('breman') || lower.includes('orr') || lower.includes('conway') || lower.includes('governor');
     if (ccy === 'JPY') return lower.includes('ueda') || lower.includes('governor');
     if (ccy === 'CHF') return lower.includes('schlegel') || lower.includes('president') || lower.includes('chairman');
     return false;
@@ -271,6 +273,17 @@ function isWhitelisted(ccy: string, eventName: string): boolean {
 
 function getCategorySentimentTitle(ccy: string, eventName: string, isEs: boolean): string {
   const norm = normalizeText(eventName);
+
+  // ISM sub-components (Macro CEF.pdf p. 9): Prices -> Inflation, Employment -> Labor
+  if (norm.includes('ism') && (norm.includes('prices') || norm.includes('precios'))) {
+    return isEs ? `Inflación y Presión de Precios (${ccy})` : `Inflation & Price Pressures (${ccy})`;
+  }
+  if (norm.includes('ism') && (norm.includes('employment') || norm.includes('empleo'))) {
+    return isEs ? `Mercado Laboral y Salarios (${ccy})` : `Labor Market & Employment (${ccy})`;
+  }
+  if (norm.includes('crude oil') || norm.includes('eia crude') || norm.includes('petroleo crudo')) {
+    return isEs ? `Energía y Catalizador Petróleo (${ccy}/CAD)` : `Energy & Crude Oil Catalyst (${ccy}/CAD)`;
+  }
 
   if (norm.includes('pmi') || norm.includes('manufacturing') || norm.includes('services') || norm.includes('manufacturero') || norm.includes('servicios') || norm.includes('ifo') || norm.includes('zew') || norm.includes('kof') || norm.includes('tankan') || norm.includes('industry') || norm.includes('industria')) {
     return isEs ? `Actividad Económica y PMI (${ccy})` : `Economic Activity & PMIs (${ccy})`;
@@ -419,6 +432,9 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
 
   const [isReportModalOpen, setIsReportModalOpen] = useState<boolean>(false);
   const [copiedReportText, setCopiedReportText] = useState<boolean>(false);
+  const [isSyncingCalendar, setIsSyncingCalendar] = useState<boolean>(false);
+  const [isPasteModalOpen, setIsPasteModalOpen] = useState<boolean>(false);
+  const [rawPasteText, setRawPasteText] = useState<string>('');
 
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
     const id = Date.now();
@@ -1501,6 +1517,49 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
     { id: 'Gold', name: isEs ? 'Oro (XAU/USD)' : 'Gold (XAU/USD)' }
   ];
 
+  const handleAutoSyncWeekly = async (week: 'this' | 'next' = 'this') => {
+    if (isSyncingCalendar) return;
+    setIsSyncingCalendar(true);
+    try {
+      const result = await fetchWeeklyCalendar(week);
+      processSpreadsheetRows(result.rows);
+      showToast(
+        isEs
+          ? `Sincronización automática exitosa (${result.count} eventos crudos procesados).`
+          : `Auto-Sync complete (${result.count} raw events processed).`,
+        'success'
+      );
+    } catch (err: any) {
+      showToast(
+        isEs
+          ? `Error en Auto-Sync: ${err?.message || 'Verifica conexión local (./start.sh)'}`
+          : `Auto-Sync failed: ${err?.message || 'Ensure local dev server (./start.sh) is running'}`,
+        'error'
+      );
+    } finally {
+      setIsSyncingCalendar(false);
+    }
+  };
+
+  const handleProcessRawPaste = (alsoDownloadCsv = false) => {
+    const rows = parseRawInvestingPaste(rawPasteText);
+    if (rows.length <= 1) {
+      showToast(
+        isEs
+          ? 'No se detectaron filas válidas de Investing.com en el texto pegado.'
+          : 'No valid Investing.com rows detected in pasted text.',
+        'error'
+      );
+      return;
+    }
+    if (alsoDownloadCsv) {
+      downloadRowsAsCsv(rows, `investing_calendar_${new Date().toISOString().slice(0, 10)}.csv`);
+    }
+    processSpreadsheetRows(rows);
+    setRawPasteText('');
+    setIsPasteModalOpen(false);
+  };
+
   return (
     <div className="w-full bg-[var(--bg)] text-[var(--ink)] font-sans antialiased min-h-screen space-y-6 pb-16 selection:bg-[#3B82F6]/30">
       
@@ -1526,6 +1585,27 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
             >
               <Pin size={13} />
               <span>{isEs ? 'Fijar Semana Previa' : 'Lock Prior Week'}</span>
+            </button>
+
+            <button
+              type="button"
+              disabled={isSyncingCalendar}
+              onClick={() => handleAutoSyncWeekly('this')}
+              className="flex-1 sm:flex-initial h-9 px-3.5 rounded-[2px] text-[11px] uppercase tracking-[0.08em] bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-semibold transition cursor-pointer inline-flex items-center justify-center gap-1.5"
+              title={isEs ? 'Descargar y filtrar automáticamente el calendario semanal en vivo' : 'Automatically fetch & filter this week’s live G10 calendar'}
+            >
+              <RefreshCw size={13} className={isSyncingCalendar ? 'animate-spin' : ''} />
+              <span>{isSyncingCalendar ? (isEs ? 'Sincronizando...' : 'Syncing...') : (isEs ? 'Auto-Sync Semana' : 'Auto-Sync Week')}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsPasteModalOpen(true)}
+              className="flex-1 sm:flex-initial h-9 px-3.5 rounded-[2px] text-[11px] uppercase tracking-[0.08em] bg-[var(--surface)] hover:bg-[var(--surface-2)] text-[var(--accent)] border border-[var(--accent)]/40 transition cursor-pointer inline-flex items-center justify-center gap-1.5"
+              title={isEs ? 'Pegar texto copiado directo de Investing.com sin usar Gemini' : 'Paste raw text copied from Investing.com without Gemini'}
+            >
+              <ClipboardPaste size={13} />
+              <span>{isEs ? 'Pegar Investing' : 'Paste Investing'}</span>
             </button>
 
             <button
@@ -1750,6 +1830,38 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
                 const strongData = getFullCurrencyBreakdownGrouped(d.strong);
                 const weakData = getFullCurrencyBreakdownGrouped(d.weak);
                 const isBuy = d.direction === 'BUY';
+                const cnhScore = computedMatrix.totals['CNH'] || 0;
+                const oilScore = computedMatrix.totals['Oil'] || 0;
+                const vixScore = computedMatrix.totals['VIX'] || 0;
+                const riskAlerts: string[] = [];
+                if (d.weak === 'CHF') {
+                  riskAlerts.push(
+                    isEs
+                      ? '⚠️ Alerta CHF: Evitar financiar cortos en CHF en pánico (riesgo de Short Squeeze / superávit estructural).'
+                      : '⚠️ CHF Caution: Shorting CHF carries structural surplus & Risk-Off Short Squeeze risk.'
+                  );
+                }
+                if ((d.strong === 'AUD' || d.strong === 'NZD') && cnhScore <= -2) {
+                  riskAlerts.push(
+                    isEs
+                      ? `⚠️ Contexto China (CNH ${cnhScore}): Debilidad en China presiona al ${d.strong}.`
+                      : `⚠️ China Headwind (CNH ${cnhScore}): Weak China cycle pressures ${d.strong}.`
+                  );
+                }
+                if (d.strong === 'CAD' && oilScore <= -2) {
+                  riskAlerts.push(
+                    isEs
+                      ? `⚠️ Contexto Petróleo (${oilScore}): Crudo débil frena la fortaleza del CAD.`
+                      : `⚠️ Oil Headwind (${oilScore}): Weak crude oil weighs on CAD.`
+                  );
+                }
+                if (['AUD', 'NZD', 'CAD'].includes(d.strong) && vixScore <= -2) {
+                  riskAlerts.push(
+                    isEs
+                      ? `⚠️ Régimen Risk-Off (VIX ${vixScore}): Aversión al riesgo favorece refugios (CHF/JPY/USD) sobre ${d.strong}.`
+                      : `⚠️ Risk-Off Regime (VIX ${vixScore}): Risk aversion favors havens (CHF/JPY/USD) over ${d.strong}.`
+                  );
+                }
                 const tierBadge =
                   d.diff >= 6
                     ? {
@@ -1794,6 +1906,16 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
                         </span>
                       </div>
                     </div>
+
+                    {riskAlerts.length > 0 && (
+                      <div className="space-y-1">
+                        {riskAlerts.map((alertMsg, rIdx) => (
+                          <div key={rIdx} className="text-[10px] font-mono px-2.5 py-1.5 bg-amber-950/40 border border-amber-500/40 text-amber-200 leading-snug">
+                            {alertMsg}
+                          </div>
+                        ))}
+                      </div>
+                    )}
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-sans">
                       {/* STRONG CURRENCY CARD */}
@@ -2348,6 +2470,58 @@ export const KairosMacroHub: React.FC<KairosMacroHubProps> = ({
       )}
 
       {/* WEEKLY MACRO RISK REPORT MODAL */}
+      {/* PASTE RAW INVESTING.COM MODAL */}
+      {isPasteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-[var(--surface)] border border-[var(--line-strong)] max-w-2xl w-full p-5 space-y-4 shadow-2xl font-mono">
+            <div className="flex items-center justify-between border-b border-[var(--line)] pb-3">
+              <div className="flex items-center gap-2 text-xs font-bold text-[var(--ink)] uppercase tracking-wider">
+                <ClipboardPaste size={15} className="text-[var(--accent)]" />
+                <span>{isEs ? 'Pegar Calendario de Investing.com (Sin Gemini)' : 'Paste Raw Investing.com Calendar (No Gemini)'}</span>
+              </div>
+              <button type="button" onClick={() => setIsPasteModalOpen(false)} className="text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer">
+                <X size={16} />
+              </button>
+            </div>
+            <p className="text-[11px] text-[var(--ink-muted)] font-sans">
+              {isEs
+                ? 'Copia directamente la tabla de Investing.com (Ctrl+C) y pégala aquí. El parser nativo divide fechas, horas, cuentas regresivas y valores concatenados automáticamente.'
+                : 'Copy rows directly from Investing.com (Ctrl+C) and paste below. The built-in parser extracts dates, times, countdowns, and concatenated Actual/Forecast/Previous values automatically.'}
+            </p>
+            <textarea
+              value={rawPasteText}
+              onChange={(e) => setRawPasteText(e.target.value)}
+              rows={9}
+              placeholder={isEs ? 'Pega aquí el texto copiado de Investing.com...' : 'Paste raw Investing.com economic calendar text here...'}
+              className="w-full bg-[var(--bg)] border border-[var(--line)] p-3 text-xs text-[var(--ink)] font-mono outline-none focus:border-[var(--accent)]"
+            />
+            <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setIsPasteModalOpen(false)}
+                className="h-9 px-3.5 text-[11px] uppercase bg-[var(--bg)] text-[var(--ink-muted)] border border-[var(--line)] cursor-pointer"
+              >
+                {isEs ? 'Cancelar' : 'Cancel'}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleProcessRawPaste(true)}
+                className="h-9 px-3.5 text-[11px] uppercase bg-[var(--surface-2)] text-[var(--ink)] border border-[var(--line-strong)] font-semibold cursor-pointer"
+              >
+                {isEs ? 'Procesar + Descargar CSV' : 'Parse + Download CSV'}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleProcessRawPaste(false)}
+                className="h-9 px-4 text-[11px] uppercase bg-[var(--ink)] text-[var(--bg)] font-bold cursor-pointer"
+              >
+                {isEs ? 'Procesar y Cargar' : 'Parse & Load'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {isReportModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-6 bg-black/90 backdrop-blur-md overflow-y-auto">
           <div className="bg-[#0b0c10] border border-[var(--line)] rounded-[2px] max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
